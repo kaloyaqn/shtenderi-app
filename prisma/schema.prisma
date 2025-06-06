@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Stand {
+  id        String   @id @default(uuid())
+  name      String
+  store     Store    @relation(fields: [storeId], references: [id])
+  storeId   String
+  rows      Int
+  columns   Int
+  createdAt DateTime @default(now())
+
+  standProducts StandProduct[]
+  checks        Check[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  barcode     String   @unique
+  clientPrice Float
+  pcd         String?
+  createdAt   DateTime @default(now())
+
+  standProducts   StandProduct[]
+  checkedProducts CheckedProduct[]
+}
+
+model StandProduct {
+  id        String   @id @default(uuid())
+  stand     Stand    @relation(fields: [standId], references: [id])
+  standId   String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+
+  row       Int?     // по желание: позиция по ред
+  column    Int?     // по желание: позиция по колона
+}
+
+model Check {
+  id        String   @id @default(uuid())
+  stand     Stand    @relation(fields: [standId], references: [id])
+  standId   String
+  user      String
+  createdAt DateTime @default(now())
+
+  checkedProducts CheckedProduct[]
+}
+
+model CheckedProduct {
+  id         String   @id @default(uuid())
+  check      Check    @relation(fields: [checkId], references: [id])
+  checkId    String
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  quantity   Int
+  status     String   // "ok", "missing", "replaced"
+}
+
+model User {
+  id             String   @id @default(uuid())
+  name           String?
+  email          String   @unique
+  password       String   // хеширана с bcrypt
+  role           Role     @default(USER)
+  emailVerified  DateTime?
+  createdAt      DateTime @default(now())
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model Partner {
+  id             String   @id               // Външен ID (въвежда се ръчно)
+  name           String                     // Име на фирмата
+  bulstat        String?                    // Булстат
+  contactPerson  String?                    // Лице за контакт
+  phone          String?                    // Телефон
+
+  stores         Store[]                    // Връзка към магазини
+}
+
+model Store {
+  id          String   @id @default(uuid()) // Генерирано ID
+  address     String                         // Локация (адрес)
+  contact     String?                        // Лице за контакт
+  phone       String?                        // Телефон
+  createdAt   DateTime @default(now())
+
+  partner     Partner  @relation(fields: [partnerId], references: [id])
+  partnerId   String                          // Външният ID на фирмата
+
+  stands      Stand[]                         // Щендери в магазина
+}
