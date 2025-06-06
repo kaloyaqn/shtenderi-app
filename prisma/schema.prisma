@@ -93,6 +93,7 @@ model Partner {
 
 model Store {
   id          String   @id @default(uuid()) // Генерирано ID
+  name        String?
   address     String                         // Локация (адрес)
   contact     String?                        // Лице за контакт
   phone       String?                        // Телефон

@@ -1,29 +1,23 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// GET: Fetch a single partner
+// GET: Fetch a single partner, optionally with stores
 export async function GET(req, { params }) {
   try {
     const { partnerId } = params
-
+    const url = new URL(req.url, 'http://localhost')
+    const includeStores = url.searchParams.get('includeStores') === '1'
     const partner = await prisma.partner.findUnique({
       where: { id: partnerId },
+      include: includeStores ? { stores: true } : undefined,
     })
-
     if (!partner) {
-      return NextResponse.json(
-        { error: 'Partner not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Partner not found' }, { status: 404 })
     }
-
     return NextResponse.json(partner)
   } catch (error) {
     console.error('[PARTNER_GET_ERROR]', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch partner' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch partner' }, { status: 500 })
   }
 }
 

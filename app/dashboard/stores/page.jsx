@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
@@ -16,39 +16,31 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-export default function PartnersPage() {
+export default function StoresPage() {
   const router = useRouter()
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [partnerToDelete, setPartnerToDelete] = useState(null)
+  const [storeToDelete, setStoreToDelete] = useState(null)
 
   const columns = [
     {
-      accessorKey: "id",
-      header: "ID",
+      accessorKey: "name",
+      header: "Име на магазин",
       cell: ({ row }) => {
-        const partner = row.original;
+        const store = row.original;
         return (
           <a
-            href={`/dashboard/partners/${partner.id}`}
+            href={`/dashboard/stores/${store.id}`}
             className="text-blue-600 underline hover:text-blue-800"
           >
-            {partner.id}
+            {store.name}
           </a>
         );
       },
     },
     {
-      accessorKey: "name",
-      header: "Име на фирмата",
-    },
-    {
-      accessorKey: "bulstat",
-      header: "Булстат",
-    },
-    {
-      accessorKey: "contactPerson",
+      accessorKey: "contact",
       header: "Лице за контакт",
     },
     {
@@ -56,23 +48,20 @@ export default function PartnersPage() {
       header: "Телефон",
     },
     {
-      accessorKey: "stores",
-      header: "Магазини",
-      cell: ({ row }) => {
-        const stores = row.original.stores
-        return <div>{stores?.length || 0}</div>
-      },
+      accessorKey: "partner",
+      header: "Партньор",
+      cell: ({ row }) => row.original.partner?.name || "-",
     },
     {
       id: "actions",
       cell: ({ row }) => {
-        const partner = row.original
+        const store = row.original
         return (
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push(`/dashboard/partners/${partner.id}/edit`)}
+              onClick={() => router.push(`/dashboard/stores/${store.id}/edit`)}
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -80,7 +69,7 @@ export default function PartnersPage() {
               variant="ghost"
               size="icon"
               onClick={() => {
-                setPartnerToDelete(partner)
+                setStoreToDelete(store)
                 setDeleteDialogOpen(true)
               }}
             >
@@ -92,45 +81,40 @@ export default function PartnersPage() {
     },
   ]
 
-  const fetchPartners = async () => {
+  const fetchStores = async () => {
     try {
-      const response = await fetch('/api/partners')
-      if (!response.ok) throw new Error('Failed to fetch partners')
-      const partners = await response.json()
-      setData(partners)
+      const response = await fetch('/api/stores')
+      if (!response.ok) throw new Error('Failed to fetch stores')
+      const stores = await response.json()
+      setData(stores)
     } catch (error) {
-      console.error('Error fetching partners:', error)
+      console.error('Error fetching stores:', error)
     } finally {
       setLoading(false)
     }
   }
 
   const handleDelete = async () => {
-    if (!partnerToDelete) return
-
+    if (!storeToDelete) return
     try {
-      const response = await fetch(`/api/partners/${partnerToDelete.id}`, {
+      const response = await fetch(`/api/stores/${storeToDelete.id}`, {
         method: 'DELETE',
       })
-
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to delete partner')
+        throw new Error(error.error || 'Failed to delete store')
       }
-
-      // Refresh the data
-      fetchPartners()
+      fetchStores()
     } catch (error) {
-      console.error('Error deleting partner:', error)
-      // You might want to show an error toast here
+      console.error('Error deleting store:', error)
     } finally {
       setDeleteDialogOpen(false)
-      setPartnerToDelete(null)
+      setStoreToDelete(null)
     }
   }
 
-  useState(() => {
-    fetchPartners()
+  useEffect(() => {
+    fetchStores()
   }, [])
 
   if (loading) {
@@ -140,47 +124,28 @@ export default function PartnersPage() {
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Партньори</h1>
-        <Button onClick={() => router.push('/dashboard/partners/create')}>
+        <h1 className="text-3xl font-bold">Магазини</h1>
+        <Button onClick={() => router.push('/dashboard/stores/create')}>
           <Plus className="mr-2 h-4 w-4" />
-          Добави партньор
+          Добави магазин
         </Button>
       </div>
-
-      <DataTable 
-        columns={columns} 
-        data={data} 
-        searchKey="name"
+      <DataTable
+        columns={columns}
+        data={data}
+        searchKey="address"
         filterableColumns={[
-          {
-            id: "id",
-            title: "ID",
-          },
-          {
-            id: "name",
-            title: "Име на фирмата",
-          },
-          {
-            id: "bulstat",
-            title: "Булстат",
-          },
-          {
-            id: "contactPerson",
-            title: "Лице за контакт",
-          },
-          {
-            id: "phone",
-            title: "Телефон",
-          },
+          { id: "address", title: "Адрес" },
+          { id: "contact", title: "Лице за контакт" },
+          { id: "phone", title: "Телефон" },
         ]}
       />
-
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Изтриване на партньор</AlertDialogTitle>
+            <AlertDialogTitle>Изтриване на магазин</AlertDialogTitle>
             <AlertDialogDescription>
-              Сигурни ли сте, че искате да изтриете партньор {partnerToDelete?.name}?
+              Сигурни ли сте, че искате да изтриете този магазин?
               Това действие не може да бъде отменено.
             </AlertDialogDescription>
           </AlertDialogHeader>
