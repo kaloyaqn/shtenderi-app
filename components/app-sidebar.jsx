@@ -32,6 +32,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { PersonStanding, Store } from "lucide-react"
 
 const data = {
   user: {
@@ -46,14 +47,14 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
+      title: "Партньори",
+      url: "/partners",
+      icon: PersonStanding,
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
+      title: "Магазини",
+      url: "/stores",
+      icon: Store,
     },
     {
       title: "Projects",
@@ -133,14 +134,14 @@ const data = {
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
+      name: "Магазини",
+      url: "/dashboard/stores",
+      icon: Store,
     },
     {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
+      name: "Партньори",
+      url: "/dashboard/partners",
+      icon: PersonStanding,
     },
     {
       name: "Word Assistant",

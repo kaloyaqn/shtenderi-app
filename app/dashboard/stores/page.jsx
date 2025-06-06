@@ -51,6 +51,11 @@ export default function StoresPage() {
       accessorKey: "partner",
       header: "Партньор",
       cell: ({ row }) => row.original.partner?.name || "-",
+      filterFn: (row, columnId, filterValue) => {
+        const partner = row.original.partner;
+        if (!partner || !partner.name) return false;
+        return partner.name.toLowerCase().includes(filterValue.toLowerCase());
+      },
     },
     {
       id: "actions",
@@ -133,11 +138,12 @@ export default function StoresPage() {
       <DataTable
         columns={columns}
         data={data}
-        searchKey="address"
+        searchKey="name"
         filterableColumns={[
-          { id: "address", title: "Адрес" },
+          { id: "name", title: "Име на магазин" },
           { id: "contact", title: "Лице за контакт" },
           { id: "phone", title: "Телефон" },
+          { id: "partner", title: "Партньор" },
         ]}
       />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

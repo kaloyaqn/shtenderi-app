@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link";
 import { IconCirclePlusFilled, IconMail } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button"
@@ -37,10 +38,23 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title}>
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
-              </SidebarMenuButton>
+              {item.href ? (
+                <Link href={item.href} passHref legacyBehavior>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </>
+                  </SidebarMenuButton>
+                </Link>
+              ) : (
+                <SidebarMenuButton tooltip={item.title} disabled>
+                  <>
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </>
+                </SidebarMenuButton>
+              )}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
