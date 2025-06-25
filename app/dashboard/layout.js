@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
-import { SessionProvider } from "next-auth/react";
+import SessionLayout from "./SessionLayout";
 
 export default async function DashboardLayout({children}) {
     const session = await getServerSession(authOptions)
@@ -15,21 +15,19 @@ export default async function DashboardLayout({children}) {
     }
 
     return (
-        <>
-      <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        }
-      }
-    >
-              <AppSidebar variant="inset" />
-      <SidebarInset className='p-4'>
-        <Toaster />
-      {children}
-      </SidebarInset>
-    </SidebarProvider>
-        </>
+        <SessionLayout session={session}>
+          <SidebarProvider
+            style={{
+              "--sidebar-width": "calc(var(--spacing) * 72)",
+              "--header-height": "calc(var(--spacing) * 12)",
+            }}
+          >
+            <AppSidebar variant="inset" />
+            <SidebarInset className='p-4'>
+              <Toaster />
+              {children}
+            </SidebarInset>
+          </SidebarProvider>
+        </SessionLayout>
     )
 }

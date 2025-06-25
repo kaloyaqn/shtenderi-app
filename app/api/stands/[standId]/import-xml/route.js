@@ -8,38 +8,47 @@ export async function POST(req, { params }) {
     if (!Array.isArray(products) || !standId) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
-    for (const product of products) {
-      if (!product.barcode || typeof product.quantity !== 'number') continue;
-      // Find the product by barcode
-      const dbProduct = await prisma.product.findUnique({
-        where: { barcode: String(product.barcode) },
-        select: { id: true },
-      });
-      if (!dbProduct) continue; // skip if product not found
-      // Find existing standProduct
-      const existing = await prisma.standProduct.findUnique({
-        where: {
-          standId_productId: {
-            standId,
-            productId: dbProduct.id,
-          },
-        },
-      });
-      if (existing) {
-        await prisma.standProduct.update({
-          where: { standId_productId: { standId, productId: dbProduct.id } },
-          data: { quantity: existing.quantity + product.quantity },
+
+    await prisma.$transaction(async (tx) => {
+      for (const product of products) {
+        if (!product.barcode || typeof product.quantity !== 'number') continue;
+
+        let dbProduct = await tx.product.findUnique({
+            where: { barcode: String(product.barcode) },
         });
-      } else {
-        await prisma.standProduct.create({
-          data: {
-            standId,
-            productId: dbProduct.id,
-            quantity: product.quantity,
-          },
+
+        if (!dbProduct) {
+            dbProduct = await tx.product.create({
+                data: {
+                    barcode: String(product.barcode),
+                    name: product.name || `Imported ${product.barcode}`,
+                    clientPrice: product.clientPrice || 0,
+                    quantity: product.quantity,
+                },
+            });
+        }
+
+        await tx.standProduct.upsert({
+            where: {
+                standId_productId: {
+                    standId,
+                    productId: dbProduct.id,
+                },
+            },
+            update: {
+                quantity: {
+                    increment: product.quantity,
+                },
+            },
+            create: {
+                standId,
+                productId: dbProduct.id,
+                quantity: product.quantity,
+            },
         });
       }
-    }
+    });
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Import Stand XML error:', err);

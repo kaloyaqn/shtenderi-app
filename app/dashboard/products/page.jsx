@@ -24,6 +24,75 @@ import {
 import { XMLParser } from "fast-xml-parser"
 import { toast } from 'sonner'
 
+function EditableCell({ value, onSave, type = 'text', min, max }) {
+  const [editing, setEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(value ?? '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const inputRef = useRef();
+
+  useEffect(() => {
+    setInputValue(value ?? '');
+  }, [value]);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editing]);
+
+  const handleSave = async () => {
+    if (inputValue === value) {
+      setEditing(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await onSave(inputValue);
+      setEditing(false);
+    } catch (err) {
+      setError('Грешка при запис');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setEditing(false);
+      setInputValue(value ?? '');
+    }
+  };
+
+  if (editing) {
+    return (
+      <div>
+        <input
+          ref={inputRef}
+          type={type}
+          min={min}
+          max={max}
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          className="border rounded px-2 py-1 w-20 text-sm"
+          disabled={loading}
+        />
+        {error && <div className="text-xs text-red-500">{error}</div>}
+      </div>
+    );
+  }
+  return (
+    <span className="cursor-pointer underline decoration-dotted" onClick={() => setEditing(true)}>
+      {value === null || value === undefined || value === '' ? <span className="text-muted-foreground">—</span> : value}
+    </span>
+  );
+}
+
 export default function ProductsPage() {
   const router = useRouter()
   const [data, setData] = useState([])
@@ -32,6 +101,8 @@ export default function ProductsPage() {
   const [productToDelete, setProductToDelete] = useState(null)
   const [importError, setImportError] = useState(null)
   const fileInputRef = useRef()
+  const [showQuantityPrompt, setShowQuantityPrompt] = useState(false)
+  const [pendingProducts, setPendingProducts] = useState(null)
 
   const fetchProducts = async () => {
     setLoading(true)
@@ -92,34 +163,72 @@ export default function ProductsPage() {
       const mapped = products.map(good => ({
         barcode: good.barcode,
         name: good.name,
-        clientPrice: parseFloat(good.price)
+        clientPrice: parseFloat(good.price),
+        quantity: good.quantity !== undefined ? parseInt(good.quantity, 10) : undefined,
       }));
-      // Send to API
-      await toast.promise(
-        (async () => {
-          const response = await fetch('/api/products/import-xml', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ products: mapped })
-          });
-          if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error || 'Import failed');
-          }
-          await fetchProducts();
-        })(),
-        {
-          loading: 'Импортиране... Моля, изчакайте',
-          success: 'Импортирането е успешно!',
-          error: (err) => err.message || 'Възникна грешка при импортиране',
-        }
-      );
+      setPendingProducts(mapped);
+      setShowQuantityPrompt(true);
     } catch (err) {
       setImportError(err.message);
     } finally {
       e.target.value = '';
     }
   }
+
+  const handleImportWithQuantities = async (updateQuantities) => {
+    setShowQuantityPrompt(false);
+    if (!pendingProducts) return;
+    // Remove quantity if not updating
+    const productsToSend = updateQuantities
+      ? pendingProducts
+      : pendingProducts.map(p => {
+          const { quantity, ...rest } = p;
+          return rest;
+        });
+    await toast.promise(
+      (async () => {
+        const response = await fetch('/api/products/import-xml', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ products: productsToSend, updateQuantities })
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Import failed');
+        }
+        await fetchProducts();
+      })(),
+      {
+        loading: 'Импортиране... Моля, изчакайте',
+        success: 'Импортирането е успешно!',
+        error: (err) => err.message || 'Възникна грешка при импортиране',
+      }
+    );
+    setPendingProducts(null);
+  };
+
+  const handleUpdateProductField = async (id, field, newValue) => {
+    const product = data.find(p => p.id === id);
+    if (!product) return;
+    const patch = { [field]: field === 'quantity' ? parseInt(newValue, 10) : newValue };
+    // Always send required fields for updateProduct
+    patch.name = product.name;
+    patch.barcode = product.barcode;
+    patch.clientPrice = product.clientPrice;
+    await fetch(`/api/products/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    await fetchProducts();
+  };
+
+  const getRowClassName = (row) => {
+    if (row.original.quantity === 0) {
+      return "bg-red-50 dark:bg-red-950";
+    }
+    return "";
+  };
 
   const columns = [
     {
@@ -136,43 +245,56 @@ export default function ProductsPage() {
       cell: ({ row }) => `${row.original.clientPrice.toFixed(2)} лв.`,
     },
     {
-        accessorKey: "pcd",
-        header: "ПЦД",
+      accessorKey: "pcd",
+      header: "ПЦД",
+      cell: ({ row }) => (
+        <EditableCell
+          value={row.original.pcd}
+          onSave={val => handleUpdateProductField(row.original.id, 'pcd', val)}
+        />
+      ),
     },
     {
-      accessorKey: "totalQuantity",
+      accessorKey: "quantity",
       header: "Общо количество",
       cell: ({ row }) => {
         const product = row.original;
         const assignedQuantity = product.standProducts.reduce((sum, sp) => sum + sp.quantity, 0);
         const unassignedQuantity = product.quantity - assignedQuantity;
-        const totalQuantity = unassignedQuantity + assignedQuantity;
+
         return (
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span className="cursor-help underline decoration-dotted">{totalQuantity}</span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p className="font-bold mb-2">Разпределение:</p>
-                        <ul>
-                            {product.standProducts.map(sp => (
-                                <li key={sp.id}>
-                                    {sp.stand.name}: {sp.quantity}
-                                </li>
-                            ))}
-                            <li className="mt-1 pt-1 border-t">
-                                Неразпределени: {unassignedQuantity}
-                            </li>
-                        </ul>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                    <EditableCell
+                        value={product.quantity}
+                        type="number"
+                        min={0}
+                        onSave={val => handleUpdateProductField(product.id, 'quantity', val)}
+                    />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-bold mb-2">Разпределение:</p>
+                <ul>
+                    {product.standProducts.map(sp => (
+                        <li key={sp.id}>
+                            {sp.stand.name}: {sp.quantity}
+                        </li>
+                    ))}
+                    <li className="mt-1 pt-1 border-t">
+                        Неразпределени: {unassignedQuantity}
+                    </li>
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       }
     },
     {
-      accessorKey: "quantity",
+      accessorKey: "unassignedQuantity",
       header: "Количество БУС",
       cell: ({ row }) => {
         const product = row.original;
@@ -217,7 +339,7 @@ export default function ProductsPage() {
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2"> <Bus size={32}/> БУС</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2"> <Bus size={32}/> СКЛАД {"(БУС)"}</h1>
         <div className="flex gap-2">
           <Button onClick={() => router.push('/dashboard/products/create')}>
             <Plus className="mr-2 h-4 w-4" />
@@ -244,6 +366,7 @@ export default function ProductsPage() {
         data={data} 
         searchKey="name"
         filterableColumns={[{ id: 'barcode', title: 'Баркод' }]}
+        rowClassName={getRowClassName}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -258,6 +381,21 @@ export default function ProductsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Отказ</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Изтрий</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showQuantityPrompt} onOpenChange={setShowQuantityPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Обновяване на количества?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Искате ли да обновите количествата на продуктите при импортиране от XML?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleImportWithQuantities(false)}>Не</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleImportWithQuantities(true)}>Да</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

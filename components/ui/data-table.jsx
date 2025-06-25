@@ -33,6 +33,7 @@ export function DataTable({
   data,
   searchKey,
   filterableColumns = [],
+  rowClassName,
 }) {
   const [sorting, setSorting] = useState([])
   const [columnFilters, setColumnFilters] = useState([])
@@ -134,6 +135,7 @@ export function DataTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className={rowClassName ? rowClassName(row) : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

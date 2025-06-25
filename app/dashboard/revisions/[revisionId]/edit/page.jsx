@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DataTable } from '@/components/ui/data-table';
 
 export default function RevisionEditPage() {
   const params = useParams();
@@ -71,8 +72,54 @@ export default function RevisionEditPage() {
   if (loading) return <div>Зареждане...</div>;
   if (!revision) return <div>Ревизията не е намерена.</div>;
 
+  const columns = [
+    {
+      accessorKey: 'name',
+      header: 'Име',
+      cell: ({ row }) => row.original.product?.name || '-',
+    },
+    {
+      accessorKey: 'barcode',
+      header: 'Баркод',
+      cell: ({ row }) => row.original.product?.barcode || '-',
+    },
+    {
+      accessorKey: 'missingQuantity',
+      header: 'Брой',
+      cell: ({ row, table }) => (
+        <Input
+          type="number"
+          min={1}
+          value={row.original.missingQuantity}
+          onChange={e => {
+            const idx = table.options.data.findIndex(mp => mp.productId === row.original.productId);
+            handleQuantityChange(idx, e.target.value);
+          }}
+          className="w-20"
+        />
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row, table }) => {
+        const idx = table.options.data.findIndex(mp => mp.productId === row.original.productId);
+        return (
+          <Button size="sm" variant="ghost" onClick={() => handleRemove(idx)}>Премахни</Button>
+        );
+      },
+    },
+  ];
+
+  // Flatten data for DataTable
+  const data = missingProducts.map(mp => ({
+    ...mp,
+    name: mp.product?.name || '-',
+    barcode: mp.product?.barcode || '-',
+  }));
+
   return (
-    <div className="container mx-auto py-10 max-w-2xl">
+    <div className="py-10 ">
       <h1 className="text-2xl font-bold mb-6">Редакция на ревизия</h1>
       <div className="mb-4">
         <b>Щанд:</b> {revision.stand?.name || '-'}<br/>
@@ -81,37 +128,16 @@ export default function RevisionEditPage() {
         <b>Дата:</b> {new Date(revision.createdAt).toLocaleString()}<br/>
       </div>
       <h2 className="text-lg font-semibold mb-2">Липсващи продукти</h2>
-      <table className="w-full border rounded mb-6">
-        <thead>
-          <tr className="bg-muted">
-            <th className="p-2 text-left">Име</th>
-            <th className="p-2 text-left">Баркод</th>
-            <th className="p-2 text-left">Брой</th>
-            <th className="p-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {missingProducts.map((mp, idx) => (
-            <tr key={mp.productId}>
-              <td className="p-2">{mp.product?.name || '-'}</td>
-              <td className="p-2">{mp.product?.barcode || '-'}</td>
-              <td className="p-2">
-                <Input
-                  type="number"
-                  min={1}
-                  value={mp.missingQuantity}
-                  onChange={e => handleQuantityChange(idx, e.target.value)}
-                  className="w-20"
-                />
-              </td>
-              <td className="p-2 text-right">
-                <Button size="sm" variant="ghost" onClick={() => handleRemove(idx)}>Премахни</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="flex items-center gap-2 mb-4">
+      <DataTable
+        columns={columns}
+        data={data}
+        searchKey="name"
+        filterableColumns={[
+          { id: 'name', title: 'Име' },
+          { id: 'barcode', title: 'Баркод' },
+        ]}
+      />
+      <div className="flex items-center gap-2 mb-4 mt-4">
         <Input
           placeholder="Баркод на продукт за добавяне"
           value={newBarcode}

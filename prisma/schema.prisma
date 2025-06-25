@@ -35,18 +35,18 @@ model Product {
   missingProducts MissingProduct[]
 }
 
-   model StandProduct {
-     id        String   @id @default(uuid())
-     stand     Stand    @relation(fields: [standId], references: [id])
-     standId   String
-     product   Product  @relation(fields: [productId], references: [id])
-     productId String
-     quantity  Int
+model StandProduct {
+  id        String   @id @default(uuid())
+  stand     Stand    @relation(fields: [standId], references: [id])
+  standId   String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
      row       Int?
      column    Int?
-   
+
      @@unique([standId, productId])
-   }
+}
 
 model Check {
   id        String   @id @default(uuid())

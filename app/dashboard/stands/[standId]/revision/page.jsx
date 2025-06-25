@@ -21,6 +21,7 @@ export default function StandRevisionPage({ params }) {
   const inputRef = useRef();
   const [scannerOpen, setScannerOpen] = useState(false);
   const scannerRef = useRef(null);
+  const [revisionId, setRevisionId] = useState(null);
 
   // Fetch products for this stand
   useEffect(() => {
@@ -101,6 +102,34 @@ export default function StandRevisionPage({ params }) {
     e.preventDefault();
     const barcode = e.target.barcode.value.trim();
     if (!barcode) return;
+    const prod = products.find(p => p.product.barcode === barcode);
+    if (!prod) {
+      toast.error('Продукт с този баркод не е намерен.');
+      e.target.reset();
+      inputRef.current?.focus();
+      return;
+    }
+    const origQty = prod.quantity;
+    if (origQty === 0) {
+      toast.warning('Няма налични бройки от този продукт.');
+      e.target.reset();
+      inputRef.current?.focus();
+      return;
+    }
+    const remainingItem = remaining.find(p => p.barcode === barcode);
+    if (remainingItem && remainingItem.remaining === 0) {
+      toast.warning('Няма налични бройки от този продукт.');
+      e.target.reset();
+      inputRef.current?.focus();
+      return;
+    }
+    const checkedItem = checked.find(p => p.barcode === barcode);
+    if (checkedItem && checkedItem.checked >= origQty) {
+      toast.warning('Няма толкова налични бройки от този продукт.');
+      e.target.reset();
+      inputRef.current?.focus();
+      return;
+    }
     setRemaining(prev => prev.map(p => {
       if (p.barcode === barcode && p.remaining > 0) {
         return { ...p, remaining: p.remaining - 1 };
@@ -110,16 +139,10 @@ export default function StandRevisionPage({ params }) {
     setChecked(prev => {
       const idx = prev.findIndex(p => p.barcode === barcode);
       if (idx !== -1) {
-        // Already checked, increment
         return prev.map((p, i) => i === idx ? { ...p, checked: p.checked + 1 } : p);
       } else {
-        // New checked
-        const prod = products.find(p => p.product.barcode === barcode);
-        if (prod) {
-          return [...prev, { barcode, name: prod.product.name, checked: 1 }];
-        }
+        return [...prev, { barcode, name: prod.product.name, checked: 1 }];
       }
-      return prev;
     });
     e.target.reset();
     inputRef.current?.focus();
@@ -146,6 +169,8 @@ export default function StandRevisionPage({ params }) {
           }),
         });
         if (!res.ok) throw new Error('Грешка при запис на ревизията');
+        const data = await res.json();
+        setRevisionId(data.id);
         toast.success('Ревизията е записана успешно!');
       } catch (err) {
         toast.error(err.message);
@@ -190,24 +215,28 @@ export default function StandRevisionPage({ params }) {
           <div className="text-sm text-muted-foreground mb-2 text-center">Можеш да въведеш баркод ръчно</div>
         </>
       )}
-      {/* Product list as cards */}
-      <h2 className="text-lg font-semibold mb-2 mt-6 flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</h2>
-      <div className="grid gap-2 mb-6 sm:grid-cols-2">
-        {remaining.map(p => (
-          <div key={p.barcode} className={`rounded-lg border p-3 flex flex-col gap-1 shadow-sm ${finished && p.remaining > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-muted/50'}`}>
-            <div className="font-semibold text-base flex items-center gap-2">
-              <Barcode size={18} className="text-muted-foreground"/>{p.barcode}
-            </div>
-            <div className="text-sm font-medium break-words">{p.name}</div>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">Оставащи:</span>
-              <span className="font-bold text-lg">{p.remaining}</span>
-              {finished && p.remaining > 0 && <XCircle className="text-red-400 ml-2" size={18}/>} 
-              {finished && p.remaining === 0 && <CheckCircle className="text-green-500 ml-2" size={18}/>} 
-            </div>
+      {/* Product list as cards - only show if not finished */}
+      {!finished && (
+        <>
+          <h2 className="text-lg font-semibold mb-2 mt-6 flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</h2>
+          <div className="grid gap-2 mb-6 sm:grid-cols-2">
+            {remaining.map(p => (
+              <div key={p.barcode} className={`rounded-lg border p-3 flex flex-col gap-1 shadow-sm ${finished && p.remaining > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-muted/50'}`}>
+                <div className="font-semibold text-base flex items-center gap-2">
+                  <Barcode size={18} className="text-muted-foreground"/>{p.barcode}
+                </div>
+                <div className="text-sm font-medium break-words">{p.name}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-muted-foreground">Оставащи:</span>
+                  <span className="font-bold text-lg">{p.remaining}</span>
+                  {finished && p.remaining > 0 && <XCircle className="text-red-400 ml-2" size={18}/>} 
+                  {finished && p.remaining === 0 && <CheckCircle className="text-green-500 ml-2" size={18}/>} 
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
       {/* Checked products as cards */}
       <h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/> Проверени продукти</h2>
       <div className="grid gap-2 mb-6 sm:grid-cols-2">
@@ -249,6 +278,29 @@ export default function StandRevisionPage({ params }) {
               ))}
             </div>
           )}
+          {/* Show link to revision if available */}
+          {revisionId && (
+            <div className="flex justify-center mt-6">
+              <a
+                href={`/dashboard/revisions/${revisionId}`}
+                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full px-8 py-3 text-lg shadow transition"
+              >
+                Виж ревизията
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+      {/* Complete button at the bottom */}
+      {!finished && (
+        <div className="flex justify-center mt-6 mb-4">
+          <Button
+            onClick={handleFinish}
+            disabled={products.length === 0}
+            className="text-lg px-8 py-3 rounded-full font-bold"
+          >
+            <CheckCircle size={22} className="mr-2" /> Приключи ревизията
+          </Button>
         </div>
       )}
     </div>

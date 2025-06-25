@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -23,8 +24,33 @@ export default function RevisionDetailPage() {
   if (loading) return <div>Зареждане...</div>;
   if (!revision) return <div>Ревизията не е намерена.</div>;
 
+  const columns = [
+    {
+      accessorKey: 'name',
+      header: 'Име',
+      cell: ({ row }) => row.original.product?.name || '-',
+    },
+    {
+      accessorKey: 'barcode',
+      header: 'Баркод',
+      cell: ({ row }) => row.original.product?.barcode || '-',
+    },
+    {
+      accessorKey: 'missingQuantity',
+      header: 'Брой',
+      cell: ({ row }) => row.original.missingQuantity,
+    },
+  ];
+
+  // Flatten data for DataTable
+  const data = revision.missingProducts.map(mp => ({
+    ...mp,
+    name: mp.product?.name || '-',
+    barcode: mp.product?.barcode || '-',
+  }));
+
   return (
-    <div className="container mx-auto py-10 max-w-2xl">
+    <div className="">
       <h1 className="text-2xl font-bold mb-6">Детайли за ревизия</h1>
       <div className="mb-4">
         <b>Щанд:</b> {revision.stand?.name || '-'}<br/>
@@ -33,26 +59,19 @@ export default function RevisionDetailPage() {
         <b>Дата:</b> {new Date(revision.createdAt).toLocaleString()}<br/>
       </div>
       <h2 className="text-lg font-semibold mb-2">Липсващи продукти</h2>
-      <table className="w-full border rounded mb-6">
-        <thead>
-          <tr className="bg-muted">
-            <th className="p-2 text-left">Име</th>
-            <th className="p-2 text-left">Баркод</th>
-            <th className="p-2 text-left">Брой</th>
-          </tr>
-        </thead>
-        <tbody>
-          {revision.missingProducts.map(mp => (
-            <tr key={mp.id}>
-              <td className="p-2">{mp.product?.name || '-'}</td>
-              <td className="p-2">{mp.product?.barcode || '-'}</td>
-              <td className="p-2">{mp.missingQuantity}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
-      <Button variant="ghost" className="ml-2" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>
+      <DataTable
+        columns={columns}
+        data={data}
+        searchKey="name"
+        filterableColumns={[
+          { id: 'name', title: 'Име' },
+          { id: 'barcode', title: 'Баркод' },
+        ]}
+      />
+      <div className="flex gap-2 mt-6">
+        <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
+        <Button variant="ghost" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>
+      </div>
     </div>
   );
 } 

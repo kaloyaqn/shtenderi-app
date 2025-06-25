@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -15,11 +15,18 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '@/components/ui/dialog'
 // We will create this component next
 import AddProductToStandDialog from './_components/add-product-dialog'
 import EditQuantityDialog from './_components/edit-quantity-dialog'
 import { XMLParser } from "fast-xml-parser"
-import { useRef } from "react"
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -103,6 +110,14 @@ export default function StandDetailPage({ params }) {
             header: 'Баркод',
         },
         {
+            accessorKey: 'product.pcd',
+            header: 'ПЦД',
+        },
+        {
+            accessorKey: 'product.quantity',
+            header: 'Общо количество',
+        },
+        {
             accessorKey: 'quantity',
             header: 'Количество на щанда',
         },
@@ -138,16 +153,21 @@ export default function StandDetailPage({ params }) {
         setImportError(null);
         const file = e.target.files[0];
         if (!file) return;
+
         try {
             const text = await file.text();
             const parser = new XMLParser();
             const xml = parser.parse(text);
             const goods = xml.info?.goods?.good || [];
             const products = Array.isArray(goods) ? goods : [goods];
+            
             const mapped = products.map(good => ({
                 barcode: String(good.barcode),
-                quantity: Number(good.quantity)
-            }));
+                quantity: Number(good.quantity),
+                name: good.name,
+                clientPrice: parseFloat(good.price) || 0
+            })).filter(p => p.barcode && !isNaN(p.quantity));
+
             await toast.promise(
                 (async () => {
                     const response = await fetch(`/api/stands/${standId}/import-xml`, {
@@ -155,6 +175,7 @@ export default function StandDetailPage({ params }) {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ products: mapped })
                     });
+
                     if (!response.ok) {
                         const err = await response.json();
                         throw new Error(err.error || 'Import failed');
@@ -248,7 +269,6 @@ export default function StandDetailPage({ params }) {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
 
             {importError && <div className="text-red-500 mb-4">{importError}</div>}
         </div>
