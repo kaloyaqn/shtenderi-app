@@ -21,6 +21,7 @@ import EditQuantityDialog from './_components/edit-quantity-dialog'
 import { XMLParser } from "fast-xml-parser"
 import { useRef } from "react"
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 export default function StandDetailPage({ params }) {
     const router = useRouter();
@@ -186,7 +187,13 @@ export default function StandDetailPage({ params }) {
                 </div>
 
                 <div className='flex gap-2 '>
+                
                 <div className="flex gap-2 mb-4">
+                <Link href={`${standId}/revision`}>
+                <Button variant="outline">
+                    Ревизия
+                </Button>
+                </Link>
                 <Button variant="outline" onClick={handleImportClick}>
                     <Upload className="mr-2 h-4 w-4" />
                     Импортирай продукти от XML
