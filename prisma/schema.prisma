@@ -26,6 +26,7 @@ model Product {
   barcode     String   @unique
   clientPrice Float //цена на едро
   pcd         String? //препоръчкителна цена доставчик
+  quantity    Int      @default(0)
   createdAt   DateTime @default(now())
 
   standProducts   StandProduct[]
