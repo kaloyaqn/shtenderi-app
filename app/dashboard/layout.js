@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import SessionLayout from "./SessionLayout";
+import MobileNavWrapper from "./MobileNavWrapper";
 
 export default async function DashboardLayout({children}) {
     const session = await getServerSession(authOptions)
@@ -27,6 +28,7 @@ export default async function DashboardLayout({children}) {
               <Toaster />
               {children}
             </SidebarInset>
+            <MobileNavWrapper />
           </SidebarProvider>
         </SessionLayout>
     )
