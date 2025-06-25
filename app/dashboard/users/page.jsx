@@ -74,14 +74,6 @@ function CreateUserDialog({ open, onOpenChange, onUserCreated }) {
 }
 
 export default function UsersPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  if (status === 'loading') return <div>Зареждане на сесия...</div>;
-  console.log('Current session:', session);
-  if (!session || session.user?.role !== 'ADMIN') {
-    if (typeof window !== 'undefined') router.replace('/dashboard');
-    return <div className="text-red-500 text-center py-10">Нямате достъп до тази страница.</div>;
-  }
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);

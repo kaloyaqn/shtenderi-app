@@ -97,6 +97,11 @@ const data = {
       icon: PersonStanding,
     },
     {
+      name: "Ревизии",
+      url: "/dashboard/revisions",
+      icon: PersonStanding,
+    },
+    {
       name: "Щендери",
       url: "/dashboard/stands",
       icon: IconFileWord,

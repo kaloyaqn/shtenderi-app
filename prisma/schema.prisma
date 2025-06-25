@@ -18,6 +18,7 @@ model Stand {
 
   standProducts StandProduct[]
   checks        Check[]
+  revisions    Revision[]
 }
 
 model Product {
@@ -31,6 +32,7 @@ model Product {
 
   standProducts   StandProduct[]
   checkedProducts CheckedProduct[]
+  missingProducts MissingProduct[]
 }
 
    model StandProduct {
@@ -75,6 +77,7 @@ model User {
   emailVerified  DateTime?
   createdAt      DateTime @default(now())
 
+  revisions      Revision[]
   @@map("users")
 }
 
@@ -91,6 +94,7 @@ model Partner {
   phone          String?                    // Телефон
 
   stores         Store[]                    // Връзка към магазини
+  revisions     Revision[]
 }
 
 model Store {
@@ -105,4 +109,26 @@ model Store {
   partnerId   String                          // Външният ID на фирмата
 
   stands      Stand[]                         // Щендери в магазина
+}
+
+model Revision {
+  id         String   @id @default(uuid())
+  stand      Stand    @relation(fields: [standId], references: [id])
+  standId    String
+  partner    Partner  @relation(fields: [partnerId], references: [id])
+  partnerId  String
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  createdAt  DateTime @default(now())
+
+  missingProducts MissingProduct[]
+}
+
+model MissingProduct {
+  id          String   @id @default(uuid())
+  revision    Revision @relation(fields: [revisionId], references: [id])
+  revisionId  String
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  missingQuantity Int
 }

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
+import { SessionProvider } from "next-auth/react";
 
 export default async function DashboardLayout({children}) {
     const session = await getServerSession(authOptions)
@@ -15,7 +16,7 @@ export default async function DashboardLayout({children}) {
 
     return (
         <>
-    <SidebarProvider
+      <SidebarProvider
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 72)",
