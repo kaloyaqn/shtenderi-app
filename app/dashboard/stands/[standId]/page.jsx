@@ -184,10 +184,26 @@ export default function StandDetailPage({ params }) {
                     <h1 className="text-3xl font-bold">{stand.name}</h1>
                     <p className="text-muted-foreground">Управление на продуктите на щанда</p>
                 </div>
+
+                <div className='flex gap-2 '>
+                <div className="flex gap-2 mb-4">
+                <Button variant="outline" onClick={handleImportClick}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Импортирай продукти от XML
+                </Button>
+                <input
+                    type="file"
+                    accept=".xml"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                />
+            </div>
                 <Button onClick={() => setAddProductDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Добави продукт
                 </Button>
+                </div>
             </div>
             
             <DataTable
@@ -226,19 +242,7 @@ export default function StandDetailPage({ params }) {
                 </AlertDialogContent>
             </AlertDialog>
 
-            <div className="flex gap-2 mb-4">
-                <Button variant="outline" onClick={handleImportClick}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Импортирай продукти от XML
-                </Button>
-                <input
-                    type="file"
-                    accept=".xml"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                />
-            </div>
+
             {importError && <div className="text-red-500 mb-4">{importError}</div>}
         </div>
     )

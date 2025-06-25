@@ -243,6 +243,7 @@ export default function ProductsPage() {
         columns={columns} 
         data={data} 
         searchKey="name"
+        filterableColumns={[{ id: 'barcode', title: 'Баркод' }]}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

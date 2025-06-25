@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { ArrowUpDown } from "lucide-react"
+import { Select } from "@/components/ui/select"
 
 // Helper function to get nested values
 const getNestedValue = (obj, path) => {
@@ -59,6 +60,7 @@ export function DataTable({
         }
     },
     globalFilterFn: 'global',
+    initialState: { pagination: { pageSize: 30 } },
   })
 
   return (
@@ -83,6 +85,20 @@ export function DataTable({
             className="max-w-sm"
           />
         ))}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Покажи по:</span>
+          <select
+            className="border rounded px-2 py-1 text-sm"
+            value={table.getState().pagination.pageSize}
+            onChange={e => {
+              table.setPageSize(Number(e.target.value));
+            }}
+          >
+            {[10, 20, 30, 50, 100].map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
       </div>
       <div className="rounded-md border">
         <Table>
@@ -142,23 +158,28 @@ export function DataTable({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Предишна
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Следваща
-        </Button>
+      <div className="flex items-center justify-between py-4">
+        <div className="text-sm text-muted-foreground ml-2">
+          Страница {table.getState().pagination.pageIndex + 1} от {table.getPageCount()}
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Предишна
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Следваща
+          </Button>
+        </div>
       </div>
     </div>
   )
