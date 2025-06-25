@@ -32,7 +32,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Box, Bus, PersonStanding, Store } from "lucide-react"
+import { Box, Bus, PersonStanding, Store, User } from "lucide-react"
 
 const data = {
   user: {
@@ -67,54 +67,7 @@ const data = {
       icon: IconUsers,
     },
   ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
+
   navSecondary: [
     {
       title: "Settings",
@@ -152,6 +105,11 @@ const data = {
       name: "Склад (БУС)",
       url: "/dashboard/products",
       icon: Bus,
+    },
+    {
+      name: "Потребители",
+      url: "/dashboard/users",
+      icon: User,
     },
   ],
 }

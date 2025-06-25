@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 export default async function DashboardLayout({children}) {
     const session = await getServerSession(authOptions)
+    console.log('Current user session:', session)
 
     if (!session) {
         redirect('/login')
