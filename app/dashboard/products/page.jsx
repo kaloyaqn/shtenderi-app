@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Trash2, Bus } from "lucide-react"
+import { Plus, Pencil, Trash2, Bus, Upload } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
   } from "@/components/ui/tooltip"
+import { XMLParser } from "fast-xml-parser"
 
 export default function ProductsPage() {
   const router = useRouter()
@@ -28,6 +29,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState(null)
+  const [importError, setImportError] = useState(null)
+  const fileInputRef = useRef()
 
   const fetchProducts = async () => {
     setLoading(true)
@@ -66,6 +69,46 @@ export default function ProductsPage() {
     } finally {
       setDeleteDialogOpen(false)
       setProductToDelete(null)
+    }
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  }
+
+  const handleFileChange = async (e) => {
+    setImportError(null);
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parser = new XMLParser();
+      const xml = parser.parse(text);
+      // Extract products from xml
+      const goods = xml.info?.goods?.good || [];
+      const products = Array.isArray(goods) ? goods : [goods];
+      // Map to expected fields
+      const mapped = products.map(good => ({
+        barcode: good.barcode,
+        name: good.name,
+        clientPrice: parseFloat(good.price)
+      }));
+      // Send to API
+      const response = await fetch('/api/products/import-xml', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ products: mapped })
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Import failed');
+      }
+      // Refresh products
+      fetchProducts();
+    } catch (err) {
+      setImportError(err.message);
+    } finally {
+      e.target.value = '';
     }
   }
 
@@ -166,11 +209,26 @@ export default function ProductsPage() {
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-2"> <Bus size={32}/> БУС</h1>
-        <Button onClick={() => router.push('/dashboard/products/create')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Добави продукт
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => router.push('/dashboard/products/create')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Добави продукт
+          </Button>
+          <Button variant="outline" onClick={handleImportClick}>
+            <Upload className="mr-2 h-4 w-4" />
+            Импортирай от XML
+          </Button>
+          <input
+            type="file"
+            accept=".xml"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+        </div>
       </div>
+
+      {importError && <div className="text-red-500 mb-4">{importError}</div>}
 
       <DataTable 
         columns={columns} 
