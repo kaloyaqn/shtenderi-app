@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
@@ -92,19 +92,6 @@ export default function PartnersPage() {
     },
   ]
 
-  const fetchPartners = async () => {
-    try {
-      const response = await fetch('/api/partners')
-      if (!response.ok) throw new Error('Failed to fetch partners')
-      const partners = await response.json()
-      setData(partners)
-    } catch (error) {
-      console.error('Error fetching partners:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleDelete = async () => {
     if (!partnerToDelete) return
 
@@ -129,9 +116,32 @@ export default function PartnersPage() {
     }
   }
 
-  useState(() => {
-    fetchPartners()
-  }, [])
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchPartners = async () => {
+        try {
+            const response = await fetch('/api/partners');
+            if (!response.ok) throw new Error('Failed to fetch partners');
+            const partners = await response.json();
+            if (isMounted) {
+                setData(partners);
+            }
+        } catch (error) {
+            console.error('Error fetching partners:', error);
+        } finally {
+            if (isMounted) {
+                setLoading(false);
+            }
+        }
+    };
+
+    fetchPartners();
+
+    return () => {
+        isMounted = false;
+    };
+  }, []);
 
   if (loading) {
     return <div>Зареждане...</div>

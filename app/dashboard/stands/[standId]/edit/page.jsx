@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +22,7 @@ import {
 
 export default function EditStandPage({ params }) {
   const router = useRouter()
-  const { standId } = params;
+  const { standId } = use(params);
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [stand, setStand] = useState(null)
