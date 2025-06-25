@@ -2,10 +2,10 @@
 
 import { Inter, Crimson_Text } from 'next/font/google'
 
-const inter = Inter({ subsets: ['latin', 'cyrillic'] })
+const inter = Inter({ subsets: ['latin'] })
 const crimson = Crimson_Text({ 
   weight: ['400', '600', '700'],
-  subsets: ['latin', 'cyrillic'] 
+  subsets: ['latin'] 
 })
 
 export default function StendoLanding() {
