@@ -29,6 +29,7 @@ export default function CreateProductPage() {
       barcode: formData.get('barcode')?.trim(),
       clientPrice: parseFloat(formData.get('clientPrice')),
       pcd: formData.get('pcd')?.trim() || null,
+      quantity: parseInt(formData.get('quantity'), 10) || 0,
     }
 
     try {
@@ -86,6 +87,11 @@ export default function CreateProductPage() {
                 <div className="grid gap-2">
                   <Label htmlFor="pcd">Препоръчителна цена (ПЦД)</Label>
                   <Input id="pcd" name="pcd" placeholder="Въведете ПЦД" />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="quantity">Количество</Label>
+                  <Input id="quantity" name="quantity" type="number" defaultValue={0} placeholder="0" />
                 </div>
               </div>
 

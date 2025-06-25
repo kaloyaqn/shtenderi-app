@@ -82,6 +82,10 @@ export default function ProductsPage() {
         header: "ПЦД",
     },
     {
+      accessorKey: "quantity",
+      header: "Количество",
+    },
+    {
       id: "actions",
       cell: ({ row }) => {
         const product = row.original
