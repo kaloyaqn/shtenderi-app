@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
 
 export default function RevisionsListPage() {
   const [revisions, setRevisions] = useState([]);
@@ -11,46 +12,77 @@ export default function RevisionsListPage() {
   useEffect(() => {
     const fetchRevisions = async () => {
       const res = await fetch('/api/revisions');
-      const data = await res.json();
+      let data = await res.json();
+      // Flatten for DataTable
+      data = data.map(rev => ({
+        ...rev,
+        standName: rev.stand?.name || '-',
+        partnerName: rev.partner?.name || '-',
+        userName: rev.user?.name || rev.user?.email || '-',
+      }));
+      console.log('Fetched revisions:', data); // DEBUG LOG
       setRevisions(data);
       setLoading(false);
     };
     fetchRevisions();
   }, []);
 
+  const columns = [
+    {
+      accessorKey: 'standName',
+      header: 'Щанд',
+      cell: ({ row }) => (
+        <a
+          href={`/dashboard/stands/${row.original.stand?.id}`}
+          className="text-blue-600 underline hover:text-blue-800"
+        >
+          {row.original.standName}
+        </a>
+      ),
+    },
+    {
+      accessorKey: 'partnerName',
+      header: 'Партньор',
+    },
+    {
+      accessorKey: 'userName',
+      header: 'Потребител',
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Дата',
+      cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
+    },
+    {
+      accessorKey: 'missingProducts',
+      header: 'Липсващи продукти',
+      cell: ({ row }) => row.original.missingProducts?.length || 0,
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => (
+        <Button size="sm" variant="outline" onClick={() => router.push(`/dashboard/revisions/${row.original.id}`)}>
+          Виж
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <div className="container mx-auto py-10 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-6">Ревизии</h1>
-      {loading ? (
-        <div>Зареждане...</div>
-      ) : (
-        <table className="w-full border rounded">
-          <thead>
-            <tr className="bg-muted">
-              <th className="p-2 text-left">Щанд</th>
-              <th className="p-2 text-left">Партньор</th>
-              <th className="p-2 text-left">Потребител</th>
-              <th className="p-2 text-left">Дата</th>
-              <th className="p-2 text-left">Липсващи продукти</th>
-              <th className="p-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {revisions.map(rev => (
-              <tr key={rev.id}>
-                <td className="p-2">{rev.stand?.name || '-'}</td>
-                <td className="p-2">{rev.partner?.name || '-'}</td>
-                <td className="p-2">{rev.user?.name || rev.user?.email || '-'}</td>
-                <td className="p-2">{new Date(rev.createdAt).toLocaleString()}</td>
-                <td className="p-2">{rev.missingProducts?.length || 0}</td>
-                <td className="p-2 text-right">
-                  <Button size="sm" variant="outline" onClick={() => router.push(`/dashboard/revisions/${rev.id}`)}>Виж</Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+    <div className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Ревизии</h1>
+      </div>
+      <DataTable
+        columns={columns}
+        data={revisions}
+        searchKey="standName"
+        filterableColumns={[
+          { id: 'standName', title: 'Щанд' },
+          { id: 'partnerName', title: 'Партньор' },
+          { id: 'userName', title: 'Потребител' },
+        ]}
+      />
     </div>
   );
 } 

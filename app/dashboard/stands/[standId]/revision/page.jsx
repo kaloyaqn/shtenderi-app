@@ -3,6 +3,12 @@
 import { useEffect, useState, useRef, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import dynamic from 'next/dynamic';
+
+const Html5QrcodeScanner = dynamic(
+  () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
+  { ssr: false }
+);
 
 export default function StandRevisionPage({ params }) {
   const { standId } = use(params);
@@ -12,6 +18,8 @@ export default function StandRevisionPage({ params }) {
   const [finished, setFinished] = useState(false);
   const [report, setReport] = useState(null);
   const inputRef = useRef();
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const scannerRef = useRef(null);
 
   // Fetch products for this stand
   useEffect(() => {
@@ -28,6 +36,55 @@ export default function StandRevisionPage({ params }) {
     };
     fetchProducts();
   }, [standId]);
+
+  useEffect(() => {
+    if (!scannerOpen) return;
+    let html5QrCode;
+    let running = true;
+    import('html5-qrcode').then(({ Html5Qrcode, Html5QrcodeSupportedFormats }) => {
+      html5QrCode = new Html5Qrcode('barcode-scanner');
+      html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 300, height: 120 },
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.EAN_8,
+          ],
+        },
+        (decodedText) => {
+          if (running) {
+            setScannerOpen(false);
+            setTimeout(() => {
+              if (inputRef.current) {
+                inputRef.current.value = decodedText;
+                const event = new Event('input', { bubbles: true });
+                inputRef.current.dispatchEvent(event);
+                inputRef.current.form?.dispatchEvent(new Event('submit', { bubbles: true }));
+              }
+            }, 200);
+            html5QrCode.stop();
+          }
+        },
+        (error) => {
+          // ignore scan errors
+        }
+      );
+      scannerRef.current = html5QrCode;
+    });
+    return () => {
+      running = false;
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+        scannerRef.current = null;
+      }
+    };
+  }, [scannerOpen]);
 
   // Handle barcode scan
   const handleScan = (e) => {
@@ -114,7 +171,20 @@ export default function StandRevisionPage({ params }) {
               autoComplete="off"
             />
             <Button type="submit">Добави</Button>
+            <Button type="button" variant="outline" onClick={() => setScannerOpen(true)}>
+              Сканирай баркод
+            </Button>
           </form>
+          {scannerOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow-lg relative w-full max-w-md">
+                <div id="barcode-scanner" className="w-full h-64" />
+                <Button variant="ghost" className="absolute top-2 right-2" onClick={() => setScannerOpen(false)}>
+                  Затвори
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="mb-4">
             <Button variant="outline" onClick={handleFinish} disabled={products.length === 0}>Приключи ревизията</Button>
             <Button variant="ghost" onClick={handleReset} className="ml-2">Изчисти</Button>
