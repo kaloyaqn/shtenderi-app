@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
+import { CheckCircle, XCircle, Barcode, Package } from 'lucide-react';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
@@ -86,6 +87,15 @@ export default function StandRevisionPage({ params }) {
     };
   }, [scannerOpen]);
 
+  // Always autofocus barcode input when scanner closes or after reset
+  useEffect(() => {
+    if (!scannerOpen && !finished) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [scannerOpen, finished]);
+
   // Handle barcode scan
   const handleScan = (e) => {
     e.preventDefault();
@@ -157,104 +167,88 @@ export default function StandRevisionPage({ params }) {
   };
 
   return (
-    <div className="container mx-auto py-10 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">Ревизия на щанд</h1>
+    <div className="container mx-auto py-4 px-2 max-w-2xl">
+      <h1 className="text-2xl font-bold mb-4 text-center">Ревизия на щанд</h1>
       {!finished && (
         <>
-          <form onSubmit={handleScan} className="mb-4 flex gap-2">
+          <form onSubmit={handleScan} className="mb-2 flex flex-col sm:flex-row gap-2 items-stretch">
             <input
               name="barcode"
               ref={inputRef}
               autoFocus
               placeholder="Сканирай или въведи баркод..."
-              className="border rounded px-2 py-1 flex-1"
+              className="border rounded-full px-4 py-3 text-lg w-full shadow-sm focus:ring-2 focus:ring-blue-400 outline-none"
               autoComplete="off"
+              inputMode="numeric"
+              pattern="[0-9]*"
             />
-            <Button type="submit">Добави</Button>
-            <Button type="button" variant="outline" onClick={() => setScannerOpen(true)}>
-              Сканирай баркод
-            </Button>
+            <Button type="submit" className="w-full sm:w-auto text-lg py-3 rounded-full">Добави</Button>
           </form>
-          {scannerOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow-lg relative w-full max-w-md">
-                <div id="barcode-scanner" className="w-full h-64" />
-                <Button variant="ghost" className="absolute top-2 right-2" onClick={() => setScannerOpen(false)}>
-                  Затвори
-                </Button>
-              </div>
-            </div>
-          )}
-          <div className="mb-4">
-            <Button variant="outline" onClick={handleFinish} disabled={products.length === 0}>Приключи ревизията</Button>
-            <Button variant="ghost" onClick={handleReset} className="ml-2">Изчисти</Button>
+          <div className="flex justify-center mb-2">
+            <Button variant="ghost" className="text-base px-4 py-2 rounded-full" onClick={handleReset}>Изчисти</Button>
           </div>
+          <div className="text-sm text-muted-foreground mb-2 text-center">Можеш да въведеш баркод ръчно</div>
         </>
       )}
-      <h2 className="text-lg font-semibold mb-2">Списък с продукти на щанда</h2>
-      <table className="w-full border rounded mb-6">
-        <thead>
-          <tr className="bg-muted">
-            <th className="p-2 text-left">Име</th>
-            <th className="p-2 text-left">Баркод</th>
-            <th className="p-2 text-left">Оставащи бройки</th>
-          </tr>
-        </thead>
-        <tbody>
-          {remaining.map(p => (
-            <tr key={p.barcode} className={finished && p.remaining > 0 ? 'bg-red-100 text-red-700' : ''}>
-              <td className="p-2">{p.name}</td>
-              <td className="p-2">{p.barcode}</td>
-              <td className="p-2">{p.remaining}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <h2 className="text-lg font-semibold mb-2">Проверени продукти</h2>
-      <table className="w-full border rounded mb-6">
-        <thead>
-          <tr className="bg-muted">
-            <th className="p-2 text-left">Име</th>
-            <th className="p-2 text-left">Баркод</th>
-            <th className="p-2 text-left">Проверени бройки</th>
-          </tr>
-        </thead>
-        <tbody>
-          {checked.map(p => (
-            <tr key={p.barcode}>
-              <td className="p-2">{p.name}</td>
-              <td className="p-2">{p.barcode}</td>
-              <td className="p-2">{p.checked}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* Product list as cards */}
+      <h2 className="text-lg font-semibold mb-2 mt-6 flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</h2>
+      <div className="grid gap-2 mb-6 sm:grid-cols-2">
+        {remaining.map(p => (
+          <div key={p.barcode} className={`rounded-lg border p-3 flex flex-col gap-1 shadow-sm ${finished && p.remaining > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-muted/50'}`}>
+            <div className="font-semibold text-base flex items-center gap-2">
+              <Barcode size={18} className="text-muted-foreground"/>{p.barcode}
+            </div>
+            <div className="text-sm font-medium break-words">{p.name}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground">Оставащи:</span>
+              <span className="font-bold text-lg">{p.remaining}</span>
+              {finished && p.remaining > 0 && <XCircle className="text-red-400 ml-2" size={18}/>} 
+              {finished && p.remaining === 0 && <CheckCircle className="text-green-500 ml-2" size={18}/>} 
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Checked products as cards */}
+      <h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/> Проверени продукти</h2>
+      <div className="grid gap-2 mb-6 sm:grid-cols-2">
+        {checked.length === 0 && <div className="text-muted-foreground text-sm">Няма проверени продукти.</div>}
+        {checked.map(p => (
+          <div key={p.barcode} className="rounded-lg border p-3 flex flex-col gap-1 bg-green-50 border-green-200 text-green-900 shadow-sm">
+            <div className="font-semibold text-base flex items-center gap-2">
+              <Barcode size={18} className="text-muted-foreground"/>{p.barcode}
+            </div>
+            <div className="text-sm font-medium break-words">{p.name}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground">Проверени:</span>
+              <span className="font-bold text-lg">{p.checked}</span>
+              <CheckCircle className="text-green-500 ml-2" size={18}/>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Missing products as cards after finish */}
       {finished && report && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2 text-red-700">Липсващи продукти</h2>
+          <h2 className="text-lg font-semibold mb-2 flex items-center gap-2 text-red-700"><XCircle size={20}/> Липсващи продукти</h2>
           {report.length === 0 ? (
             <div className="text-green-600">Няма липсващи продукти!</div>
           ) : (
-            <table className="w-full border rounded">
-              <thead>
-                <tr className="bg-muted">
-                  <th className="p-2 text-left">Име</th>
-                  <th className="p-2 text-left">Баркод</th>
-                  <th className="p-2 text-left">Оставащи бройки</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.map((item, i) => (
-                  <tr key={item.barcode} className="bg-red-100 text-red-700">
-                    <td className="p-2">{item.name}</td>
-                    <td className="p-2">{item.barcode}</td>
-                    <td className="p-2">{item.remaining}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {report.map((item, i) => (
+                <div key={item.barcode} className="rounded-lg border p-3 flex flex-col gap-1 bg-red-50 border-red-200 text-red-700 shadow-sm">
+                  <div className="font-semibold text-base flex items-center gap-2">
+                    <Barcode size={18} className="text-muted-foreground"/>{item.barcode}
+                  </div>
+                  <div className="text-sm font-medium break-words">{item.name}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground">Оставащи:</span>
+                    <span className="font-bold text-lg">{item.remaining}</span>
+                    <XCircle className="text-red-400 ml-2" size={18}/>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-          <Button className="mt-4" onClick={handleReset}>Нова ревизия</Button>
         </div>
       )}
     </div>
