@@ -12,8 +12,8 @@ model Stand {
   name      String
   store     Store    @relation(fields: [storeId], references: [id])
   storeId   String
-  rows      Int
-  columns   Int
+  rows      Int?
+  columns   Int?
   createdAt DateTime @default(now())
 
   standProducts StandProduct[]
@@ -24,8 +24,8 @@ model Product {
   id          String   @id @default(uuid())
   name        String
   barcode     String   @unique
-  clientPrice Float
-  pcd         String?
+  clientPrice Float //цена на едро
+  pcd         String? //препоръчкителна цена доставчик
   createdAt   DateTime @default(now())
 
   standProducts   StandProduct[]

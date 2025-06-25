@@ -1,17 +1,18 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getAllStores, createStore } from '@/lib/stores/store'
 
 // GET: Връща всички магазини с партньор
 export async function GET() {
   try {
-    const stores = await prisma.store.findMany({
-      include: { partner: true },
-      orderBy: { createdAt: 'desc' },
-    })
-    return NextResponse.json(stores)
+    const stores = await getAllStores()
+    return Response.json(stores)
   } catch (error) {
     console.error('[STORES_GET_ERROR]', error)
-    return NextResponse.json({ error: 'Грешка при зареждане на магазини' }, { status: 500 })
+    const status = error.status || 500
+    const message = error.message || 'Failed to fetch stores'
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 }
 
@@ -19,19 +20,15 @@ export async function GET() {
 export async function POST(req) {
   try {
     const body = await req.json()
-    const { name, address, contact, phone, partnerId } = body
-
-    if (!name || !address || !partnerId) {
-      return NextResponse.json({ error: 'Името, адресът и партньорът са задължителни' }, { status: 400 })
-    }
-
-    const store = await prisma.store.create({
-      data: { name, address, contact, phone, partnerId },
-      include: { partner: true },
-    })
-    return NextResponse.json(store, { status: 201 })
+    const store = await createStore(body)
+    return new Response(JSON.stringify(store), { status: 201 })
   } catch (error) {
     console.error('[STORES_POST_ERROR]', error)
-    return NextResponse.json({ error: 'Грешка при създаване на магазин' }, { status: 500 })
+    const status = error.status || 500
+    const message = error.message || 'Failed to create store'
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 } 
