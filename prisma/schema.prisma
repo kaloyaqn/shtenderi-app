@@ -33,17 +33,18 @@ model Product {
   checkedProducts CheckedProduct[]
 }
 
-model StandProduct {
-  id        String   @id @default(uuid())
-  stand     Stand    @relation(fields: [standId], references: [id])
-  standId   String
-  product   Product  @relation(fields: [productId], references: [id])
-  productId String
-  quantity  Int
-
-  row       Int?     // по желание: позиция по ред
-  column    Int?     // по желание: позиция по колона
-}
+   model StandProduct {
+     id        String   @id @default(uuid())
+     stand     Stand    @relation(fields: [standId], references: [id])
+     standId   String
+     product   Product  @relation(fields: [productId], references: [id])
+     productId String
+     quantity  Int
+     row       Int?
+     column    Int?
+   
+     @@unique([standId, productId])
+   }
 
 model Check {
   id        String   @id @default(uuid())

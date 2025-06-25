@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Upload } from 'lucide-react'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -18,6 +18,9 @@ import {
 // We will create this component next
 import AddProductToStandDialog from './_components/add-product-dialog'
 import EditQuantityDialog from './_components/edit-quantity-dialog'
+import { XMLParser } from "fast-xml-parser"
+import { useRef } from "react"
+import { toast } from 'sonner'
 
 export default function StandDetailPage({ params }) {
     const router = useRouter();
@@ -26,6 +29,8 @@ export default function StandDetailPage({ params }) {
     const [productsOnStand, setProductsOnStand] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [importError, setImportError] = useState(null);
+    const fileInputRef = useRef();
     
     // Dialog states
     const [addProductDialogOpen, setAddProductDialogOpen] = useState(false);
@@ -124,6 +129,50 @@ export default function StandDetailPage({ params }) {
         }
     ];
 
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e) => {
+        setImportError(null);
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const parser = new XMLParser();
+            const xml = parser.parse(text);
+            const goods = xml.info?.goods?.good || [];
+            const products = Array.isArray(goods) ? goods : [goods];
+            const mapped = products.map(good => ({
+                barcode: String(good.barcode),
+                quantity: Number(good.quantity)
+            }));
+            await toast.promise(
+                (async () => {
+                    const response = await fetch(`/api/stands/${standId}/import-xml`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ products: mapped })
+                    });
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || 'Import failed');
+                    }
+                    await fetchData();
+                })(),
+                {
+                    loading: 'Импортиране... Моля, изчакайте',
+                    success: 'Импортирането е успешно!',
+                    error: (err) => err.message || 'Възникна грешка при импортиране',
+                }
+            );
+        } catch (err) {
+            setImportError(err.message);
+        } finally {
+            e.target.value = '';
+        }
+    };
+
     if (loading) return <div>Зареждане...</div>;
     if (error) return <div className="text-red-500">Грешка: {error}</div>;
     if (!stand) return <div>Щандът не е намерен.</div>
@@ -176,6 +225,21 @@ export default function StandDetailPage({ params }) {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <div className="flex gap-2 mb-4">
+                <Button variant="outline" onClick={handleImportClick}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Импортирай продукти от XML
+                </Button>
+                <input
+                    type="file"
+                    accept=".xml"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                />
+            </div>
+            {importError && <div className="text-red-500 mb-4">{importError}</div>}
         </div>
     )
 } 

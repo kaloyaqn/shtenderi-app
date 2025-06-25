@@ -22,6 +22,7 @@ import {
     TooltipTrigger,
   } from "@/components/ui/tooltip"
 import { XMLParser } from "fast-xml-parser"
+import { toast } from 'sonner'
 
 export default function ProductsPage() {
   const router = useRouter()
@@ -94,17 +95,25 @@ export default function ProductsPage() {
         clientPrice: parseFloat(good.price)
       }));
       // Send to API
-      const response = await fetch('/api/products/import-xml', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ products: mapped })
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Import failed');
-      }
-      // Refresh products
-      fetchProducts();
+      await toast.promise(
+        (async () => {
+          const response = await fetch('/api/products/import-xml', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ products: mapped })
+          });
+          if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Import failed');
+          }
+          await fetchProducts();
+        })(),
+        {
+          loading: 'Импортиране... Моля, изчакайте',
+          success: 'Импортирането е успешно!',
+          error: (err) => err.message || 'Възникна грешка при импортиране',
+        }
+      );
     } catch (err) {
       setImportError(err.message);
     } finally {
