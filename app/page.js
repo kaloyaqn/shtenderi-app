@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
 export default function StendoLanding() {
@@ -114,12 +115,13 @@ export default function StendoLanding() {
                     <path d="M7 17L17 7M17 7H7M17 7V17"/>
                   </svg>
                 </button>
-                <button 
+          <Link href="/dashboard">
+                          <button 
                   onClick={() => scrollToSection('contact')}
                   className="text-gray-600 hover:text-lime-500 transition-colors font-medium underline"
                 >
-                  Резервирайте обаждане
-                </button>
+                  Към администрация
+                </button></Link>
               </div>
             </div>
 
