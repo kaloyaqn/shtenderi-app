@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Bus } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+  } from "@/components/ui/tooltip"
 
 export default function ProductsPage() {
   const router = useRouter()
@@ -75,15 +81,53 @@ export default function ProductsPage() {
     {
       accessorKey: "clientPrice",
       header: "Клиентска цена",
-      cell: ({ row }) => `€${row.original.clientPrice.toFixed(2)}`,
+      cell: ({ row }) => `${row.original.clientPrice.toFixed(2)} лв.`,
     },
     {
         accessorKey: "pcd",
         header: "ПЦД",
     },
     {
+      accessorKey: "totalQuantity",
+      header: "Общо количество",
+      cell: ({ row }) => {
+        const product = row.original;
+        const assignedQuantity = product.standProducts.reduce((sum, sp) => sum + sp.quantity, 0);
+        const unassignedQuantity = product.quantity - assignedQuantity;
+        const totalQuantity = unassignedQuantity + assignedQuantity;
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="cursor-help underline decoration-dotted">{totalQuantity}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p className="font-bold mb-2">Разпределение:</p>
+                        <ul>
+                            {product.standProducts.map(sp => (
+                                <li key={sp.id}>
+                                    {sp.stand.name}: {sp.quantity}
+                                </li>
+                            ))}
+                            <li className="mt-1 pt-1 border-t">
+                                Неразпределени: {unassignedQuantity}
+                            </li>
+                        </ul>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        )
+      }
+    },
+    {
       accessorKey: "quantity",
-      header: "Количество",
+      header: "Количество БУС",
+      cell: ({ row }) => {
+        const product = row.original;
+        const assignedQuantity = product.standProducts.reduce((sum, sp) => sum + sp.quantity, 0);
+        const unassignedQuantity = product.quantity - assignedQuantity;
+        return unassignedQuantity;
+      }
     },
     {
       id: "actions",
@@ -121,7 +165,7 @@ export default function ProductsPage() {
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Продукти</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2"> <Bus size={32}/> БУС</h1>
         <Button onClick={() => router.push('/dashboard/products/create')}>
           <Plus className="mr-2 h-4 w-4" />
           Добави продукт

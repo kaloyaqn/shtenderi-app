@@ -32,7 +32,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Box, PersonStanding, Store } from "lucide-react"
+import { Box, Bus, PersonStanding, Store } from "lucide-react"
 
 const data = {
   user: {
@@ -149,9 +149,9 @@ const data = {
       icon: IconFileWord,
     },
     {
-      name: "Продукти",
+      name: "Склад (БУС)",
       url: "/dashboard/products",
-      icon: Box,
+      icon: Bus,
     },
   ],
 }

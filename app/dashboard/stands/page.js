@@ -66,7 +66,22 @@ export default function Stands() {
     const columns = [
         {
             accessorKey: 'name',
-            header: 'Име на щендер'
+            header: 'Име на щендер',
+            cell: ({ row }) => {
+                const stand = row.original;
+                return (
+                  <a
+                    href={`/dashboard/stands/${stand.id}`}
+                    className="text-blue-600 underline hover:text-blue-800"
+                  >
+                    {stand.name}
+                  </a>
+                );
+            },
+        },
+        {
+            accessorKey: '_count.standProducts',
+            header: 'Брой продукти',
         },
         // We might want to show the store name here later
         {

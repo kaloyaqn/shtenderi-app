@@ -22,6 +22,11 @@ import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { ArrowUpDown } from "lucide-react"
 
+// Helper function to get nested values
+const getNestedValue = (obj, path) => {
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+};
+
 export function DataTable({
   columns,
   data,
@@ -30,6 +35,7 @@ export function DataTable({
 }) {
   const [sorting, setSorting] = useState([])
   const [columnFilters, setColumnFilters] = useState([])
+  const [globalFilter, setGlobalFilter] = useState('')
 
   const table = useReactTable({
     data,
@@ -40,10 +46,19 @@ export function DataTable({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
     state: {
       sorting,
       columnFilters,
+      globalFilter,
     },
+    filterFns: {
+        global: (row, columnId, filterValue) => {
+            const value = getNestedValue(row.original, searchKey);
+            return String(value).toLowerCase().includes(filterValue.toLowerCase());
+        }
+    },
+    globalFilterFn: 'global',
   })
 
   return (
@@ -52,10 +67,8 @@ export function DataTable({
         {searchKey && (
           <Input
             placeholder="Потърси..."
-            value={(table.getColumn(searchKey)?.getFilterValue()) ?? ""}
-            onChange={(event) =>
-              table.getColumn(searchKey)?.setFilterValue(event.target.value)
-            }
+            value={globalFilter ?? ""}
+            onChange={(event) => setGlobalFilter(event.target.value)}
             className="max-w-sm"
           />
         )}
