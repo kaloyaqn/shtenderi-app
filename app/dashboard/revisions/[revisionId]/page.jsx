@@ -177,19 +177,19 @@ export default function RevisionDetailPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="space-y-4">
+      <div className="">
+        <div className="">
             <div><strong>Щанд:</strong> {revision.stand?.name || 'N/A'}</div>
             <div><strong>Магазин:</strong> {revision.stand?.store?.name || 'N/A'}</div>
             <div><strong>Партньор:</strong> {revision.partner?.name || 'N/A'}</div>
             <div><strong>Ревизор:</strong> {revision.user?.name || revision.user?.email || 'N/a'}</div>
             <div><strong>Дата:</strong> {new Date(revision.createdAt).toLocaleString('bg-BG')}</div>
         </div>
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Продадени продукти:</h2>
+        <div className="mt-4">
+          <h2 className="text-xl font-semibold">Продадени продукти:</h2>
           <div>
             {revision.missingProducts?.length > 0 ? (
-              <DataTable columns={columns} data={data} />
+              <DataTable columns={columns} data={data} searchKey="barcode" />
             ) : (
               <p>Няма регистрирани липси.</p>
             )}
