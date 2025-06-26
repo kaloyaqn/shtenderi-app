@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Trash2, Bus, Upload } from "lucide-react"
+import { Plus, Pencil, Trash2, Bus, Upload, Loader2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -92,6 +92,56 @@ function EditableCell({ value, onSave, type = 'text', min, max }) {
     </span>
   );
 }
+
+const BarcodeWithStoragesTooltip = ({ product }) => {
+  const [open, setOpen] = useState(false);
+  const [storages, setStorages] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchStorages = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/products/${product.id}/storages`);
+      if (!res.ok) throw new Error('Failed to fetch storages');
+      const data = await res.json();
+      setStorages(data);
+    } catch (e) {
+      setStorages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip open={open} onOpenChange={o => {
+        setOpen(o);
+        if (o && storages === null) fetchStorages();
+      }}>
+        <TooltipTrigger asChild>
+          <span className="underline decoration-dotted cursor-pointer">{product.barcode}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="min-w-[220px]">
+          <div className="font-semibold mb-1">Складови наличности</div>
+          {loading ? (
+            <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="animate-spin w-4 h-4" /> Зареждане...</div>
+          ) : storages && storages.length > 0 ? (
+            <ul className="text-sm">
+              {storages.map(s => (
+                <li key={s.storage.id} className="flex justify-between">
+                  <span>{s.storage.name}</span>
+                  <span className="font-mono">{s.quantity}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-sm text-muted-foreground">Няма наличности в складове</div>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
 
 export default function ProductsPage() {
   const router = useRouter()
@@ -294,6 +344,7 @@ export default function ProductsPage() {
     {
       accessorKey: "barcode",
       header: "Баркод",
+      cell: ({ row }) => <BarcodeWithStoragesTooltip product={row.original} />,
     },
     {
       accessorKey: "clientPrice",
@@ -358,7 +409,7 @@ export default function ProductsPage() {
     },
     {
       accessorKey: "unassignedQuantity",
-      header: "Количество БУС",
+      header: "Неразпределени",
       cell: ({ row }) => {
         if (!row) return null;
         const product = row.original;
@@ -406,7 +457,7 @@ export default function ProductsPage() {
   return (
     <div className=" md:py-10 py-5 w-full">
       <div className="flex justify-between md:flex-row flex-col  md:items-center w-full mb-8">
-        <h1 className="md:text-3xl w-full text-xl text-left font-bold flex items-center gap-2 md:mb-0 mb-2"> <Bus size={32}/> СКЛАД {"(БУС)"}</h1>
+        <h1 className="md:text-3xl w-full text-xl text-left font-bold flex items-center gap-2 md:mb-0 mb-2"> Глобални продукти</h1>
         <div className="flex justify-end w-full md:flex-row flex-col gap-2">
           <Button onClick={() => router.push('/dashboard/products/create')}>
             <Plus className="mr-2 h-4 w-4" />

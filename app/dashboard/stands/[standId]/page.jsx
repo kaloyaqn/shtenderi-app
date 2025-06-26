@@ -115,10 +115,6 @@ export default function StandDetailPage({ params }) {
             header: 'ПЦД',
         },
         {
-            accessorKey: 'product.quantity',
-            header: 'Общо количество',
-        },
-        {
             accessorKey: 'quantity',
             header: 'Количество на щанда',
         },

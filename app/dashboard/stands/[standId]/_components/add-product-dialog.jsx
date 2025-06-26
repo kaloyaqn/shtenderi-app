@@ -95,7 +95,10 @@ export default function AddProductToStandDialog({ open, onOpenChange, standId, o
     const availableProducts = allProducts.filter(p => !productsOnStandIds.has(p.id));
 
     const filteredProducts = search
-        ? availableProducts.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+        ? availableProducts.filter(p =>
+            p.name.toLowerCase().includes(search.toLowerCase()) ||
+            (p.barcode && p.barcode.toLowerCase().includes(search.toLowerCase()))
+        )
         : availableProducts;
 
     return (
@@ -121,10 +124,10 @@ export default function AddProductToStandDialog({ open, onOpenChange, standId, o
                                 {filteredProducts.map((product) => (
                                     <CommandItem
                                         key={product.id}
-                                        value={product.name}
+                                        value={product.name + ' ' + product.barcode}
                                         onSelect={() => handleSelectProduct(product)}
                                     >
-                                        {product.name}
+                                        {product.name} <span className="text-xs text-muted-foreground">({product.barcode})</span>
                                     </CommandItem>
                                 ))}
                             </CommandList>

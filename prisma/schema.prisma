@@ -34,6 +34,7 @@ model Product {
   standProducts   StandProduct[]
   checkedProducts CheckedProduct[]
   missingProducts MissingProduct[]
+  storageProducts StorageProduct[]
 }
 
 model StandProduct {
@@ -132,4 +133,23 @@ model MissingProduct {
   product     Product  @relation(fields: [productId], references: [id])
   productId   String
   missingQuantity Int
+}
+
+model Storage {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  storageProducts StorageProduct[]
+}
+
+model StorageProduct {
+  id        String   @id @default(uuid())
+  storage   Storage  @relation(fields: [storageId], references: [id], onDelete: Cascade)
+  storageId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  quantity  Int
+
+  @@unique([storageId, productId])
 }

@@ -32,7 +32,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Box, Bus, PersonStanding, Store, User } from "lucide-react"
+import { Box, BoxIcon, Bus, HomeIcon, PackageOpenIcon, PersonStanding, SearchCheckIcon, Store, User } from "lucide-react"
 
 const data = {
   user: {
@@ -85,11 +85,25 @@ const data = {
       icon: IconSearch,
     },
   ],
-  documents: [
+  documents: [    {
+    name: "Начало",
+    url: "/dashboard",
+    icon: HomeIcon,
+  },
     {
-      name: "Магазини",
-      url: "/dashboard/stores",
-      icon: Store,
+      name: "Щендери",
+      url: "/dashboard/stands",
+      icon: IconFileWord,
+    },
+    {
+      name: "Ревизии",
+      url: "/dashboard/revisions",
+      icon: SearchCheckIcon,
+    },
+    {
+      name: "Складове",
+      url: "/dashboard/storages",
+      icon: PackageOpenIcon,
     },
     {
       name: "Партньори",
@@ -97,19 +111,14 @@ const data = {
       icon: PersonStanding,
     },
     {
-      name: "Ревизии",
-      url: "/dashboard/revisions",
-      icon: PersonStanding,
+      name: "Магазини",
+      url: "/dashboard/stores",
+      icon: Store,
     },
     {
-      name: "Щендери",
-      url: "/dashboard/stands",
-      icon: IconFileWord,
-    },
-    {
-      name: "Склад (БУС)",
+      name: "Продукти",
       url: "/dashboard/products",
-      icon: Bus,
+      icon: BoxIcon,
     },
     {
       name: "Потребители",
@@ -137,7 +146,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        {/* <NavMain items={data.navMain} /> */}
         <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
