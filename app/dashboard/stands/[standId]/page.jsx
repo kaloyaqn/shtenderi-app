@@ -234,10 +234,15 @@ export default function StandDetailPage({ params }) {
                 </div>
             </div>
             
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Продукти на щанда</h2>
+                <span className="text-sm text-muted-foreground">Търси по баркод</span>
+            </div>
             <DataTable
                 columns={columns}
                 data={productsOnStand}
-                searchKey="product.name"
+                searchKey="product.barcode"
+                filterableColumns={[]}
             />
 
             <AddProductToStandDialog
