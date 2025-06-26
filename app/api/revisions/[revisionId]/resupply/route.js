@@ -30,14 +30,15 @@ export async function POST(req, { params }) {
       return NextResponse.json({ message: 'No missing products to resupply.' });
     }
 
-    // This is the core logic
-    await prisma.$transaction(async (tx) => {
+    // Do the check and update atomically in a transaction
+    let insufficient = [];
+    const result = await prisma.$transaction(async (tx) => {
+      insufficient = [];
       for (const missingProduct of revision.missingProducts) {
         const requiredQuantity = missingProduct.missingQuantity;
         const productId = missingProduct.productId;
         const standId = revision.standId;
-
-        // 1. Find the product in the selected storage
+        // Find the product in the selected storage
         const storageProduct = await tx.storageProduct.findUnique({
           where: {
             storageId_productId: {
@@ -46,14 +47,33 @@ export async function POST(req, { params }) {
             },
           },
         });
-
-        // 2. Check if there is enough quantity
         if (!storageProduct || storageProduct.quantity < requiredQuantity) {
-          throw new Error(`Недостатъчна наличност в склада за продукт ${missingProduct.product.name}.
-             Изискват се: ${requiredQuantity}, налични: ${storageProduct?.quantity || 0}`);
+          insufficient.push({
+            name: missingProduct.product.name,
+            barcode: missingProduct.product.barcode,
+            required: requiredQuantity,
+            available: storageProduct?.quantity || 0,
+          });
         }
-
-        // 3. Decrement quantity in the storage
+      }
+      if (insufficient.length > 0) {
+        // Throw to abort transaction
+        throw { insufficient };
+      }
+      // All sufficient, do the update
+      for (const missingProduct of revision.missingProducts) {
+        const requiredQuantity = missingProduct.missingQuantity;
+        const productId = missingProduct.productId;
+        const standId = revision.standId;
+        // Decrement quantity in the storage
+        const storageProduct = await tx.storageProduct.findUnique({
+          where: {
+            storageId_productId: {
+              storageId,
+              productId,
+            },
+          },
+        });
         await tx.storageProduct.update({
           where: {
             id: storageProduct.id,
@@ -64,8 +84,7 @@ export async function POST(req, { params }) {
             },
           },
         });
-
-        // 4. Increment quantity on the stand
+        // Increment quantity on the stand
         await tx.standProduct.update({
           where: {
             standId_productId: {
@@ -80,16 +99,23 @@ export async function POST(req, { params }) {
           },
         });
       }
+      return true;
+    }).catch((err) => {
+      if (err && err.insufficient) {
+        insufficient = err.insufficient;
+        return false;
+      }
+      throw err;
     });
+
+    if (!result && insufficient.length > 0) {
+      return NextResponse.json({ insufficient }, { status: 409 });
+    }
 
     return NextResponse.json({ success: true, message: 'Щандът е зареден успешно!' });
 
   } catch (error) {
     console.error('[RESUPPLY_ERROR]', error);
-    // Provide a more specific error message if it's our custom one
-    if (error instanceof Error && error.message.startsWith('Недостатъчна наличност')) {
-        return new NextResponse(error.message, { status: 409 });
-    }
     return new NextResponse('Вътрешна грешка при зареждане', { status: 500 });
   }
 } 

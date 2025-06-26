@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useCallback } from 'react';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
@@ -26,6 +27,7 @@ export default function StandRevisionPage({ params }) {
   const [standName, setStandName] = useState('');
   const [showCheck, setShowCheck] = useState(false);
   const [inputReadOnly, setInputReadOnly] = useState(false);
+  const [pendingProducts, setPendingProducts] = useState({}); // barcode -> { product, quantity }
 
   // Detect mobile
   useEffect(() => {
@@ -121,14 +123,40 @@ export default function StandRevisionPage({ params }) {
   }, [scannerOpen, finished]);
 
   // Handle barcode scan
-  const handleScan = (e) => {
+  const handleScan = async (e) => {
     e.preventDefault();
     const barcode = e.target.barcode.value.trim();
     if (!barcode) return;
     const prod = products.find(p => p.product.barcode === barcode);
     if (!prod) {
-      toast.error('Продукт с този баркод не е намерен.');
+      // Try to fetch product by barcode
+      let productData = null;
+      try {
+        const res = await fetch(`/api/products?barcode=${barcode}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            productData = data[0];
+          }
+        }
+      } catch {}
+      if (!productData) {
+        toast.error('Продукт с този баркод не е намерен.');
+        e.target.reset();
+        inputRef.current?.focus();
+        return;
+      }
+      // Add to pendingProducts
+      setPendingProducts(prev => {
+        if (prev[barcode]) {
+          return { ...prev, [barcode]: { ...prev[barcode], quantity: prev[barcode].quantity + 1 } };
+        } else {
+          return { ...prev, [barcode]: { product: productData, quantity: 1 } };
+        }
+      });
       e.target.reset();
+      setShowCheck(true);
+      setTimeout(() => setShowCheck(false), 2000);
       inputRef.current?.focus();
       return;
     }
@@ -178,28 +206,45 @@ export default function StandRevisionPage({ params }) {
     setFinished(true);
     const missing = remaining.filter(p => p.remaining > 0);
     setReport(missing);
-    // Save revision to API with a placeholder userId
-    if (missing.length > 0) {
-      try {
-        const res = await fetch('/api/revisions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            standId,
-            userId: 'ecc03da6-d498-47f2-8bfc-52273ca7c7bb',
-            missingProducts: missing.map(m => ({
-              productId: products.find(p => p.product.barcode === m.barcode)?.product.id,
-              missingQuantity: m.remaining,
-            })).filter(mp => mp.productId),
-          }),
-        });
-        if (!res.ok) throw new Error('Грешка при запис на ревизията');
-        const data = await res.json();
-        setRevisionId(data.id);
-        toast.success('Ревизията е записана успешно!');
-      } catch (err) {
-        toast.error(err.message);
-      }
+    // Add pending products to stand with quantity 0
+    const pendingBarcodes = Object.keys(pendingProducts);
+    for (const barcode of pendingBarcodes) {
+      const { product } = pendingProducts[barcode];
+      // Call API to add to standProducts if not already present
+      await fetch(`/api/stands/${standId}/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, quantity: 0 }),
+      });
+    }
+    // Build missingProducts: original missing + all pending products
+    const missingProducts = [
+      ...missing.map(m => ({
+        productId: products.find(p => p.product.barcode === m.barcode)?.product.id,
+        missingQuantity: m.remaining,
+      })).filter(mp => mp.productId),
+      ...pendingBarcodes.map(barcode => ({
+        productId: pendingProducts[barcode].product.id,
+        missingQuantity: pendingProducts[barcode].quantity,
+      })),
+    ];
+    // Always create a revision, even if there are no missing products
+    try {
+      const res = await fetch('/api/revisions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          standId,
+          userId: 'ecc03da6-d498-47f2-8bfc-52273ca7c7bb',
+          missingProducts,
+        }),
+      });
+      if (!res.ok) throw new Error('Грешка при запис на ревизията');
+      const data = await res.json();
+      setRevisionId(data.id);
+      toast.success('Ревизията е записана успешно!');
+    } catch (err) {
+      toast.error(err.message);
     }
   };
 
@@ -223,11 +268,30 @@ export default function StandRevisionPage({ params }) {
     return 0;
   });
 
+  // Merge products and pendingProducts for display
+  const allProducts = [
+    ...products.map(p => {
+      const rem = remaining.find(r => r.barcode === p.product.barcode);
+      return {
+        barcode: p.product.barcode,
+        name: p.product.name,
+        quantity: rem ? rem.remaining : p.quantity,
+        isPending: false,
+      };
+    }),
+    ...Object.values(pendingProducts).map(({ product, quantity }) => ({
+      barcode: product.barcode,
+      name: product.name,
+      quantity,
+      isPending: true,
+    })),
+  ];
+
   return (
     <div className="pb-15">
       {standName && (
         <>
-      <h1 className="text-xl font-semibold mt-4 mb-4 text-center">Ревизия на {standName}</h1>
+      <h1 className="text-xl font-semibold mt-4 mb-4 text-center">Чекиране на {standName}</h1>
       </>
       )}
 
@@ -264,15 +328,15 @@ export default function StandRevisionPage({ params }) {
         <>
           <h2 className="text-lg font-semibold mb-2 mt-6 flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</h2>
           <div className="grid gap-2 mb-6 sm:grid-cols-2">
-            {sortedRemaining.map(p => (
-              <div key={p.barcode} className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${finished ? (p.remaining > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-900') : ''}`}>
+            {allProducts.map(p => (
+              <div key={p.barcode} className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${p.isPending ? 'bg-yellow-100 border-yellow-400' : ''}`}>
                 <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
                 <div className='w-full flex justify-between items-end'>
                   <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
                     <Barcode size={12} />
                     <span className='leading-tight'>{p.barcode}</span>
                   </div>
-                  <h6 className='font-bold text-base gray-900'>{p.remaining}</h6>
+                  <h6 className='font-bold text-base gray-900'>{p.quantity}</h6>
                 </div>
               </div>
             ))}

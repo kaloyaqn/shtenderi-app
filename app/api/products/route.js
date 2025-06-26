@@ -1,9 +1,16 @@
 import { getAllProducts, createProduct } from '@/lib/products/product'
+import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const products = await getAllProducts()
-    return Response.json(products)
+    const { searchParams } = new URL(req.url);
+    const barcode = searchParams.get('barcode');
+    if (barcode) {
+      const product = await prisma.product.findUnique({ where: { barcode } });
+      return Response.json(product ? [product] : []);
+    }
+    const products = await getAllProducts();
+    return Response.json(products);
   } catch (error) {
     console.error('[PRODUCTS_GET_ERROR]', error)
     return new Response(

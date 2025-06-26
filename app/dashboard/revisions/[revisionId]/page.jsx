@@ -4,7 +4,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { useReactToPrint } from 'react-to-print';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { PrintableRevision } from './_components/printable-revision';
 import {
     Dialog,
     DialogContent,
@@ -31,12 +30,14 @@ export default function RevisionDetailPage() {
   const [selectedAddProduct, setSelectedAddProduct] = useState(null);
   const [addProductQuantity, setAddProductQuantity] = useState(1);
   const [addProductLoading, setAddProductLoading] = useState(false);
+  const [resupplyErrors, setResupplyErrors] = useState([]);
   const router = useRouter();
 
   const componentRef = useRef();
+  const printRef = useRef();
 
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    content: () => printRef.current,
   });
 
   const fetchRevisionData = async () => {
@@ -84,28 +85,29 @@ export default function RevisionDetailPage() {
         toast.error('Моля, изберете склад.');
         return;
     }
-
-    await toast.promise(async () => {
+    setResupplyErrors([]);
+    try {
         const response = await fetch(`/api/revisions/${revisionId}/resupply`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ storageId: selectedStorage }),
         });
-
+        if (response.status === 409) {
+            const data = await response.json();
+            setResupplyErrors(data.insufficient || []);
+            return;
+        }
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(errorText || 'Failed to resupply from storage');
         }
-
-        // Optionally, you can refresh data here if needed
-        // await fetchRevisionData();
-    }, {
-        loading: 'Зареждане от склад...',
-        success: 'Щандът е зареден успешно!',
-        error: (err) => err.message,
-    });
-    
-    setResupplyDialogOpen(false);
+        toast.success('Щандът е зареден успешно!');
+        setResupplyDialogOpen(false);
+        setResupplyErrors([]);
+        fetchRevisionData();
+    } catch (err) {
+        toast.error(err.message);
+    }
   }
 
   const handleAddProduct = async () => {
@@ -165,30 +167,17 @@ export default function RevisionDetailPage() {
   const hasMissingProducts = revision.missingProducts && revision.missingProducts.length > 0;
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Детайли за ревизия</h1>
+    <div className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Детайли за ревизия</h1>
         <div className="flex gap-2">
-            {hasMissingProducts && (
-                <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">
-                    Зареди от склад
-                </Button>
-            )}
-            {selectedStorage && (
-                <Button onClick={() => setAddProductDialogOpen(true)} variant="outline">
-                    Добави нов продукт към ревизията
-                </Button>
-            )}
-            <Button onClick={handlePrint}>Принтирай</Button>
+          <Button onClick={handlePrint}>Принтирай</Button>
+          <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
+          <Button variant="ghost" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
-        {/* Render the printable component but keep it visually hidden */}
-        <div style={{ display: 'none' }}>
-            <PrintableRevision ref={componentRef} revision={revision} />
-        </div>
-
         <div className="space-y-4">
             <div><strong>Щанд:</strong> {revision.stand?.name || 'N/A'}</div>
             <div><strong>Магазин:</strong> {revision.stand?.store?.name || 'N/A'}</div>
@@ -196,37 +185,24 @@ export default function RevisionDetailPage() {
             <div><strong>Ревизор:</strong> {revision.user?.name || revision.user?.email || 'N/a'}</div>
             <div><strong>Дата:</strong> {new Date(revision.createdAt).toLocaleString('bg-BG')}</div>
         </div>
-
-        <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">Липсващи продукти:</h2>
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Продадени продукти:</h2>
+          <div>
             {revision.missingProducts?.length > 0 ? (
-            <ul className="space-y-2">
-                {revision.missingProducts.map((mp) => (
-                <li key={mp.id} className="p-3 bg-red-50 rounded-md">
-                    <div className="font-semibold">{mp.product?.name} ({mp.product?.barcode})</div>
-                    <div className="text-sm text-red-700">Липсващи: {mp.missingQuantity}</div>
-                </li>
-                ))}
-            </ul>
+              <DataTable columns={columns} data={data} />
             ) : (
-            <p>Няма регистрирани липси.</p>
+              <p>Няма регистрирани липси.</p>
             )}
+          </div>
         </div>
-
       </div>
-
-      <div className="flex gap-2 mt-6">
-        <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
-        <Button variant="ghost" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>
-      </div>
-
       {/* Resupply Dialog */}
-      <Dialog open={resupplyDialogOpen} onOpenChange={setResupplyDialogOpen}>
+      <Dialog open={resupplyDialogOpen} onOpenChange={(open) => { setResupplyDialogOpen(open); if (!open) setResupplyErrors([]); }}>
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Зареждане на щанд от склад</DialogTitle>
                 <DialogDescription>
-                    Изберете от кой склад да заредите липсващите количества.
+                    Изберете от кой склад да заредите продадените количества.
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -243,13 +219,24 @@ export default function RevisionDetailPage() {
                     </SelectContent>
                 </Select>
             </div>
+            {resupplyErrors.length > 0 && (
+              <div className="bg-red-100 border border-red-400 text-red-800 rounded p-4 mb-4">
+                <div className="font-semibold mb-2">Недостатъчна наличност за следните продукти:</div>
+                <ul className="list-disc pl-5">
+                  {resupplyErrors.map((err, idx) => (
+                    <li key={idx}>
+                      {err.name} ({err.barcode}) — Изискват се: {err.required}, налични: {err.available}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <DialogFooter>
                 <Button variant="outline" onClick={() => setResupplyDialogOpen(false)}>Отказ</Button>
                 <Button onClick={handleResupply}>Зареди</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Add Product Dialog */}
       <Dialog open={addProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
