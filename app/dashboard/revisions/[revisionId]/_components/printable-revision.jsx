@@ -1,0 +1,78 @@
+'use client';
+
+import React from 'react';
+
+export const PrintableRevision = React.forwardRef(({ revision }, ref) => {
+  if (!revision) return null;
+
+  return (
+    <div ref={ref} className="p-8 font-sans bg-white text-black">
+      <header className="flex justify-between items-center pb-4 border-b-2 border-black">
+        <div>
+          {/* You can add a logo here */}
+          {/* <img src="/path/to/your/logo.png" alt="Company Logo" className="h-12" /> */}
+          <h1 className="text-3xl font-bold">Справка от ревизия</h1>
+        </div>
+        <div className="text-right">
+          <p><strong>№ на ревизия:</strong> {revision.id}</p>
+          <p><strong>Дата:</strong> {new Date(revision.createdAt).toLocaleDateString('bg-BG')}</p>
+        </div>
+      </header>
+
+      <section className="my-6">
+        <h2 className="text-xl font-semibold mb-4">Детайли</h2>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div><strong>Щанд:</strong> {revision.stand?.name || 'N/A'}</div>
+          <div><strong>Магазин:</strong> {revision.stand?.store?.name || 'N/A'}</div>
+          <div><strong>Партньор:</strong> {revision.partner?.name || 'N/A'}</div>
+          <div><strong>Ревизор:</strong> {revision.user?.name || revision.user?.email || 'N/A'}</div>
+        </div>
+      </section>
+
+      <section className="my-6">
+        <h2 className="text-xl font-semibold mb-4">Липсващи продукти</h2>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="p-2 border">Продукт</th>
+              <th className="p-2 border">Баркод</th>
+              <th className="p-2 border text-center">Липсващи бройки</th>
+            </tr>
+          </thead>
+          <tbody>
+            {revision.missingProducts?.length > 0 ? (
+              revision.missingProducts.map((mp) => (
+                <tr key={mp.id}>
+                  <td className="p-2 border">{mp.product?.name || 'N/A'}</td>
+                  <td className="p-2 border">{mp.product?.barcode || 'N/A'}</td>
+                  <td className="p-2 border text-center">{mp.missingQuantity}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3" className="p-2 border text-center">Няма липсващи продукти.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      <footer className="mt-16 pt-8 text-sm">
+        <div className="grid grid-cols-2 gap-16">
+          <div>
+            <p><strong>Предал:</strong></p>
+            <div className="mt-12 border-t border-gray-400">
+              <p className="text-center">(Подпис)</p>
+            </div>
+          </div>
+          <div>
+            <p><strong>Приел:</strong></p>
+            <div className="mt-12 border-t border-gray-400">
+              <p className="text-center">(Подпис)</p>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}); 

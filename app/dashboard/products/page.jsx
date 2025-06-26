@@ -101,8 +101,11 @@ export default function ProductsPage() {
   const [productToDelete, setProductToDelete] = useState(null)
   const [importError, setImportError] = useState(null)
   const fileInputRef = useRef()
-  const [showQuantityPrompt, setShowQuantityPrompt] = useState(false)
-  const [pendingProducts, setPendingProducts] = useState(null)
+  
+  // State for import flow
+  const [pendingProducts, setPendingProducts] = useState(null);
+  const [activationPrompt, setActivationPrompt] = useState({ open: false, inactiveProducts: [] });
+  const [quantityPrompt, setQuantityPrompt] = useState(false);
 
   const fetchProducts = async () => {
     setLoading(true)
@@ -152,57 +155,107 @@ export default function ProductsPage() {
     setImportError(null);
     const file = e.target.files[0];
     if (!file) return;
+
     try {
-      const text = await file.text();
-      const parser = new XMLParser();
-      const xml = parser.parse(text);
-      // Extract products from xml
-      const goods = xml.info?.goods?.good || [];
-      const products = Array.isArray(goods) ? goods : [goods];
-      // Map to expected fields
-      const mapped = products.map(good => ({
-        barcode: good.barcode,
-        name: good.name,
-        clientPrice: parseFloat(good.price),
-        quantity: good.quantity !== undefined ? parseInt(good.quantity, 10) : undefined,
-      }));
-      setPendingProducts(mapped);
-      setShowQuantityPrompt(true);
+        const text = await file.text();
+        const parser = new XMLParser();
+        const xml = parser.parse(text);
+        const goods = xml.info?.goods?.good || [];
+        const products = (Array.isArray(goods) ? goods : [goods]).map(good => ({
+            barcode: String(good.barcode),
+            name: good.name,
+            clientPrice: parseFloat(good.price),
+            quantity: good.quantity !== undefined ? parseInt(good.quantity, 10) : undefined,
+        })).filter(p => p.barcode);
+
+        if (products.length === 0) {
+            toast.error("Няма намерени продукти в XML файла.");
+            return;
+        }
+
+        const barcodes = products.map(p => p.barcode);
+        const checkResponse = await fetch('/api/products/check-inactive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ barcodes })
+        });
+
+        const { inactiveProducts } = await checkResponse.json();
+
+        setPendingProducts(products);
+
+        if (inactiveProducts && inactiveProducts.length > 0) {
+            setActivationPrompt({ open: true, inactiveProducts: inactiveProducts });
+        } else {
+            setQuantityPrompt(true); // No inactive products, go to quantity prompt
+        }
     } catch (err) {
-      setImportError(err.message);
+        setImportError(err.message);
+        toast.error(`Грешка при импорт: ${err.message}`);
     } finally {
-      e.target.value = '';
+        e.target.value = ''; // Reset file input
     }
-  }
+  };
+
+  const handleActivateAndContinue = () => {
+    const productsWithActivationFlag = pendingProducts.map(p => {
+        const isInactive = activationPrompt.inactiveProducts.some(ip => ip.barcode === p.barcode);
+        if (isInactive) {
+            return { ...p, shouldActivate: true };
+        }
+        return p;
+    });
+    setPendingProducts(productsWithActivationFlag);
+    setActivationPrompt({ open: false, inactiveProducts: [] });
+    setQuantityPrompt(true);
+  };
+
+  const handleSkipAndContinue = () => {
+    const inactiveBarcodes = new Set(activationPrompt.inactiveProducts.map(p => p.barcode));
+    const filteredProducts = pendingProducts.filter(p => !inactiveBarcodes.has(p.barcode));
+    setPendingProducts(filteredProducts);
+    setActivationPrompt({ open: false, inactiveProducts: [] });
+    
+    if (filteredProducts.length > 0) {
+        setQuantityPrompt(true);
+    } else {
+        toast.info("Няма продукти за импортиране след пропускане на неактивните.");
+        setPendingProducts(null);
+    }
+  };
 
   const handleImportWithQuantities = async (updateQuantities) => {
-    setShowQuantityPrompt(false);
-    if (!pendingProducts) return;
-    // Remove quantity if not updating
+    setQuantityPrompt(false);
+    if (!pendingProducts || pendingProducts.length === 0) {
+        setPendingProducts(null);
+        return;
+    };
+
     const productsToSend = updateQuantities
       ? pendingProducts
       : pendingProducts.map(p => {
           const { quantity, ...rest } = p;
           return rest;
         });
+
     await toast.promise(
-      (async () => {
-        const response = await fetch('/api/products/import-xml', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ products: productsToSend, updateQuantities })
-        });
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.error || 'Import failed');
+        (async () => {
+            const response = await fetch('/api/products/import-xml', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ products: productsToSend, updateQuantities })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Import failed');
+            }
+            await fetchProducts();
+        })(),
+        {
+            loading: 'Импортиране... Моля, изчакайте',
+            success: 'Импортирането е успешно!',
+            error: (err) => err.message || 'Възникна грешка при импортиране',
         }
-        await fetchProducts();
-      })(),
-      {
-        loading: 'Импортиране... Моля, изчакайте',
-        success: 'Импортирането е успешно!',
-        error: (err) => err.message || 'Възникна грешка при импортиране',
-      }
     );
     setPendingProducts(null);
   };
@@ -399,19 +452,48 @@ export default function ProductsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={showQuantityPrompt} onOpenChange={setShowQuantityPrompt}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Обновяване на количества?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Искате ли да обновите количествата на продуктите при импортиране от XML?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => handleImportWithQuantities(false)}>Не</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleImportWithQuantities(true)}>Да</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+      <AlertDialog open={activationPrompt.open}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Открити са неактивни продукти</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div>
+                      Следните продукти от XML файла са неактивни:
+                      <ul className="mt-2 list-disc list-inside text-sm">
+                          {activationPrompt.inactiveProducts.map(p => <li key={p.barcode}>{p.name} ({p.barcode})</li>)}
+                      </ul>
+                      Искате ли да ги активирате и импортирате, или да ги пропуснете?
+                    </div>
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <Button variant="outline" onClick={handleSkipAndContinue}>
+                      Пропусни неактивните
+                  </Button>
+                  <Button onClick={handleActivateAndContinue}>
+                      Активирай и импортирай
+                  </Button>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={quantityPrompt}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Импортиране на количества</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Искате ли да обновите и количествата на продуктите от XML файла, или само да добавите новите продукти?
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <Button variant="outline" onClick={() => handleImportWithQuantities(false)}>
+                      Не, добави само нови
+                  </Button>
+                  <Button onClick={() => handleImportWithQuantities(true)}>
+                      Да, обнови количествата
+                  </Button>
+              </AlertDialogFooter>
+          </AlertDialogContent>
       </AlertDialog>
     </div>
   )

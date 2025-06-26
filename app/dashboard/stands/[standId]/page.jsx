@@ -46,6 +46,7 @@ export default function StandDetailPage({ params }) {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [productOnStandToEdit, setProductOnStandToEdit] = useState(null);
     const [productOnStandToDelete, setProductOnStandToDelete] = useState(null);
+    const [inactiveProductsPrompt, setInactiveProductsPrompt] = useState({ open: false, products: [], toImport: [] });
 
 
     const fetchData = async () => {
@@ -153,46 +154,79 @@ export default function StandDetailPage({ params }) {
         setImportError(null);
         const file = e.target.files[0];
         if (!file) return;
-
+    
         try {
             const text = await file.text();
-            const parser = new XMLParser();
+            const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "" });
             const xml = parser.parse(text);
             const goods = xml.info?.goods?.good || [];
-            const products = Array.isArray(goods) ? goods : [goods];
-            
-            const mapped = products.map(good => ({
+            const productsToImport = (Array.isArray(goods) ? goods : [goods]).map(good => ({
                 barcode: String(good.barcode),
                 quantity: Number(good.quantity),
                 name: good.name,
                 clientPrice: parseFloat(good.price) || 0
             })).filter(p => p.barcode && !isNaN(p.quantity));
-
-            await toast.promise(
-                (async () => {
-                    const response = await fetch(`/api/stands/${standId}/import-xml`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ products: mapped })
-                    });
-
-                    if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(err.error || 'Import failed');
-                    }
-                    await fetchData();
-                })(),
-                {
-                    loading: 'Импортиране... Моля, изчакайте',
-                    success: 'Импортирането е успешно!',
-                    error: (err) => err.message || 'Възникна грешка при импортиране',
-                }
-            );
+    
+            if (productsToImport.length === 0) {
+                toast.error("XML файлът не съдържа продукти или е в грешен формат.");
+                return;
+            }
+    
+            // Check for inactive products
+            const barcodes = productsToImport.map(p => p.barcode);
+            const checkRes = await fetch('/api/products/check-inactive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ barcodes })
+            });
+    
+            const { inactiveProducts } = await checkRes.json();
+    
+            if (inactiveProducts && inactiveProducts.length > 0) {
+                setInactiveProductsPrompt({ open: true, products: inactiveProducts, toImport: productsToImport });
+            } else {
+                // No inactive products, proceed directly
+                await proceedWithImport(productsToImport);
+            }
+    
         } catch (err) {
+            console.error("File change or check error:", err);
             setImportError(err.message);
+            toast.error(err.message || "Възникна грешка при обработка на файла.");
         } finally {
             e.target.value = '';
         }
+    };
+    
+    const proceedWithImport = async (products, activate = false) => {
+        let productsToSend = products;
+        if (activate) {
+            const inactiveBarcodes = new Set(inactiveProductsPrompt.products.map(p => p.barcode));
+            productsToSend = products.map(p =>
+                inactiveBarcodes.has(p.barcode) ? { ...p, shouldActivate: true } : p
+            );
+        }
+    
+        await toast.promise(
+            (async () => {
+                const response = await fetch(`/api/stands/${standId}/import-xml`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ products: productsToSend })
+                });
+    
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Import failed');
+                }
+                await fetchData();
+            })(),
+            {
+                loading: 'Импортиране...',
+                success: 'Импортирането е успешно!',
+                error: (err) => err.message || 'Възникна грешка при импортиране',
+            }
+        );
     };
 
     if (loading) return <div>Зареждане...</div>;
@@ -271,6 +305,34 @@ export default function StandDetailPage({ params }) {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Отказ</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete}>Премахни</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Inactive Products Confirmation Dialog */}
+            <AlertDialog open={inactiveProductsPrompt.open} onOpenChange={(open) => !open && setInactiveProductsPrompt({ open: false, products: [], toImport: [] })}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Открити са неактивни продукти</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Следните продукти от XML файла са маркирани като неактивни в системата:
+                            <ul className="mt-2 list-disc list-inside">
+                                {inactiveProductsPrompt.products.map(p => <li key={p.barcode}>{p.name} ({p.barcode})</li>)}
+                            </ul>
+                            Желаете ли да ги активирате и да продължите с импорта, или да ги пропуснете?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => {
+                            const inactiveBarcodes = new Set(inactiveProductsPrompt.products.map(p => p.barcode));
+                            const filteredProducts = inactiveProductsPrompt.toImport.filter(p => !inactiveBarcodes.has(p.barcode));
+                            proceedWithImport(filteredProducts, false);
+                            setInactiveProductsPrompt({ open: false, products: [], toImport: [] });
+                        }}>Пропусни неактивните</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                            proceedWithImport(inactiveProductsPrompt.toImport, true);
+                            setInactiveProductsPrompt({ open: false, products: [], toImport: [] });
+                        }}>Активирай и импортирай</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

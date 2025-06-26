@@ -1,46 +1,67 @@
-import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req) {
   try {
     const { products, updateQuantities } = await req.json();
-    if (!Array.isArray(products)) {
-      return NextResponse.json({ error: 'Invalid products array' }, { status: 400 });
+
+    if (!products || !Array.isArray(products)) {
+      return NextResponse.json({ error: 'Invalid products data' }, { status: 400 });
     }
+
+    const updatedProducts = [];
+    const createdProducts = [];
+
     for (const product of products) {
-      if (!product.barcode || !product.name || typeof product.clientPrice !== 'number') {
-        continue; // skip invalid
-      }
-      // Find existing product (if any)
-      const existing = await prisma.product.findUnique({
-        where: { barcode: String(product.barcode) },
-      });
-      let updateData = {
-        name: product.name,
-        clientPrice: product.clientPrice,
-      };
-      if (updateQuantities && typeof product.quantity === 'number') {
-        if (existing) {
-          updateData.quantity = (existing.quantity || 0) + product.quantity;
+      if (!product.barcode) continue;
+
+      const barcodeAsString = String(product.barcode);
+
+      try {
+        const existingProduct = await prisma.product.findUnique({
+          where: { barcode: barcodeAsString },
+        });
+
+        if (existingProduct) {
+          const updateData = {
+            name: product.name,
+            clientPrice: product.clientPrice,
+          };
+          if (updateQuantities) {
+            updateData.quantity = { increment: parseInt(product.quantity, 10) || 0 };
+          }
+          if (product.shouldActivate) {
+            updateData.active = true;
+          }
+          const updatedProduct = await prisma.product.update({
+            where: { id: existingProduct.id },
+            data: updateData,
+          });
+          updatedProducts.push(updatedProduct);
         } else {
-          updateData.quantity = product.quantity;
+          const newProduct = await prisma.product.create({
+            data: {
+              name: product.name || 'Unnamed Product',
+              barcode: barcodeAsString,
+              clientPrice: parseFloat(product.clientPrice) || 0,
+              quantity: parseInt(product.quantity, 10) || 0,
+              active: true,
+            },
+          });
+          createdProducts.push(newProduct);
         }
+      } catch (error) {
+        console.error(`Error processing product ${barcodeAsString}:`, error);
       }
-      const createData = {
-        barcode: String(product.barcode),
-        name: product.name,
-        clientPrice: product.clientPrice,
-        quantity: typeof product.quantity === 'number' ? product.quantity : 0,
-      };
-      await prisma.product.upsert({
-        where: { barcode: String(product.barcode) },
-        update: updateData,
-        create: createData,
-      });
     }
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error('Import XML error:', err);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+
+    return NextResponse.json({
+      success: true,
+      updatedProducts,
+      createdProducts,
+    });
+  } catch (error) {
+    console.error('Import XML error:', error);
+    return NextResponse.json({ error: 'Failed to import products' }, { status: 500 });
   }
 } 

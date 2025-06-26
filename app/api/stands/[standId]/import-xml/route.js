@@ -27,12 +27,17 @@ export async function POST(req, context) {
           },
         });
       } else {
+        const updateData = {
+          quantity: { increment: product.quantity },
+        };
+
+        if (product.shouldActivate) {
+          updateData.active = true;
+        }
         // Increment the global product quantity by the XML quantity
         dbProduct = await prisma.product.update({
           where: { id: dbProduct.id },
-          data: {
-            quantity: { increment: product.quantity },
-          },
+          data: updateData,
         });
       }
 
