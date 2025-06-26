@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/toggle"
 
 export default function EditProductPage({ params }) {
   const router = useRouter()
@@ -53,6 +54,7 @@ export default function EditProductPage({ params }) {
         clientPrice: parseFloat(formData.get('clientPrice')),
         pcd: formData.get('pcd')?.trim() || null,
         quantity: parseInt(formData.get('quantity'), 10) || 0,
+        active: formData.get('active') === 'on',
     }
 
     try {
@@ -123,6 +125,18 @@ export default function EditProductPage({ params }) {
                 <div className="grid gap-2">
                   <Label htmlFor="quantity">Количество</Label>
                   <Input id="quantity" name="quantity" type="number" defaultValue={product.quantity || 0} placeholder="0" />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="active">Активен продукт</Label>
+                  <input
+                    id="active"
+                    name="active"
+                    type="checkbox"
+                    defaultChecked={product.active}
+                    className="w-5 h-5"
+                  />
+                  <span className="text-xs text-muted-foreground">Ако продуктът е неактивен, няма да се показва в щандове и ревизии.</span>
                 </div>
               </div>
 

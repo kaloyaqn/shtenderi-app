@@ -28,6 +28,7 @@ model Product {
   clientPrice Float //цена на едро
   pcd         String? //препоръчкителна цена доставчик
   quantity    Int      @default(0)
+  active      Boolean  @default(true) // Product is active or discontinued
   createdAt   DateTime @default(now())
 
   standProducts   StandProduct[]

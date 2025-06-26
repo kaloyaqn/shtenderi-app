@@ -224,6 +224,9 @@ export default function ProductsPage() {
   };
 
   const getRowClassName = (row) => {
+    if (row.original.active === false) {
+      return "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300";
+    }
     if (row.original.quantity === 0) {
       return "bg-red-50 dark:bg-red-950";
     }
