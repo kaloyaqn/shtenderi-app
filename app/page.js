@@ -46,7 +46,7 @@ export default function StendoLanding() {
         <header className="fixed top-8 left-4 right-4 z-50 bg-white/80 backdrop-blur-xl border border-gray-100 rounded-3xl">
           <nav className="max-w-7xl mx-auto px-8 py-6">
             <div className="flex justify-between items-center">
-              <div className="font-serif text-3xl font-bold text-gray-900">
+              <div className="font-serif text-3xl font-bold text-gray-900" style={{ fontFamily: 'Canela, serif' }}>
                 Stendo
               </div>
               <div className="hidden lg:flex items-center space-x-10">
@@ -97,7 +97,7 @@ export default function StendoLanding() {
         <section id="hero" className="relative px-12 pt-32 pb-20 min-h-screen flex items-center">
           <div className="max-w-7xl mx-auto w-full">
             <div className="text-center mb-16">
-              <h1 className="font-serif text-6xl !leading-tight lg:text-8xl text-gray-900 mb-8">
+              <h1 className="font-serif text-6xl !leading-tight lg:text-8xl text-gray-900 mb-8" style={{ fontFamily: 'Canela, serif' }}>
                 Вашата стратегия за<br />
                 <span className="text-lime-500 italic">по-големи приходи</span>
               </h1>
@@ -234,7 +234,7 @@ export default function StendoLanding() {
         <section id="about" className="px-12 py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="font-serif text-5xl font-bold text-gray-900 mb-6">
+              <h2 className="font-serif text-5xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'Canela, serif' }}>
                 Какво е <span className="text-lime-500">Stendo</span>?
               </h2>
               <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
@@ -285,7 +285,7 @@ export default function StendoLanding() {
         <section id="process" className="px-12 py-20 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="font-serif text-5xl font-bold text-gray-900 mb-6">
+              <h2 className="font-serif text-5xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'Canela, serif' }}>
                 Как работи <span className="text-lime-500">Stendo</span>?
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -354,7 +354,7 @@ export default function StendoLanding() {
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
-                <h2 className="font-serif text-4xl lg:text-5xl font-bold mb-8 leading-tight">
+                <h2 className="font-serif text-4xl lg:text-5xl font-bold mb-8 leading-tight" style={{ fontFamily: 'Canela, serif' }}>
                   Защо да изберете<br />
                   <span className="font-light italic">Stendo</span>?
                 </h2>
@@ -420,7 +420,7 @@ export default function StendoLanding() {
         <section className="px-12 py-20 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="font-serif text-4xl font-bold text-gray-900 mb-6">
+              <h2 className="font-serif text-4xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'Canela, serif' }}>
                 Нашите <span className="text-lime-500">резултати</span>
               </h2>
               <p className="text-gray-600 mb-8 max-w-3xl mx-auto">
@@ -460,7 +460,7 @@ export default function StendoLanding() {
         {/* CTA Section */}
         <section id="contact" className="px-12 py-20 bg-gradient-to-br from-lime-500 to-green-600 text-white text-center">
           <div className="max-w-4xl mx-auto">
-            <h2 className="font-serif text-5xl lg:text-6xl font-bold mb-8 leading-tight">
+            <h2 className="font-serif text-5xl lg:text-6xl font-bold mb-8 leading-tight" style={{ fontFamily: 'Canela, serif' }}>
               Готови ли сте да<br />
               <span className="italic font-light">започнете?</span>
             </h2>
@@ -527,7 +527,7 @@ export default function StendoLanding() {
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-4 gap-12 mb-12">
               <div>
-                <div className="font-serif text-3xl font-bold mb-6">
+                <div className="font-serif text-3xl font-bold mb-6" style={{ fontFamily: 'Canela, serif' }}>
                   Stendo
                 </div>
                 <p className="text-gray-400 leading-relaxed mb-6">

@@ -26,6 +26,14 @@ export async function POST(req, context) {
             quantity: product.quantity,
           },
         });
+      } else {
+        // Increment the global product quantity by the XML quantity
+        dbProduct = await prisma.product.update({
+          where: { id: dbProduct.id },
+          data: {
+            quantity: { increment: product.quantity },
+          },
+        });
       }
 
       await prisma.standProduct.upsert({

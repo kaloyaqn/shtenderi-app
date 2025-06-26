@@ -348,10 +348,10 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className=" md:py-10 py-5">
-      <div className="flex justify-between md:flex-row flex-col w-full md:items-center mb-8">
-        <h1 className="md:text-3xl text-xl text-left font-bold flex items-center gap-2 md:mb-0 mb-2"> <Bus size={32}/> СКЛАД {"(БУС)"}</h1>
-        <div className="flex md:flex-row flex-col w-full gap-2">
+    <div className=" md:py-10 py-5 w-full">
+      <div className="flex justify-between md:flex-row flex-col  md:items-center w-full mb-8">
+        <h1 className="md:text-3xl w-full text-xl text-left font-bold flex items-center gap-2 md:mb-0 mb-2"> <Bus size={32}/> СКЛАД {"(БУС)"}</h1>
+        <div className="flex justify-end w-full md:flex-row flex-col gap-2">
           <Button onClick={() => router.push('/dashboard/products/create')}>
             <Plus className="mr-2 h-4 w-4" />
             Добави продукт

@@ -216,6 +216,13 @@ export default function StandRevisionPage({ params }) {
     inputRef.current?.focus();
   };
 
+  // Before rendering, sort remaining so checked are on the bottom
+  const sortedRemaining = [...remaining].sort((a, b) => {
+    if (a.remaining === 0 && b.remaining !== 0) return 1;
+    if (a.remaining !== 0 && b.remaining === 0) return -1;
+    return 0;
+  });
+
   return (
     <div className="pb-15">
       {standName && (
@@ -257,7 +264,7 @@ export default function StandRevisionPage({ params }) {
         <>
           <h2 className="text-lg font-semibold mb-2 mt-6 flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</h2>
           <div className="grid gap-2 mb-6 sm:grid-cols-2">
-            {remaining.map(p => (
+            {sortedRemaining.map(p => (
               <div key={p.barcode} className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${finished ? (p.remaining > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-900') : ''}`}>
                 <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
                 <div className='w-full flex justify-between items-end'>
