@@ -142,6 +142,9 @@ export default function StandRevisionPage({ params }) {
       } catch {}
       if (!productData) {
         toast.error('Продукт с този баркод не е намерен.');
+        try {
+          new Audio('/error.mp3').play();
+        } catch (err) {}
         e.target.reset();
         inputRef.current?.focus();
         return;
@@ -163,6 +166,9 @@ export default function StandRevisionPage({ params }) {
     const origQty = prod.quantity;
     if (origQty === 0) {
       toast.warning('Няма налични бройки от този продукт.');
+      try {
+        new Audio('/error.mp3').play();
+      } catch (err) {}
       e.target.reset();
       inputRef.current?.focus();
       return;
@@ -170,6 +176,9 @@ export default function StandRevisionPage({ params }) {
     const remainingItem = remaining.find(p => p.barcode === barcode);
     if (remainingItem && remainingItem.remaining === 0) {
       toast.warning('Няма налични бройки от този продукт.');
+      try {
+        new Audio('/error.mp3').play();
+      } catch (err) {}
       e.target.reset();
       inputRef.current?.focus();
       return;
@@ -177,6 +186,9 @@ export default function StandRevisionPage({ params }) {
     const checkedItem = checked.find(p => p.barcode === barcode);
     if (checkedItem && checkedItem.checked >= origQty) {
       toast.warning('Няма толкова налични бройки от този продукт.');
+      try {
+        new Audio('/error.mp3').play();
+      } catch (err) {}
       e.target.reset();
       inputRef.current?.focus();
       return;
