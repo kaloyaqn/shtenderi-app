@@ -171,6 +171,9 @@ export default function RevisionDetailPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Детайли за ревизия</h1>
         <div className="flex gap-2">
+          <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">
+            Зареди от склад
+          </Button>
           <Button onClick={handlePrint}>Принтирай</Button>
           <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
           <Button variant="ghost" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>

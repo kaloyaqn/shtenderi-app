@@ -195,6 +195,10 @@ export default function StandRevisionPage({ params }) {
         return [...prev, { barcode, name: prod.product.name, checked: 1 }];
       }
     });
+    // Play success sound
+    try {
+      new Audio('/success.mp3').play();
+    } catch (err) {}
     e.target.reset();
     setShowCheck(true);
     setTimeout(() => setShowCheck(false), 2000);
