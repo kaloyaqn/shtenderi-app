@@ -24,8 +24,8 @@ export default async function DashboardLayout({children}) {
             }}
           >
             <AppSidebar variant="inset" />
-            <SidebarInset className='p-4'>
-              <Toaster />
+            <SidebarInset className='md:p-4 p-1 pb-4'>
+              <Toaster position="top-center"/>
               {children}
             </SidebarInset>
             <MobileNavWrapper />

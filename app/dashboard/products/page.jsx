@@ -242,26 +242,33 @@ export default function ProductsPage() {
     {
       accessorKey: "clientPrice",
       header: "Клиентска цена",
-      cell: ({ row }) => `${row.original.clientPrice.toFixed(2)} лв.`,
+      cell: ({ row }) => {
+        if (!row || !row.original || typeof row.original.clientPrice !== 'number') return null;
+        return `${row.original.clientPrice.toFixed(2)} лв.`;
+      },
     },
     {
       accessorKey: "pcd",
       header: "ПЦД",
-      cell: ({ row }) => (
-        <EditableCell
-          value={row.original.pcd}
-          onSave={val => handleUpdateProductField(row.original.id, 'pcd', val)}
-        />
-      ),
+      cell: ({ row }) => {
+        if (!row) return null;
+        return (
+          <EditableCell
+            value={row.original.pcd}
+            onSave={val => handleUpdateProductField(row.original.id, 'pcd', val)}
+          />
+        );
+      },
     },
     {
       accessorKey: "quantity",
       header: "Общо количество",
       cell: ({ row }) => {
+        if (!row) return null;
         const product = row.original;
+        if (!product || !Array.isArray(product.standProducts)) return null;
         const assignedQuantity = product.standProducts.reduce((sum, sp) => sum + sp.quantity, 0);
         const unassignedQuantity = product.quantity - assignedQuantity;
-
         return (
           <TooltipProvider>
             <Tooltip>
@@ -290,23 +297,27 @@ export default function ProductsPage() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        )
-      }
+        );
+      },
     },
     {
       accessorKey: "unassignedQuantity",
       header: "Количество БУС",
       cell: ({ row }) => {
+        if (!row) return null;
         const product = row.original;
+        if (!product || !Array.isArray(product.standProducts)) return null;
         const assignedQuantity = product.standProducts.reduce((sum, sp) => sum + sp.quantity, 0);
         const unassignedQuantity = product.quantity - assignedQuantity;
         return unassignedQuantity;
-      }
+      },
     },
     {
       id: "actions",
       cell: ({ row }) => {
-        const product = row.original
+        if (!row) return null;
+        const product = row.original;
+        if (!product) return null;
         return (
           <div className="flex items-center gap-2">
             <Button
@@ -327,7 +338,7 @@ export default function ProductsPage() {
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-        )
+        );
       },
     },
   ]
@@ -337,10 +348,10 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2"> <Bus size={32}/> СКЛАД {"(БУС)"}</h1>
-        <div className="flex gap-2">
+    <div className=" md:py-10 py-5">
+      <div className="flex justify-between md:flex-row flex-col w-full md:items-center mb-8">
+        <h1 className="md:text-3xl text-xl text-left font-bold flex items-center gap-2 md:mb-0 mb-2"> <Bus size={32}/> СКЛАД {"(БУС)"}</h1>
+        <div className="flex md:flex-row flex-col w-full gap-2">
           <Button onClick={() => router.push('/dashboard/products/create')}>
             <Plus className="mr-2 h-4 w-4" />
             Добави продукт

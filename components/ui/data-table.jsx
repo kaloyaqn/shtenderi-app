@@ -19,13 +19,15 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
-import { ArrowUpDown } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ArrowUpDown, Pencil, Trash2 } from "lucide-react"
 import { Select } from "@/components/ui/select"
+import { useRouter } from "next/navigation"
 
 // Helper function to get nested values
 const getNestedValue = (obj, path) => {
-    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+  if (!obj || !path) return undefined;
+  return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
 
 export function DataTable({
@@ -34,10 +36,20 @@ export function DataTable({
   searchKey,
   filterableColumns = [],
   rowClassName,
+  isMobile,
 }) {
   const [sorting, setSorting] = useState([])
   const [columnFilters, setColumnFilters] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [isMobileState, setIsMobileState] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobileState(window.innerWidth <= 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const table = useReactTable({
     data,
@@ -64,9 +76,90 @@ export function DataTable({
     initialState: { pagination: { pageSize: 30 } },
   })
 
+  // Responsive mobile card view
+  if (isMobileState) {
+    return (
+      <div>
+        <div className="flex flex-col gap-2 py-3">
+          {searchKey && (
+            <Input
+              placeholder="Потърси..."
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="max-w-sm text-xs"
+            />
+          )}
+          {filterableColumns.map((column) => (
+            <Input
+              key={column.id}
+              placeholder={`Филтрирай по ${column.title.toLowerCase()}...`}
+              value={(table.getColumn(column.id)?.getFilterValue()) ?? ""}
+              onChange={(event) =>
+                table.getColumn(column.id)?.setFilterValue(event.target.value)
+              }
+              className="max-w-sm text-xs"
+            />
+          ))}
+        </div>
+        <div className="flex flex-col gap-2">
+          {table.getRowModel().rows.length ? (
+            table.getRowModel().rows.map((row) => (
+              <div key={row.id} className={`rounded border bg-white p-2 text-xs shadow-sm ${rowClassName ? rowClassName(row) : ''}`.trim()}>
+                {columns.map((col, idx) => {
+                  if (col?.meta?.hidden) return null;
+                  const header = typeof col.header === 'string'
+                    ? col.header
+                    : flexRender(col.header, { column: col, table });
+                  let value = null;
+                  if (col.cell) {
+                    value = flexRender(col.cell, { row });
+                  } else if (col.accessorKey) {
+                    value = getNestedValue(row.original, col.accessorKey);
+                  }
+                  if (col.id !== 'actions' && (value === undefined || value === null || value === '')) return null;
+                  return (
+                    <div key={col.id || col.accessorKey || idx} className="flex justify-between items-baseline border-b last:border-b-0 py-1">
+                      <span className="font-semibold text-gray-700 mr-2">{header}</span>
+                      <span className="text-gray-900 text-right break-all">{value}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-8 text-xs">Няма намерени резултати.</div>
+          )}
+        </div>
+        <div className="flex items-center justify-between py-4">
+          <div className="text-xs text-muted-foreground ml-2">
+            Страница {table.getState().pagination.pageIndex + 1} от {table.getPageCount()}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Предишна
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Следваща
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <div className="flex items-center gap-4 py-4">
+      <div className="flex items-center md:flex-row flex-col gap-4 py-4">
         {searchKey && (
           <Input
             placeholder="Потърси..."

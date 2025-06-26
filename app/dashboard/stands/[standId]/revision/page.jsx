@@ -4,7 +4,8 @@ import { useEffect, useState, useRef, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
-import { CheckCircle, XCircle, Barcode, Package } from 'lucide-react';
+import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
@@ -22,6 +23,16 @@ export default function StandRevisionPage({ params }) {
   const [scannerOpen, setScannerOpen] = useState(false);
   const scannerRef = useRef(null);
   const [revisionId, setRevisionId] = useState(null);
+  const [standName, setStandName] = useState('');
+  const [showCheck, setShowCheck] = useState(false);
+  const [inputReadOnly, setInputReadOnly] = useState(false);
+
+  // Detect mobile
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setInputReadOnly(window.innerWidth <= 768);
+    }
+  }, []);
 
   // Fetch products for this stand
   useEffect(() => {
@@ -37,6 +48,18 @@ export default function StandRevisionPage({ params }) {
       setChecked([]);
     };
     fetchProducts();
+  }, [standId]);
+
+  // Fetch stand name
+  useEffect(() => {
+    const fetchStand = async () => {
+      const res = await fetch(`/api/stands/${standId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setStandName(data.name || '');
+      }
+    };
+    fetchStand();
   }, [standId]);
 
   useEffect(() => {
@@ -145,6 +168,8 @@ export default function StandRevisionPage({ params }) {
       }
     });
     e.target.reset();
+    setShowCheck(true);
+    setTimeout(() => setShowCheck(false), 2000);
     inputRef.current?.focus();
   };
 
@@ -192,21 +217,33 @@ export default function StandRevisionPage({ params }) {
   };
 
   return (
-    <div className="container mx-auto py-4 px-2 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-4 text-center">Ревизия на щанд</h1>
+    <div className="pb-15">
+      {standName && (
+        <>
+      <h1 className="text-xl font-semibold mt-4 mb-4 text-center">Ревизия на {standName}</h1>
+      </>
+      )}
+
       {!finished && (
         <>
-          <form onSubmit={handleScan} className="mb-2 flex flex-col sm:flex-row gap-2 items-stretch">
+          <form onSubmit={handleScan} className="mb-2 flex flex-col sm:flex-row gap-2 items-stretch relative">
             <input
               name="barcode"
               ref={inputRef}
-              autoFocus
               placeholder="Сканирай или въведи баркод..."
-              className="border rounded-full px-4 py-3 text-lg w-full shadow-sm focus:ring-2 focus:ring-blue-400 outline-none"
+              className="border relative rounded-full px-4 py-3 text-lg w-full shadow-sm focus:ring-2 focus:ring-blue-400 outline-none pr-10"
               autoComplete="off"
               inputMode="numeric"
               pattern="[0-9]*"
+              readOnly={inputReadOnly}
+              onFocus={() => setInputReadOnly(false)}
             />
+            {showCheck && (
+              <div className='absolute right-3 w-7 h-7 flex justify-center items-center rounded-full text-center bg-lime-500 text-lime-900  top-3.5'>
+              <CheckCircle className="" size={22} />
+
+              </div>
+            )}
             <Button type="submit" className="w-full sm:w-auto text-lg py-3 rounded-full">Добави</Button>
           </form>
           <div className="flex justify-center mb-2">
@@ -221,16 +258,14 @@ export default function StandRevisionPage({ params }) {
           <h2 className="text-lg font-semibold mb-2 mt-6 flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</h2>
           <div className="grid gap-2 mb-6 sm:grid-cols-2">
             {remaining.map(p => (
-              <div key={p.barcode} className={`rounded-lg border p-3 flex flex-col gap-1 shadow-sm ${finished && p.remaining > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-muted/50'}`}>
-                <div className="font-semibold text-base flex items-center gap-2">
-                  <Barcode size={18} className="text-muted-foreground"/>{p.barcode}
-                </div>
-                <div className="text-sm font-medium break-words">{p.name}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">Оставащи:</span>
-                  <span className="font-bold text-lg">{p.remaining}</span>
-                  {finished && p.remaining > 0 && <XCircle className="text-red-400 ml-2" size={18}/>} 
-                  {finished && p.remaining === 0 && <CheckCircle className="text-green-500 ml-2" size={18}/>} 
+              <div key={p.barcode} className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${finished ? (p.remaining > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-900') : ''}`}>
+                <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
+                <div className='w-full flex justify-between items-end'>
+                  <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
+                    <Barcode size={12} />
+                    <span className='leading-tight'>{p.barcode}</span>
+                  </div>
+                  <h6 className='font-bold text-base gray-900'>{p.remaining}</h6>
                 </div>
               </div>
             ))}
@@ -242,15 +277,14 @@ export default function StandRevisionPage({ params }) {
       <div className="grid gap-2 mb-6 sm:grid-cols-2">
         {checked.length === 0 && <div className="text-muted-foreground text-sm">Няма проверени продукти.</div>}
         {checked.map(p => (
-          <div key={p.barcode} className="rounded-lg border p-3 flex flex-col gap-1 bg-green-50 border-green-200 text-green-900 shadow-sm">
-            <div className="font-semibold text-base flex items-center gap-2">
-              <Barcode size={18} className="text-muted-foreground"/>{p.barcode}
-            </div>
-            <div className="text-sm font-medium break-words">{p.name}</div>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">Проверени:</span>
-              <span className="font-bold text-lg">{p.checked}</span>
-              <CheckCircle className="text-green-500 ml-2" size={18}/>
+          <div key={p.barcode} className='rounded-sm border border-green-200 bg-green-50 p-3 flex flex-col justify-between text-green-900'>
+            <h3 className='text-sm leading-[110%]'>{p.name}</h3>
+            <div className='w-full flex justify-between items-end'>
+              <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-green-100 border border-green-300 text-gray-600 rounded-[2px]'>
+                <Barcode size={12} />
+                <span className='leading-tight'>{p.barcode}</span>
+              </div>
+              <h6 className='font-bold text-base'>{p.checked}</h6>
             </div>
           </div>
         ))}
@@ -264,15 +298,14 @@ export default function StandRevisionPage({ params }) {
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               {report.map((item, i) => (
-                <div key={item.barcode} className="rounded-lg border p-3 flex flex-col gap-1 bg-red-50 border-red-200 text-red-700 shadow-sm">
-                  <div className="font-semibold text-base flex items-center gap-2">
-                    <Barcode size={18} className="text-muted-foreground"/>{item.barcode}
-                  </div>
-                  <div className="text-sm font-medium break-words">{item.name}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground">Оставащи:</span>
-                    <span className="font-bold text-lg">{item.remaining}</span>
-                    <XCircle className="text-red-400 ml-2" size={18}/>
+                <div key={item.barcode} className='rounded-sm border border-red-200 bg-red-50 p-3 flex flex-col justify-between text-red-700'>
+                  <h3 className='text-sm leading-[110%]'>{item.name}</h3>
+                  <div className='w-full flex justify-between items-end'>
+                    <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
+                      <Barcode size={12} />
+                      <span className='leading-tight'>{item.barcode}</span>
+                    </div>
+                    <h6 className='font-bold text-base'>{item.remaining}</h6>
                   </div>
                 </div>
               ))}
@@ -280,10 +313,10 @@ export default function StandRevisionPage({ params }) {
           )}
           {/* Show link to revision if available */}
           {revisionId && (
-            <div className="flex justify-center mt-6">
+            <div className="flex w-full justify-center mt-6">
               <a
                 href={`/dashboard/revisions/${revisionId}`}
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full px-8 py-3 text-lg shadow transition"
+                className="inline-block bg-blue-600 w-full text-center hover:bg-blue-700 text-white font-bold rounded-full px-8 py-3 text-lg shadow transition"
               >
                 Виж ревизията
               </a>
@@ -293,11 +326,11 @@ export default function StandRevisionPage({ params }) {
       )}
       {/* Complete button at the bottom */}
       {!finished && (
-        <div className="flex justify-center mt-6 mb-4">
+        <div className="flex w-full justify-center mt-6 mb-4">
           <Button
             onClick={handleFinish}
             disabled={products.length === 0}
-            className="text-lg px-8 py-3 rounded-full font-bold"
+            className="text-lg w-full px-8 py-8 rounded-sm font-bold"
           >
             <CheckCircle size={22} className="mr-2" /> Приключи ревизията
           </Button>

@@ -119,8 +119,8 @@ export default function Stands() {
 
     return (
         <>
-            <div className="flex justify-between items-center mb-2">
-                <h1 className="text-3xl font-bold">Щендери</h1>
+            <div className="flex md:flex-row flex-col w-full justify-between md:items-center mb-2">
+                <h1 className="md:text-3xl text-xl md:mb-0 mb-2 font-bold">Щендери</h1>
                 <Button onClick={() => router.push('/dashboard/stands/create')}>
                 <Plus className="mr-2 h-4 w-4" />
                 Добави щендер

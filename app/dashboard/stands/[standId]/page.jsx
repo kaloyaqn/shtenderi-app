@@ -200,18 +200,18 @@ export default function StandDetailPage({ params }) {
     if (!stand) return <div>Щандът не е намерен.</div>
 
     return (
-        <div className="container mx-auto py-10">
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold">{stand.name}</h1>
-                    <p className="text-muted-foreground">Управление на продуктите на щанда</p>
+        <div className="md:py-10 py-5">
+            <div className="flex md:flex-row flex-col justify-between items-center md:mb-8">
+                <div className='w-full md:w-full md:mb-0 mb-2'>
+                    <h1 className="md:text-3xl text-xl font-bold">{stand.name}</h1>
+                    <p className="text-muted-foreground md:text-base text-sm">Управление на продуктите на щанда</p>
                 </div>
 
-                <div className='flex gap-2 '>
+                <div className='flex md:flex-row flex-col w-full gap-2 md:justify-end '>
                 
-                <div className="flex gap-2 mb-4">
+                <div className="flex md:gap-2 md:flex-row flex-col gap-2 md:mb-4">
                 <Link href={`${standId}/revision`}>
-                <Button variant="outline">
+                <Button className={'md:bg-transparent bg-lime-500 w-full h-10'} variant="outline">
                     Ревизия
                 </Button>
                 </Link>
@@ -227,7 +227,7 @@ export default function StandDetailPage({ params }) {
                     style={{ display: 'none' }}
                 />
             </div>
-                <Button onClick={() => setAddProductDialogOpen(true)}>
+                <Button className={'md:bg-lime-500 bg-transparent border'} onClick={() => setAddProductDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Добави продукт
                 </Button>

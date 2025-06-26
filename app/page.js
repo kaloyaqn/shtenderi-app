@@ -97,9 +97,9 @@ export default function StendoLanding() {
         <section id="hero" className="relative px-12 pt-32 pb-20 min-h-screen flex items-center">
           <div className="max-w-7xl mx-auto w-full">
             <div className="text-center mb-16">
-              <h1 className="font-serif text-6xl !leading-tight lg:text-8xl font-bold text-gray-900 mb-8">
+              <h1 className="font-serif text-6xl !leading-tight lg:text-8xl text-gray-900 mb-8">
                 Вашата стратегия за<br />
-                <span className="text-lime-500">по-големи приходи</span>
+                <span className="text-lime-500 italic">по-големи приходи</span>
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-12">
                 Увеличете печалбите от магазина си с платформа, проектирана да опростява управлението на стендове,
