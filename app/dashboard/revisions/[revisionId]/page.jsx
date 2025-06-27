@@ -354,18 +354,20 @@ export default function RevisionDetailPage() {
           <div className="text-xl font-bold">Стокова № {revision.number}</div>
           <div className="text-md">Дата: {new Date(revision.createdAt).toLocaleDateString('bg-BG')}</div>
         </div>
-        <div className="mb-2">
+          <div className='flex items-center justify-between'>
+          <div className="mb-2">
           <div className="font-semibold">Доставчик:</div>
           <div>Фирма: Омакс Сълюшънс ЕООД</div>
           <div>ЕИК/ДДС номер: BG200799887</div>
           <div>Седалище: гр. Хасково, ул. Рай №7</div>
         </div>
-        <div className="mb-2">
+        <div className="mb-2 text-right">
           <div className="font-semibold">Получател:</div>
           <div>Фирма: {revision.partner?.name || '-'}</div>
           <div>ЕИК/ДДС номер: {revision.partner?.bulstat || '-'}</div>
           <div>Седалище: {revision.partner?.address || '-'}</div>
         </div>
+          </div>
         <div className="mb-4">
           <div className="font-semibold">Описание:</div>
         </div>
