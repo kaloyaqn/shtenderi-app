@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Barcode } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { XMLParser } from 'fast-xml-parser';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 // These components will be created later if they don't exist
 import AddProductToStorageDialog from './_components/add-product-dialog';
@@ -35,6 +37,18 @@ export default function StorageDetailPage({ params }) {
   const [productToEdit, setProductToEdit] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundProducts, setRefundProducts] = useState([]); // [{product, quantity}]
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [refundLoading, setRefundLoading] = useState(false);
+
+  // Focus input for barcode scanning
+  const barcodeInputRef = useRef(null);
+  useEffect(() => {
+    if (refundDialogOpen) {
+      setTimeout(() => barcodeInputRef.current?.focus(), 100);
+    }
+  }, [refundDialogOpen]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -173,6 +187,61 @@ export default function StorageDetailPage({ params }) {
     },
   ];
 
+  // Add product by barcode
+  const handleBarcodeEnter = (e) => {
+    if (e.key === 'Enter' && barcodeInput) {
+      const found = productsInStorage.find(p => p.product.barcode === barcodeInput);
+      if (found) {
+        setRefundProducts((prev) => {
+          const existing = prev.find(rp => rp.product.id === found.product.id);
+          if (existing) {
+            return prev.map(rp => rp.product.id === found.product.id ? { ...rp, quantity: Math.min(rp.quantity + 1, found.quantity) } : rp);
+          }
+          return [...prev, { product: found.product, quantity: 1, max: found.quantity }];
+        });
+      } else {
+        toast.error('Продуктът не е намерен в склада');
+      }
+      setBarcodeInput("");
+    }
+  };
+
+  // Update quantity
+  const setRefundQuantity = (productId, quantity) => {
+    setRefundProducts((prev) => prev.map(rp => rp.product.id === productId ? { ...rp, quantity } : rp));
+  };
+
+  // Remove product
+  const removeRefundProduct = (productId) => {
+    setRefundProducts((prev) => prev.filter(rp => rp.product.id !== productId));
+  };
+
+  // Confirm refund
+  const handleRefund = async () => {
+    if (refundProducts.length === 0) return;
+    setRefundLoading(true);
+    try {
+      const res = await fetch('/api/refunds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceType: 'STORAGE',
+          sourceId: storageId,
+          products: refundProducts.map(rp => ({ productId: rp.product.id, quantity: rp.quantity })),
+        }),
+      });
+      if (!res.ok) throw new Error('Грешка при връщане');
+      toast.success('Връщането е създадено!');
+      setRefundDialogOpen(false);
+      setRefundProducts([]);
+      fetchData();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setRefundLoading(false);
+    }
+  };
+
   if (loading) return <div>Зареждане...</div>;
   if (error) return <div className="text-red-500">Грешка: {error}</div>;
   if (!storage) return <div>Складът не е намерен.</div>;
@@ -199,6 +268,10 @@ export default function StorageDetailPage({ params }) {
             <Button onClick={() => setAddProductDialogOpen(true) }>
             <Plus className="mr-2 h-4 w-4" />
             Добави продукт
+            </Button>
+            <Button variant="secondary" onClick={() => setRefundDialogOpen(true)}>
+              <Barcode className="mr-2 h-4 w-4" />
+              Върни продукти
             </Button>
         </div>
       </div>
@@ -239,6 +312,50 @@ export default function StorageDetailPage({ params }) {
         storageProduct={productToEdit}
         onQuantityUpdated={fetchData}
       />
+
+      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Върни продукти от склада</DialogTitle>
+          </DialogHeader>
+          <div className="mb-2">
+            <Input
+              ref={barcodeInputRef}
+              placeholder="Сканирай или въведи баркод..."
+              value={barcodeInput}
+              onChange={e => setBarcodeInput(e.target.value)}
+              onKeyDown={handleBarcodeEnter}
+              autoFocus
+            />
+          </div>
+          <div className="max-h-60 overflow-y-auto">
+            {refundProducts.length === 0 && <div className="text-gray-500">Няма избрани продукти.</div>}
+            {refundProducts.map(rp => (
+              <div key={rp.product.id} className="flex items-center gap-2 mb-2">
+                <div className="flex-1">{rp.product.name} <span className="text-xs text-gray-500">({rp.product.barcode})</span></div>
+                <Input
+                  type="number"
+                  min={1}
+                  max={rp.max}
+                  value={rp.quantity}
+                  onChange={e => setRefundQuantity(rp.product.id, Math.max(1, Math.min(rp.max, Number(e.target.value))))}
+                  className="w-20"
+                />
+                <span className="text-xs text-gray-400">/ {rp.max}</span>
+                <Button variant="ghost" size="icon" onClick={() => removeRefundProduct(rp.product.id)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundDialogOpen(false)}>Отказ</Button>
+            <Button onClick={handleRefund} disabled={refundProducts.length === 0 || refundLoading}>
+              {refundLoading ? 'Връщане...' : 'Върни избраните продукти'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

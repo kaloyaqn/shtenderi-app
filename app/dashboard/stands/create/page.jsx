@@ -30,8 +30,11 @@ export default function CreateStandPage() {
   const [stores, setStores] = useState([])
   const [selectedStore, setSelectedStore] = useState("")
   const [createdStand, setCreatedStand] = useState(null)
+
+
   const contentRef = useRef();
   const reactToPrintFn = useReactToPrint({contentRef});
+  
   const [email, setEmail] = useState("");
 
   useEffect(() => {

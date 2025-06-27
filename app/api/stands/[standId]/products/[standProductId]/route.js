@@ -1,10 +1,14 @@
 import { updateProductOnStand, removeProductFromStand } from '@/lib/standProducts/standProduct';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function PATCH(req, { params }) {
     try {
         const { standProductId } = params;
         const body = await req.json();
-        const updatedStandProduct = await updateProductOnStand(standProductId, body);
+        const session = await getServerSession(authOptions);
+        const userId = session?.user?.id;
+        const updatedStandProduct = await updateProductOnStand(standProductId, { ...body, userId });
         return new Response(JSON.stringify(updatedStandProduct));
     } catch (error) {
         console.error('[STAND_PRODUCT_PATCH_ERROR]', error);

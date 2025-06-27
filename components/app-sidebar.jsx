@@ -33,7 +33,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Box, BoxIcon, Bus, CircleDollarSignIcon, HomeIcon, PackageOpenIcon, PersonStanding, SearchCheckIcon, Store, User } from "lucide-react"
+import { Box, BoxIcon, Bus, CircleDollarSignIcon, HomeIcon, PackageOpenIcon, PersonStanding, SearchCheckIcon, Store, Undo2Icon, User } from "lucide-react"
 
 const data = {
   user: {
@@ -100,6 +100,11 @@ const data = {
       name: "Продажби",
       url: "/dashboard/revisions",
       icon: CircleDollarSignIcon,
+    },
+    {
+      name: "Връщания и рекламации",
+      url: "/dashboard/refunds  ",
+      icon: Undo2Icon,
     },
     {
       name: "Фактури",

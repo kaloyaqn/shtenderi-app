@@ -1,0 +1,77 @@
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+
+// POST: Create a refund
+export async function POST(req) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    const { sourceType, sourceId, products } = await req.json();
+    if (!sourceType || !sourceId || !Array.isArray(products) || products.length === 0) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+    // Create refund
+    const refund = await prisma.refund.create({
+      data: {
+        userId: session.user.id,
+        sourceType,
+        sourceId,
+        refundProducts: {
+          create: products.map(p => ({ productId: p.productId, quantity: p.quantity }))
+        }
+      },
+      include: { refundProducts: true }
+    });
+    // Subtract refunded quantity from source
+    for (const p of products) {
+      if (sourceType === 'STAND') {
+        await prisma.standProduct.updateMany({
+          where: { standId: sourceId, productId: p.productId },
+          data: { quantity: { decrement: p.quantity } }
+        });
+      } else if (sourceType === 'STORAGE') {
+        await prisma.storageProduct.updateMany({
+          where: { storageId: sourceId, productId: p.productId },
+          data: { quantity: { decrement: p.quantity } }
+        });
+      }
+    }
+    return NextResponse.json(refund);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// GET: List all refunds, include stand/storage name
+export async function GET() {
+  try {
+    const refunds = await prisma.refund.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: true,
+        refundProducts: { include: { product: true } }
+      }
+    });
+    // Fetch stand/storage names for each refund
+    const withNames = await Promise.all(refunds.map(async (refund) => {
+      let sourceName = '';
+      if (refund.sourceType === 'STAND') {
+        const stand = await prisma.stand.findUnique({ where: { id: refund.sourceId } });
+        sourceName = stand?.name || refund.sourceId;
+      } else if (refund.sourceType === 'STORAGE') {
+        const storage = await prisma.storage.findUnique({ where: { id: refund.sourceId } });
+        sourceName = storage?.name || refund.sourceId;
+      }
+      return { ...refund, sourceName };
+    }));
+    return NextResponse.json(withNames);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+} 

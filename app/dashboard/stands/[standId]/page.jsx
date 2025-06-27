@@ -122,18 +122,27 @@ export default function StandDetailPage({ params }) {
             id: 'actions',
             cell: ({ row }) => {
                 const standProduct = row.original;
+                const canDelete = standProduct.quantity === 0;
                 return (
                     <div className="flex items-center gap-2">
-                        {/* <Button variant="ghost" size="icon" onClick={() => {
+                        <Button variant="ghost" size="icon" onClick={() => {
                             setProductOnStandToEdit(standProduct);
                             setEditDialogOpen(true);
                         }}>
                             <Pencil className="h-4 w-4" />
-                        </Button> */}
-                        <Button variant="ghost" size="icon" onClick={() => {
-                            setProductOnStandToDelete(standProduct);
-                            setDeleteDialogOpen(true);
-                        }}>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                                if (canDelete) {
+                                    setProductOnStandToDelete(standProduct);
+                                    setDeleteDialogOpen(true);
+                                }
+                            }}
+                            disabled={!canDelete}
+                            title={canDelete ? '' : 'Може да изтриете само продукти с количество 0'}
+                        >
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
@@ -240,15 +249,22 @@ export default function StandDetailPage({ params }) {
                 <div className='flex md:flex-row flex-col w-full gap-2 md:justify-end '>
                 
                 <div className="flex md:gap-2 md:flex-row flex-col gap-2 md:mb-4">
-                <Link href={`${standId}/revision`}>
-                <Button className={'md:bg-transparent bg-lime-500 w-full h-10'} variant="outline">
-                    Ревизия
-                </Button>
-                </Link>
                 <Button variant="outline" onClick={handleImportClick}>
                     <Upload className="mr-2 h-4 w-4" />
                     Импортирай продукти от XML
                 </Button>
+                <Link href={`${standId}/refund`}>
+                
+                <Button className={'bg-blue-500 text-white w-full h-10'} variant="outline">
+                    Връщане
+                </Button>
+                </Link>
+                <Link href={`${standId}/revision`}>
+                <Button className={'md:bg-amber-500  bg-lime-500 w-full h-10'} variant="outline">
+                    Ревизия
+                </Button>
+                </Link>
+
                 <input
                     type="file"
                     accept=".xml"

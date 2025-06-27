@@ -26,9 +26,8 @@ export default function EditQuantityDialog({ open, onOpenChange, standProduct, o
 
     // Calculate the max allowed quantity for this product on this stand
     let maxAllowed = null;
-    if (standProduct && standProduct.product) {
-        const assignedToOthers = standProduct.product.standProducts?.reduce((sum, sp) => sp.id === standProduct.id ? sum : sum + sp.quantity, 0) || 0;
-        maxAllowed = standProduct.product.quantity - assignedToOthers;
+    if (standProduct) {
+        maxAllowed = standProduct.quantity;
     }
 
     if (!standProduct) return null;
