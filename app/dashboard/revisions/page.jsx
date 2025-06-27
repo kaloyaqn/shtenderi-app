@@ -29,6 +29,11 @@ export default function RevisionsListPage() {
 
   const columns = [
     {
+      accessorKey: 'number',
+      header: '№',
+      cell: ({ row }) => row.original.number,
+    },
+    {
       accessorKey: 'standName',
       header: 'Щанд',
       cell: ({ row }) => (
@@ -55,7 +60,7 @@ export default function RevisionsListPage() {
     },
     {
       accessorKey: 'missingProducts',
-      header: 'Липсващи продукти',
+      header: 'Продадени продукти',
       cell: ({ row }) => row.original.missingProducts?.length || 0,
     },
     {

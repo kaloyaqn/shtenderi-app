@@ -116,6 +116,7 @@ model Store {
 
 model Revision {
   id         String   @id @default(uuid())
+  number     Int      @unique // Global sequential sale number
   stand      Stand    @relation(fields: [standId], references: [id])
   standId    String
   partner    Partner  @relation(fields: [partnerId], references: [id])

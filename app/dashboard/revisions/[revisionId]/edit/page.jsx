@@ -121,11 +121,12 @@ export default function RevisionEditPage() {
   return (
     <div className="py-10 ">
       <h1 className="text-2xl font-bold mb-6">Редакция на ревизия</h1>
-      <div className="mb-4">
-        <b>Щанд:</b> {revision.stand?.name || '-'}<br/>
-        <b>Партньор:</b> {revision.partner?.name || '-'}<br/>
-        <b>Потребител:</b> {revision.user?.name || revision.user?.email || '-'}<br/>
-        <b>Дата:</b> {new Date(revision.createdAt).toLocaleString()}<br/>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {revision?.number && <div><strong>№:</strong> {revision.number}</div>}
+        <div><b>Щанд:</b> {revision.stand?.name || '-'}</div>
+        <div><b>Партньор:</b> {revision.partner?.name || '-'}</div>
+        <div><b>Потребител:</b> {revision.user?.name || revision.user?.email || '-'}</div>
+        <div><b>Дата:</b> {new Date(revision.createdAt).toLocaleString()}</div>
       </div>
       <h2 className="text-lg font-semibold mb-2">Липсващи продукти</h2>
       <DataTable

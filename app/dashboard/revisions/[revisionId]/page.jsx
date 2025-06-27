@@ -15,6 +15,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from '@/components/ui/command';
+import QRCode from 'react-qr-code';
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -33,12 +34,10 @@ export default function RevisionDetailPage() {
   const [resupplyErrors, setResupplyErrors] = useState([]);
   const router = useRouter();
 
-  const componentRef = useRef();
-  const printRef = useRef();
+  const contentRef = useRef(null);
+  const reactToPrintFn = useReactToPrint({ contentRef });
 
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-  });
+
 
   const fetchRevisionData = async () => {
     setLoading(true);
@@ -166,31 +165,38 @@ export default function RevisionDetailPage() {
 
   const hasMissingProducts = revision.missingProducts && revision.missingProducts.length > 0;
 
+  // Calculate totals for print table
+  const totalQuantity = revision.missingProducts.reduce((sum, mp) => sum + mp.missingQuantity, 0);
+  const totalValue = revision.missingProducts.reduce((sum, mp) => sum + (mp.missingQuantity * (mp.product?.clientPrice || 0)), 0);
+  const adminName = revision.user?.name || revision.user?.email || '';
+
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Детайли за продажба</h1>
+        <h1 className="text-3xl font-bold">Детайли за продажба {revision.number}</h1>
         <div className="flex gap-2">
+          <Button onClick={reactToPrintFn}>Принтирай стокова</Button>
           <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">
             Зареди от склад
           </Button>
-          <Button onClick={handlePrint}>Принтирай</Button>
           <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
           <Button variant="ghost" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div><strong>№:</strong> {revision.number}</div>
+        <div><strong>Щанд:</strong> {revision.stand?.name || 'N/A'}</div>
+        <div><strong>Магазин:</strong> {revision.stand?.store?.name || 'N/A'}</div>
+        <div><strong>Партньор:</strong> {revision.partner?.name || 'N/A'}</div>
+        <div><strong>Ревизор:</strong> {revision.user?.name || revision.user?.email || 'N/a'}</div>
+        <div><strong>Дата:</strong> {new Date(revision.createdAt).toLocaleString('bg-BG')}</div>
+      </div>
+
       <div className="">
-        <div className="">
-            <div><strong>Щанд:</strong> {revision.stand?.name || 'N/A'}</div>
-            <div><strong>Магазин:</strong> {revision.stand?.store?.name || 'N/A'}</div>
-            <div><strong>Партньор:</strong> {revision.partner?.name || 'N/A'}</div>
-            <div><strong>Ревизор:</strong> {revision.user?.name || revision.user?.email || 'N/a'}</div>
-            <div><strong>Дата:</strong> {new Date(revision.createdAt).toLocaleString('bg-BG')}</div>
-        </div>
         <div className="mt-4">
           <h2 className="text-xl font-semibold">Продадени продукти:</h2>
-          <div>
+          <div ref={contentRef}>
             {revision.missingProducts?.length > 0 ? (
               <DataTable columns={columns} data={data} searchKey="barcode" />
             ) : (
@@ -300,6 +306,53 @@ export default function RevisionDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Print-only stock receipt table */}
+      <div ref={contentRef} className="hidden print:block bg-white p-8 text-black">
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-xl font-bold">Стокова № {revision.number}</div>
+          <div className="text-md">Дата: {new Date(revision.createdAt).toLocaleDateString('bg-BG')}</div>
+        </div>
+        <div className="mb-2">
+          <div className="font-semibold">Доставчик:</div>
+          <div>Фирма: Омакс Сълюшънс ЕООД</div>
+          <div>ЕИК/ДДС номер: BG200799887</div>
+          <div>Седалище: гр. Хасково, ул. Рай №7</div>
+        </div>
+        <div className="mb-2">
+          <div className="font-semibold">Получател:</div>
+          <div>Фирма: {revision.partner?.name || '-'}</div>
+          <div>ЕИК/ДДС номер: {revision.partner?.bulstat || '-'}</div>
+          <div>Адрес: {revision.stand?.store?.address || '-'}</div>
+        </div>
+        <div className="mb-4">
+          <div className="font-semibold">Описание:</div>
+        </div>
+        <table className="w-full border border-black mb-4">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border border-black px-2 py-1">Име на продукта</th>
+              <th className="border border-black px-2 py-1">EAN код</th>
+              <th className="border border-black px-2 py-1">Количество</th>
+              <th className="border border-black px-2 py-1">Дилърска цена</th>
+              <th className="border border-black px-2 py-1">ПЦД</th>
+            </tr>
+          </thead>
+          <tbody>
+            {revision.missingProducts.map(mp => (
+              <tr key={mp.id}>
+                <td className="border border-black px-2 py-1">{mp.product?.name || '-'}</td>
+                <td className="border border-black px-2 py-1">{mp.product?.barcode || '-'}</td>
+                <td className="border border-black px-2 py-1 text-center">{mp.missingQuantity}</td>
+                <td className="border border-black px-2 py-1 text-right">{mp.product?.clientPrice?.toFixed(2) || '-'}</td>
+                <td className="border border-black px-2 py-1 text-right">{mp.product?.pcd || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="mb-2">Общ брой продукти: <b>{totalQuantity}</b></div>
+        <div className="mb-2">Стойност с ДДС: <b>{totalValue.toFixed(2)} лв.</b></div>
+        <div className="mt-6">Изготвил: <b>{adminName}</b></div>
+      </div>
     </div>
   );
 } 

@@ -255,10 +255,10 @@ export default function StandRevisionPage({ params }) {
           missingProducts,
         }),
       });
-      if (!res.ok) throw new Error('Грешка при запис на ревизията');
+      if (!res.ok) throw new Error('Грешка при запис на продажбата');
       const data = await res.json();
       setRevisionId(data.id);
-      toast.success('Ревизията е записана успешно!');
+      toast.success('Продажбата е записана успешно!');
     } catch (err) {
       toast.error(err.message);
     }
@@ -360,9 +360,9 @@ export default function StandRevisionPage({ params }) {
         </>
       )}
       {/* Checked products as cards */}
-      <h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/> Проверени продукти</h2>
+      <h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/> Непродадени продукти</h2>
       <div className="grid gap-2 mb-6 sm:grid-cols-2">
-        {checked.length === 0 && <div className="text-muted-foreground text-sm">Няма проверени продукти.</div>}
+        {checked.length === 0 && <div className="text-muted-foreground text-sm">Няма непродадени продукти.</div>}
         {checked.map(p => (
           <div key={p.barcode} className='rounded-sm border border-green-200 bg-green-50 p-3 flex flex-col justify-between text-green-900'>
             <h3 className='text-sm leading-[110%]'>{p.name}</h3>
@@ -379,7 +379,7 @@ export default function StandRevisionPage({ params }) {
       {/* Missing products as cards after finish */}
       {finished && report && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2 flex items-center gap-2 text-red-700"><XCircle size={20}/> Липсващи продукти</h2>
+          <h2 className="text-lg font-semibold mb-2 flex items-center gap-2 text-red-700"><XCircle size={20}/> Продадени продукти</h2>
           {report.length === 0 ? (
             <div className="text-green-600">Няма липсващи продукти!</div>
           ) : (
@@ -405,7 +405,7 @@ export default function StandRevisionPage({ params }) {
                 href={`/dashboard/revisions/${revisionId}`}
                 className="inline-block bg-blue-600 w-full text-center hover:bg-blue-700 text-white font-bold rounded-full px-8 py-3 text-lg shadow transition"
               >
-                Виж ревизията
+                Виж продажбата
               </a>
             </div>
           )}
@@ -419,7 +419,7 @@ export default function StandRevisionPage({ params }) {
             disabled={products.length === 0}
             className="text-lg w-full px-8 py-8 rounded-sm font-bold"
           >
-            <CheckCircle size={22} className="mr-2" /> Приключи ревизията
+            <CheckCircle size={22} className="mr-2" /> Приключи чекиране
           </Button>
         </div>
       )}

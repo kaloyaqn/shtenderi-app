@@ -16,9 +16,13 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Stand not found' }, { status: 404 });
     }
     const partnerId = stand.store.partnerId;
+    // Get next global revision number
+    const last = await prisma.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
+    const nextNumber = last?.number ? last.number + 1 : 1;
     // Create revision
     const revision = await prisma.revision.create({
       data: {
+        number: nextNumber,
         standId,
         partnerId,
         userId,
