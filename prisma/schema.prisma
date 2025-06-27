@@ -96,6 +96,7 @@ model Partner {
   bulstat        String?                    // Булстат
   contactPerson  String?                    // Лице за контакт
   phone          String?                    // Телефон
+  address        String?                    // Седалище на фирмата
 
   stores         Store[]                    // Връзка към магазини
   revisions     Revision[]

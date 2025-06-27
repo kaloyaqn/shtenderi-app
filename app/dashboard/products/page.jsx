@@ -348,7 +348,7 @@ export default function ProductsPage() {
     },
     {
       accessorKey: "clientPrice",
-      header: "Клиентска цена",
+      header: "Дилърска цена",
       cell: ({ row }) => {
         if (!row || !row.original || typeof row.original.clientPrice !== 'number') return null;
         return `${row.original.clientPrice.toFixed(2)} лв.`;

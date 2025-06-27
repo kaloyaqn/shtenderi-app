@@ -32,9 +32,6 @@ export default function RevisionDetailPage() {
   const [addProductQuantity, setAddProductQuantity] = useState(1);
   const [addProductLoading, setAddProductLoading] = useState(false);
   const [resupplyErrors, setResupplyErrors] = useState([]);
-  const [sendDialogOpen, setSendDialogOpen] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState(null);
   const router = useRouter();
 
   const contentRef = useRef(null);
@@ -142,35 +139,41 @@ export default function RevisionDetailPage() {
     return el ? el.outerHTML : '';
   };
 
-  const handlePrintStock = () => {
-    setSendDialogOpen(true);
+  const handlePrintStock = async () => {
+    const email = revision.stand?.email;
+    if (email) {
+      try {
+        const html = getPrintTableHtml();
+        await fetch('/api/send-stock-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, html, saleNumber: revision.number }),
+        });
+      } catch (err) {
+        // Optionally show a toast or ignore
+      }
+    }
+    reactToPrintFn();
   };
 
-  const handleSendAndPrint = async () => {
-    setSending(true);
-    setSendError(null);
+  const handleSendToClient = async () => {
+    const email = revision.stand?.email;
+    if (!email) {
+      toast.error('Щандът няма имейл.');
+      return;
+    }
     try {
       const html = getPrintTableHtml();
-      const email = revision.stand?.email;
-      if (!email) throw new Error('Щандът няма имейл.');
       const res = await fetch('/api/send-stock-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, html, saleNumber: revision.number }),
       });
       if (!res.ok) throw new Error('Грешка при изпращане на имейл');
-      setSendDialogOpen(false);
-      reactToPrintFn();
+      toast.success('Стоковата разписка е изпратена на клиента!');
     } catch (err) {
-      setSendError(err.message);
-    } finally {
-      setSending(false);
+      toast.error(err.message || 'Грешка при изпращане на имейл');
     }
-  };
-
-  const handlePrintOnly = () => {
-    setSendDialogOpen(false);
-    reactToPrintFn();
   };
 
   if (loading) return <div>Зареждане...</div>;
@@ -214,6 +217,7 @@ export default function RevisionDetailPage() {
         <h1 className="text-3xl font-bold">Детайли за продажба {revision.number}</h1>
         <div className="flex gap-2">
           <Button onClick={handlePrintStock}>Принтирай стокова</Button>
+          <Button onClick={handleSendToClient} variant="secondary">Изпрати на клиент</Button>
           <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">
             Зареди от склад
           </Button>
@@ -360,7 +364,7 @@ export default function RevisionDetailPage() {
           <div className="font-semibold">Получател:</div>
           <div>Фирма: {revision.partner?.name || '-'}</div>
           <div>ЕИК/ДДС номер: {revision.partner?.bulstat || '-'}</div>
-          <div>Адрес: {revision.stand?.store?.address || '-'}</div>
+          <div>Седалище: {revision.partner?.address || '-'}</div>
         </div>
         <div className="mb-4">
           <div className="font-semibold">Описание:</div>
@@ -391,22 +395,6 @@ export default function RevisionDetailPage() {
         <div className="mb-2">Стойност с ДДС: <b>{totalValue.toFixed(2)} лв.</b></div>
         <div className="mt-6">Изготвил: <b>{adminName}</b></div>
       </div>
-      {/* Send/Print confirmation dialog */}
-      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Изпращане на стокова разписка</DialogTitle>
-          </DialogHeader>
-          <div className="mb-4">Искате ли да изпратите стоковата разписка на имейла на щанда?<br/><b>{revision.stand?.email || 'Няма имейл'}</b></div>
-          {sendError && <div className="text-red-500 mb-2">{sendError}</div>}
-          <DialogFooter>
-            <Button variant="outline" onClick={handlePrintOnly} disabled={sending}>Не, само принтирай</Button>
-            <Button onClick={handleSendAndPrint} disabled={sending || !revision.stand?.email}>
-              {sending ? 'Изпращане...' : 'Да, изпрати и принтирай'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 } 

@@ -17,6 +17,7 @@ export default function CreatePartnerPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [address, setAddress] = useState("")
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,6 +31,7 @@ export default function CreatePartnerPage() {
       bulstat: formData.get('bulstat')?.trim(),
       contactPerson: formData.get('contactPerson')?.trim(),
       phone: formData.get('phone')?.trim(),
+      address: address.trim(),
     }
 
     try {
@@ -113,6 +115,17 @@ export default function CreatePartnerPage() {
                     id="phone"
                     name="phone"
                     placeholder="Въведете телефон"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Седалище</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    placeholder="Въведете седалище на партньора (по избор)"
+                    value={address}
+                    onChange={e => setAddress(e.target.value)}
                   />
                 </div>
               </div>

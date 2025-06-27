@@ -19,6 +19,7 @@ export default function EditPartnerPage({ params }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [partner, setPartner] = useState(null)
+  const [address, setAddress] = useState("")
   const partnerId = use(params).partnerId
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function EditPartnerPage({ params }) {
         if (!response.ok) throw new Error('Failed to fetch partner')
         const data = await response.json()
         setPartner(data)
+        setAddress(data.address || "")
       } catch (error) {
         console.error('Error fetching partner:', error)
         setError('Грешка при зареждане на партньор')
@@ -48,6 +50,7 @@ export default function EditPartnerPage({ params }) {
       bulstat: formData.get('bulstat')?.trim(),
       contactPerson: formData.get('contactPerson')?.trim(),
       phone: formData.get('phone')?.trim(),
+      address: address.trim(),
     }
 
     try {
@@ -139,6 +142,17 @@ export default function EditPartnerPage({ params }) {
                     name="phone"
                     defaultValue={partner.phone}
                     placeholder="Въведете телефон"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Седалище</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    placeholder="Въведете седалище на партньора (по избор)"
+                    value={address}
+                    onChange={e => setAddress(e.target.value)}
                   />
                 </div>
               </div>

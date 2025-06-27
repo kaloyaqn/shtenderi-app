@@ -32,6 +32,7 @@ export default function CreateStandPage() {
   const [createdStand, setCreatedStand] = useState(null)
   const contentRef = useRef();
   const reactToPrintFn = useReactToPrint({contentRef});
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     async function fetchStores() {
@@ -62,6 +63,7 @@ export default function CreateStandPage() {
     const data = {
       name: formData.get('name')?.trim(),
       storeId: selectedStore,
+      email: email.trim(),
     }
     console.log("Submitting with data:", data);
 
@@ -128,6 +130,17 @@ export default function CreateStandPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Имейл на щанда</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Въведете имейл на щанда (по избор)"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                  />
                 </div>
               </div>
               {error && (

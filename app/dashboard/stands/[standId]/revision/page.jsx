@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
@@ -28,6 +29,8 @@ export default function StandRevisionPage({ params }) {
   const [showCheck, setShowCheck] = useState(false);
   const [inputReadOnly, setInputReadOnly] = useState(false);
   const [pendingProducts, setPendingProducts] = useState({}); // barcode -> { product, quantity }
+  const { data: session } = useSession();
+  const userId = session?.user?.id || null;
 
   // Detect mobile
   useEffect(() => {
@@ -251,7 +254,7 @@ export default function StandRevisionPage({ params }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           standId,
-          userId: 'ecc03da6-d498-47f2-8bfc-52273ca7c7bb',
+          userId,
           missingProducts,
         }),
       });

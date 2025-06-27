@@ -46,6 +46,9 @@ export default function PartnerViewPage({ params }) {
             <div><b>Булстат:</b> {partner.bulstat || '-'}</div>
             <div><b>Лице за контакт:</b> {partner.contactPerson || '-'}</div>
             <div><b>Телефон:</b> {partner.phone || '-'}</div>
+            <div className="mb-2">
+              <strong>Седалище:</strong> {partner.address || '-'}
+            </div>
             {Array.isArray(partner.stores) && (
               <div>
                 <b>Магазини ({partner.stores.length}):</b>
