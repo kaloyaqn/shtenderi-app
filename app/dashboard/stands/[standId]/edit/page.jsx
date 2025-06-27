@@ -31,6 +31,7 @@ export default function EditStandPage({ params }) {
   const [stand, setStand] = useState(null)
   const [stores, setStores] = useState([])
   const [selectedStore, setSelectedStore] = useState("")
+  const [email, setEmail] = useState("")
 
   const contentRef = useRef(null);
 const reactToPrintFn = useReactToPrint({ contentRef });
@@ -45,6 +46,7 @@ const reactToPrintFn = useReactToPrint({ contentRef });
         const standData = await standResponse.json()
         setStand(standData)
         setSelectedStore(standData.storeId)
+        setEmail(standData.email || "");
 
         // Fetch all stores for the dropdown
         const storesResponse = await fetch('/api/stores')
@@ -76,6 +78,7 @@ const reactToPrintFn = useReactToPrint({ contentRef });
     const data = {
       name: formData.get('name')?.trim(),
       storeId: selectedStore,
+      email: email.trim(),
     }
 
     try {
@@ -152,6 +155,18 @@ const reactToPrintFn = useReactToPrint({ contentRef });
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Имейл на щанда</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Въведете имейл на щанда (по избор)"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                  />
                 </div>
               </div>
 
