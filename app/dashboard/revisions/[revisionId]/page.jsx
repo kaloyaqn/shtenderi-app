@@ -169,7 +169,7 @@ export default function RevisionDetailPage() {
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Детайли за ревизия</h1>
+        <h1 className="text-3xl font-bold">Детайли за продажба</h1>
         <div className="flex gap-2">
           <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">
             Зареди от склад
@@ -194,7 +194,7 @@ export default function RevisionDetailPage() {
             {revision.missingProducts?.length > 0 ? (
               <DataTable columns={columns} data={data} searchKey="barcode" />
             ) : (
-              <p>Няма регистрирани липси.</p>
+              <p>Няма регистрирани продажби.</p>
             )}
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function RevisionDetailPage() {
       <Dialog open={addProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Добави нов продукт към ревизията</DialogTitle>
+            <DialogTitle>Добави нов продукт към продажбата</DialogTitle>
             <DialogDescription>
               Изберете продукт от склада, който не е на щанда, и въведете количество.
             </DialogDescription>

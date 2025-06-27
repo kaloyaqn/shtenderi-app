@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import QRCode from 'react-qr-code'
+import { useReactToPrint } from "react-to-print"
+import { PrinterIcon } from "lucide-react"
 
 export default function CreateStandPage() {
   const router = useRouter()
@@ -26,20 +29,20 @@ export default function CreateStandPage() {
   const [error, setError] = useState(null)
   const [stores, setStores] = useState([])
   const [selectedStore, setSelectedStore] = useState("")
+  const [createdStand, setCreatedStand] = useState(null)
+  const contentRef = useRef();
+  const reactToPrintFn = useReactToPrint({contentRef});
 
   useEffect(() => {
     async function fetchStores() {
       try {
-        console.log("Fetching stores...");
         const response = await fetch('/api/stores')
         if (!response.ok) {
           throw new Error('Failed to fetch stores')
         }
         const data = await response.json()
-        console.log("Stores fetched:", data);
         setStores(data)
       } catch (err) {
-        console.error("Error fetching stores:", err);
         setError(err.message)
       }
     }
@@ -78,8 +81,9 @@ export default function CreateStandPage() {
         throw new Error(result.error || 'Грешка при създаване на щанд')
       }
 
-      router.push('/dashboard/stands')
-      router.refresh()
+      setCreatedStand(result);
+      // router.push('/dashboard/stands')
+      // router.refresh()
     } catch (err) {
       console.error("Error creating stand:", err);
       setError(err.message)
@@ -110,7 +114,6 @@ export default function CreateStandPage() {
                     placeholder="Въведете име на щанда"
                   />
                 </div>
-
                 <div className="grid gap-2">
                   <Label htmlFor="store">Магазин *</Label>
                   <Select onValueChange={setSelectedStore} value={selectedStore}>
@@ -127,11 +130,9 @@ export default function CreateStandPage() {
                   </Select>
                 </div>
               </div>
-
               {error && (
                 <div className="text-red-500 text-sm">{error}</div>
               )}
-
               <div className="flex justify-end space-x-4">
                 <Button
                   type="button"
@@ -145,6 +146,19 @@ export default function CreateStandPage() {
                 </Button>
               </div>
             </form>
+            {createdStand && (
+              <div className="flex flex-col items-center mt-8">
+                <div className="mb-2 font-semibold">QR код за ревизия на щанд:</div>
+                <QRCode ref={contentRef} value={`https://shtenderi-app-production.up.railway.app/dashboard/stands/${createdStand.id}/revision`} size={180} />
+                <div className="mt-2 text-xs text-gray-500">https://shtenderi-app-production.up.railway.app/dashboard/stands/{createdStand.id}/revision</div>
+
+                <Button onClick={reactToPrintFn} variant={'outline'} className={'w-full mt-2 cursor-pointer'}>
+              <PrinterIcon /> Принт
+            </Button>
+              </div>
+            )}
+
+
           </CardContent>
         </Card>
       </div>

@@ -15,12 +15,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import CreateStandPage from "./create/page";
 
 export default function Stands() {
     const [stands, setStands] = useState([]);
     const [loading, setLoading] = useState(true);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [standToDelete, setStandToDelete] = useState(null)
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const router = useRouter();
 
     const fetchStands = async () => {
@@ -125,12 +127,17 @@ export default function Stands() {
                 <Plus className="mr-2 h-4 w-4" />
                 Добави щендер
                 </Button>
-            </div>
+
+
+
+                </div>
             <DataTable 
                 columns={columns}
                 data={stands}
                 searchKey="name"
             />
+
+            
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

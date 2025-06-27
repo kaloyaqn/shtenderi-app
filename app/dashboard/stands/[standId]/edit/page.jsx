@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from "react"
+import { useState, useEffect, use, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import QRCode from 'react-qr-code'
+import { useReactToPrint } from "react-to-print"
+import { PrinterIcon } from "lucide-react"
 
 export default function EditStandPage({ params }) {
   const router = useRouter()
@@ -28,6 +31,9 @@ export default function EditStandPage({ params }) {
   const [stand, setStand] = useState(null)
   const [stores, setStores] = useState([])
   const [selectedStore, setSelectedStore] = useState("")
+
+  const contentRef = useRef(null);
+const reactToPrintFn = useReactToPrint({ contentRef });
 
   useEffect(() => {
     async function fetchStandAndStores() {
@@ -166,6 +172,16 @@ export default function EditStandPage({ params }) {
                 </Button>
               </div>
             </form>
+            {/* QR code for stand URL */}
+            <div className="flex flex-col items-center mt-8">
+              <div className="mb-2 font-semibold">QR код за ревизия на щанд:</div>
+              <QRCode ref={contentRef} value={`https://shtenderi-app-production.up.railway.app/dashboard/stands/${stand.id}/revision`} size={180} />
+              <div className="mt-2 text-xs text-gray-500">https://shtenderi-app-production.up.railway.app/dashboard/stands/{stand.id}/revision</div>
+            </div>
+
+            <Button onClick={reactToPrintFn} variant={'outline'} className={'w-full mt-2 cursor-pointer'}>
+              <PrinterIcon /> Принт
+            </Button>
           </CardContent>
         </Card>
       </div>

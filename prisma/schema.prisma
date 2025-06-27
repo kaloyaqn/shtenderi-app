@@ -13,6 +13,7 @@ model Stand {
   store     Store    @relation(fields: [storeId], references: [id])
   storeId   String
   rows      Int?
+  barcode   String? @unique
   columns   Int?
   createdAt DateTime @default(now())
 
