@@ -32,12 +32,13 @@ export default function RevisionDetailPage() {
   const [addProductQuantity, setAddProductQuantity] = useState(1);
   const [addProductLoading, setAddProductLoading] = useState(false);
   const [resupplyErrors, setResupplyErrors] = useState([]);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const router = useRouter();
 
   const contentRef = useRef(null);
   const reactToPrintFn = useReactToPrint({ contentRef });
-
-
 
   const fetchRevisionData = async () => {
     setLoading(true);
@@ -135,6 +136,43 @@ export default function RevisionDetailPage() {
     }
   };
 
+  // Helper to get the print table HTML
+  const getPrintTableHtml = () => {
+    const el = contentRef.current;
+    return el ? el.outerHTML : '';
+  };
+
+  const handlePrintStock = () => {
+    setSendDialogOpen(true);
+  };
+
+  const handleSendAndPrint = async () => {
+    setSending(true);
+    setSendError(null);
+    try {
+      const html = getPrintTableHtml();
+      const email = revision.stand?.email;
+      if (!email) throw new Error('Щандът няма имейл.');
+      const res = await fetch('/api/send-stock-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, html, saleNumber: revision.number }),
+      });
+      if (!res.ok) throw new Error('Грешка при изпращане на имейл');
+      setSendDialogOpen(false);
+      reactToPrintFn();
+    } catch (err) {
+      setSendError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handlePrintOnly = () => {
+    setSendDialogOpen(false);
+    reactToPrintFn();
+  };
+
   if (loading) return <div>Зареждане...</div>;
   if (!revision) return <div>Ревизията не е намерена.</div>;
 
@@ -175,7 +213,7 @@ export default function RevisionDetailPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Детайли за продажба {revision.number}</h1>
         <div className="flex gap-2">
-          <Button onClick={reactToPrintFn}>Принтирай стокова</Button>
+          <Button onClick={handlePrintStock}>Принтирай стокова</Button>
           <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">
             Зареди от склад
           </Button>
@@ -353,6 +391,22 @@ export default function RevisionDetailPage() {
         <div className="mb-2">Стойност с ДДС: <b>{totalValue.toFixed(2)} лв.</b></div>
         <div className="mt-6">Изготвил: <b>{adminName}</b></div>
       </div>
+      {/* Send/Print confirmation dialog */}
+      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Изпращане на стокова разписка</DialogTitle>
+          </DialogHeader>
+          <div className="mb-4">Искате ли да изпратите стоковата разписка на имейла на щанда?<br/><b>{revision.stand?.email || 'Няма имейл'}</b></div>
+          {sendError && <div className="text-red-500 mb-2">{sendError}</div>}
+          <DialogFooter>
+            <Button variant="outline" onClick={handlePrintOnly} disabled={sending}>Не, само принтирай</Button>
+            <Button onClick={handleSendAndPrint} disabled={sending || !revision.stand?.email}>
+              {sending ? 'Изпращане...' : 'Да, изпрати и принтирай'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
