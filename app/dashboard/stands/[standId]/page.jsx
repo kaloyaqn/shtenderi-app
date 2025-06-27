@@ -124,12 +124,12 @@ export default function StandDetailPage({ params }) {
                 const standProduct = row.original;
                 return (
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => {
+                        {/* <Button variant="ghost" size="icon" onClick={() => {
                             setProductOnStandToEdit(standProduct);
                             setEditDialogOpen(true);
                         }}>
                             <Pencil className="h-4 w-4" />
-                        </Button>
+                        </Button> */}
                         <Button variant="ghost" size="icon" onClick={() => {
                             setProductOnStandToDelete(standProduct);
                             setDeleteDialogOpen(true);

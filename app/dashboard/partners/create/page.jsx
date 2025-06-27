@@ -32,6 +32,7 @@ export default function CreatePartnerPage() {
       contactPerson: formData.get('contactPerson')?.trim(),
       phone: formData.get('phone')?.trim(),
       address: address.trim(),
+      mol: formData.get('mol')?.trim(),
     }
 
     try {
@@ -126,6 +127,15 @@ export default function CreatePartnerPage() {
                     placeholder="Въведете седалище на партньора (по избор)"
                     value={address}
                     onChange={e => setAddress(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="mol">МОЛ</Label>
+                  <Input
+                    id="mol"
+                    name="mol"
+                    placeholder="Въведете МОЛ (Материално отговорно лице)"
                   />
                 </div>
               </div>

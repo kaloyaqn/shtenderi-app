@@ -12,6 +12,7 @@ import {
   IconFolder,
   IconHelp,
   IconInnerShadowTop,
+  IconInvoice,
   IconListDetails,
   IconReport,
   IconSearch,
@@ -99,6 +100,11 @@ const data = {
       name: "Продажби",
       url: "/dashboard/revisions",
       icon: CircleDollarSignIcon,
+    },
+    {
+      name: "Фактури",
+      url: "/dashboard/invoices",
+      icon: IconInvoice,
     },
     {
       name: "Складове",

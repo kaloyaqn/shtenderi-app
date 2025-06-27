@@ -97,6 +97,7 @@ model Partner {
   contactPerson  String?                    // Лице за контакт
   phone          String?                    // Телефон
   address        String?                    // Седалище на фирмата
+  mol            String?                    // МОЛ - Материално отговорно лице
 
   stores         Store[]                    // Връзка към магазини
   revisions     Revision[]
@@ -156,4 +157,31 @@ model StorageProduct {
   quantity  Int
 
   @@unique([storageId, productId])
+}
+
+model Invoice {
+  id             String   @id @default(uuid())
+  invoiceNumber  Int      @unique
+  issuedAt       DateTime @default(now())
+  // Partner info
+  partnerName    String
+  partnerBulstat String?
+  partnerMol     String?
+  partnerAddress String?
+  // User info
+  preparedBy     String
+  // Products as JSON
+  products       Json
+  // Totals
+  totalValue     Float
+  vatBase        Float
+  vatAmount      Float
+  paymentMethod  PaymentMethod @default(CASH)
+  // Reference to revision number
+  revisionNumber Int?
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
 }

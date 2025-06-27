@@ -20,6 +20,7 @@ export default function EditPartnerPage({ params }) {
   const [error, setError] = useState(null)
   const [partner, setPartner] = useState(null)
   const [address, setAddress] = useState("")
+  const [mol, setMol] = useState("")
   const partnerId = use(params).partnerId
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function EditPartnerPage({ params }) {
         const data = await response.json()
         setPartner(data)
         setAddress(data.address || "")
+        setMol(data.mol || "")
       } catch (error) {
         console.error('Error fetching partner:', error)
         setError('Грешка при зареждане на партньор')
@@ -51,6 +53,7 @@ export default function EditPartnerPage({ params }) {
       contactPerson: formData.get('contactPerson')?.trim(),
       phone: formData.get('phone')?.trim(),
       address: address.trim(),
+      mol: mol.trim(),
     }
 
     try {
@@ -153,6 +156,17 @@ export default function EditPartnerPage({ params }) {
                     placeholder="Въведете седалище на партньора (по избор)"
                     value={address}
                     onChange={e => setAddress(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="mol">МОЛ</Label>
+                  <Input
+                    id="mol"
+                    name="mol"
+                    placeholder="Въведете МОЛ (Материално отговорно лице)"
+                    value={mol}
+                    onChange={e => setMol(e.target.value)}
                   />
                 </div>
               </div>

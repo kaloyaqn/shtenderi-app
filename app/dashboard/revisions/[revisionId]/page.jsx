@@ -32,6 +32,9 @@ export default function RevisionDetailPage() {
   const [addProductQuantity, setAddProductQuantity] = useState(1);
   const [addProductLoading, setAddProductLoading] = useState(false);
   const [resupplyErrors, setResupplyErrors] = useState([]);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const router = useRouter();
 
   const contentRef = useRef(null);
@@ -176,6 +179,31 @@ export default function RevisionDetailPage() {
     }
   };
 
+  const handleCreateAndGoToInvoices = async () => {
+    if (!paymentMethod) {
+      toast.error('Моля, изберете начин на плащане.');
+      return;
+    }
+    setInvoiceLoading(true);
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ revisionId, paymentMethod }),
+      });
+      if (res.ok) {
+        setIsPaymentModalOpen(false);
+        router.push('/dashboard/invoices');
+      } else {
+        toast.error('Грешка при създаване на фактура.');
+      }
+    } catch (e) {
+      toast.error('Грешка при създаване на фактура.');
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
   if (loading) return <div>Зареждане...</div>;
   if (!revision) return <div>Ревизията не е намерена.</div>;
 
@@ -218,11 +246,12 @@ export default function RevisionDetailPage() {
         <div className="flex gap-2">
           <Button onClick={handlePrintStock}>Принтирай стокова</Button>
           <Button onClick={handleSendToClient} variant="secondary">Изпрати на клиент</Button>
-          <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">
-            Зареди от склад
-          </Button>
+          <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">Зареди от склад</Button>
           <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
           <Button variant="ghost" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>
+          <Button variant="default" onClick={() => setIsPaymentModalOpen(true)} disabled={invoiceLoading}>
+            {invoiceLoading ? 'Обработка...' : 'Издай фактура'}
+          </Button>
         </div>
       </div>
 
@@ -346,6 +375,34 @@ export default function RevisionDetailPage() {
               {addProductLoading ? 'Добавяне...' : 'Добави'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Payment Method Dialog */}
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Избор на начин на плащане</DialogTitle>
+                <DialogDescription>
+                    Моля, изберете как е платена тази фактура.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Select onValueChange={setPaymentMethod} defaultValue={paymentMethod}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Избери начин на плащане..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="CASH">В брой</SelectItem>
+                        <SelectItem value="CARD">Банка</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsPaymentModalOpen(false)}>Отказ</Button>
+                <Button onClick={handleCreateAndGoToInvoices} disabled={invoiceLoading}>
+                  {invoiceLoading ? 'Създаване...' : 'Създай фактура'}
+                </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
       {/* Print-only stock receipt table */}

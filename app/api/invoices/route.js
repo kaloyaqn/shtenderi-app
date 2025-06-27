@@ -1,0 +1,133 @@
+import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+// POST: Create immutable invoice snapshot for a revision
+export async function POST(req) {
+  try {
+    const { revisionId } = await req.json();
+    if (!revisionId) {
+      return NextResponse.json({ error: 'revisionId is required' }, { status: 400 });
+    }
+
+    // Fetch revision with all needed data
+    const revision = await prisma.revision.findUnique({
+      where: { id: revisionId },
+      include: {
+        partner: true,
+        user: true,
+        missingProducts: {
+          include: { product: true },
+        },
+      },
+    });
+    if (!revision) {
+      return NextResponse.json({ error: 'Revision not found' }, { status: 404 });
+    }
+
+    // Check if invoice already exists for this revision number
+    const existing = await prisma.invoice.findFirst({ where: { revisionNumber: revision.number } });
+    if (existing) {
+      return NextResponse.json(existing);
+    }
+
+    // Get session for preparedBy
+    const session = await getServerSession(authOptions);
+    const preparedBy = session?.user?.name || session?.user?.email || 'Admin';
+
+    // Prepare products snapshot
+    const products = revision.missingProducts.map(mp => ({
+      name: mp.product?.name || '-',
+      barcode: mp.product?.barcode || '-',
+      quantity: mp.missingQuantity,
+      clientPrice: mp.product?.clientPrice || 0,
+      pcd: mp.product?.pcd || '',
+    }));
+    const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.clientPrice), 0);
+    const vatBase = totalValue / 1.2;
+    const vatAmount = totalValue - vatBase;
+
+    // Get the next invoice number
+    const lastInvoice = await prisma.invoice.findFirst({ orderBy: { invoiceNumber: 'desc' } });
+    const nextNumber = lastInvoice ? lastInvoice.invoiceNumber + 1 : 1;
+
+    // Create immutable invoice
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber: nextNumber,
+        issuedAt: new Date(),
+        partnerName: revision.partner.name,
+        partnerBulstat: revision.partner.bulstat,
+        partnerMol: revision.partner.mol,
+        partnerAddress: revision.partner.address,
+        preparedBy,
+        products,
+        totalValue,
+        vatBase,
+        vatAmount,
+        paymentMethod: 'CASH', // default, can be changed if needed
+        revisionNumber: revision.number,
+      },
+    });
+    return NextResponse.json(invoice);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// GET: Fetch all invoices or a specific invoice
+export async function GET(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const invoiceId = searchParams.get('id');
+
+    // If no ID, get all invoices for the list view
+    if (!invoiceId) {
+      const invoices = await prisma.invoice.findMany({
+        orderBy: { invoiceNumber: 'desc' },
+      });
+      return NextResponse.json(invoices);
+    }
+
+    // If ID is present, get one specific invoice
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) {
+      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    }
+    return NextResponse.json(invoice);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// PUT: Update an invoice (e.g., payment method)
+export async function PUT(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const invoiceId = searchParams.get('id');
+    const { paymentMethod } = await req.json();
+
+    if (!invoiceId) {
+      return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
+    }
+    if (!paymentMethod) {
+      return NextResponse.json({ error: 'Payment method is required' }, { status: 400 });
+    }
+
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { paymentMethod },
+    });
+
+    return NextResponse.json(updatedInvoice);
+  } catch (error) {
+    console.error('Error updating invoice:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+} 
