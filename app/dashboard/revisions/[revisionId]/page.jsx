@@ -35,6 +35,7 @@ export default function RevisionDetailPage() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [invoice, setInvoice] = useState(null);
   const router = useRouter();
 
   const contentRef = useRef(null);
@@ -79,6 +80,19 @@ export default function RevisionDetailPage() {
         .catch(() => setStorageProducts([]));
     }
   }, [addProductDialogOpen, selectedStorage, revision?.stand?.id]);
+
+  // Fetch invoice for this revision
+  useEffect(() => {
+    if (revision && revision.number) {
+      fetch(`/api/invoices?revisionNumber=${revision.number}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.id) setInvoice(data);
+          else setInvoice(null);
+        })
+        .catch(() => setInvoice(null));
+    }
+  }, [revision?.number]);
 
   const handleResupply = async () => {
     if (!selectedStorage) {
@@ -249,9 +263,15 @@ export default function RevisionDetailPage() {
           <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">Зареди от склад</Button>
           <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
           <Button variant="ghost" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>
-          <Button variant="default" onClick={() => setIsPaymentModalOpen(true)} disabled={invoiceLoading}>
-            {invoiceLoading ? 'Обработка...' : 'Издай фактура'}
-          </Button>
+          {invoice ? (
+            <Button variant="success" onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}>
+              Виж фактура
+            </Button>
+          ) : (
+            <Button variant="default" onClick={() => setIsPaymentModalOpen(true)} disabled={invoiceLoading}>
+              {invoiceLoading ? 'Обработка...' : 'Издай фактура'}
+            </Button>
+          )}
         </div>
       </div>
 
