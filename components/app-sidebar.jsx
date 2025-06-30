@@ -3,23 +3,23 @@
 import * as React from "react"
 import { useSession } from "next-auth/react"
 import {
-  IconCamera,
-  IconChartBar,
-  IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
   IconFileWord,
-  IconFolder,
-  IconHelp,
-  IconInnerShadowTop,
   IconInvoice,
-  IconListDetails,
-  IconReport,
-  IconSearch,
   IconSettings,
-  IconUsers,
+  IconHelp,
+  IconSearch,
+  IconInnerShadowTop
 } from "@tabler/icons-react"
+import {
+    BoxIcon,
+    CircleDollarSignIcon,
+    HomeIcon,
+    PackageOpenIcon,
+    PersonStanding,
+    Store,
+    Undo2Icon,
+    User
+} from "lucide-react";
 
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
@@ -34,22 +34,31 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Box, BoxIcon, Bus, CircleDollarSignIcon, HomeIcon, PackageOpenIcon, PersonStanding, SearchCheckIcon, Store, Undo2Icon, User } from "lucide-react"
 
-const allDocuments = [
+const groupedDocuments = {
+  Начало: [
     { name: "Начало", url: "/dashboard", icon: HomeIcon },
-    { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
+  ],
+  Счетоводство: [
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: Undo2Icon, adminOnly: true },
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
+  ],
+  Склад: [
+    { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
     { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
-    { name: "Трансфери", url: "/dashboard/transfers", icon: Bus, adminOnly: true },
+    { name: "Продукти", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
+  ],
+  Контрагенти: [
     { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
     { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
-    { name: "Продукти", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
+  ],
+  Потребители: [
     { name: "Потребители", url: "/dashboard/users", icon: User, adminOnly: true },
-];
+  ],
+};
+
 
 const navSecondary = [
     {
@@ -75,10 +84,13 @@ export function AppSidebar({
   const { data: session } = useSession()
   const userRole = session?.user?.role;
 
-  const visibleDocuments = React.useMemo(() => {
-    return allDocuments
-      .filter(doc => userRole === 'ADMIN' || !doc.adminOnly)
-      .map(doc => ({ ...doc, url: doc.url.trim() }));
+  const visibleNavGroups = React.useMemo(() => {
+    return Object.entries(groupedDocuments)
+      .map(([title, items]) => ({
+        title,
+        items: items.filter(item => userRole === 'ADMIN' || !item.adminOnly),
+      }))
+      .filter(group => group.items.length > 0);
   }, [userRole]);
 
   return (
@@ -96,8 +108,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {/* <NavMain items={data.navMain} /> */}
-        <NavDocuments items={visibleDocuments} />
+        <NavDocuments navGroups={visibleNavGroups} />
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

@@ -4,7 +4,7 @@ import { useState, useEffect, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
-import { Plus, Pencil, Trash2, Upload, Barcode } from 'lucide-react'
+import { Plus, Pencil, Trash2, Upload, Barcode, ArrowRightLeft, FilePlus } from 'lucide-react'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,6 +28,7 @@ import EditQuantityDialog from './_components/edit-quantity-dialog'
 import { XMLParser } from "fast-xml-parser"
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 export default function StandDetailPage({ params }) {
     const router = useRouter();
@@ -47,6 +48,7 @@ export default function StandDetailPage({ params }) {
     const [productOnStandToDelete, setProductOnStandToDelete] = useState(null);
     const [inactiveProductsPrompt, setInactiveProductsPrompt] = useState({ open: false, products: [], toImport: [] });
 
+    const { data: session } = useSession();
 
     const fetchData = async () => {
         setLoading(true);
@@ -344,6 +346,23 @@ export default function StandDetailPage({ params }) {
             </AlertDialog>
 
             {importError && <div className="text-red-500 mb-4">{importError}</div>}
+
+            <div className="flex items-center gap-2">
+                {session?.user.role === 'ADMIN' && (
+                    <Button onClick={() => router.push(`/dashboard/stands/${standId}/edit`)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Редактирай
+                    </Button>
+                )}
+                <Button onClick={() => router.push(`/dashboard/stands/${standId}/transfer`)}>
+                    <ArrowRightLeft className="mr-2 h-4 w-4" /> Трансфер
+                </Button>
+                <Button onClick={() => router.push(`/dashboard/stands/${standId}/revision`)}>
+                    <FilePlus className="mr-2 h-4 w-4" /> Ревизия
+                </Button>
+                <Button onClick={() => router.push(`/dashboard/stands/${standId}/refund`)}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Рекламация
+                </Button>
+            </div>
         </div>
     )
 } 

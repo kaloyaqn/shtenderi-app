@@ -38,24 +38,26 @@ export async function POST(req) {
 
 async function handleStorageToStorageTransfer(sourceStorageId, destinationStorageId, products, userId) {
     return prisma.$transaction(async (tx) => {
-        // 1. Validate stock and perform movements
-        await validateAndMoveStock(tx, sourceStorageId, products);
-
-        // 2. Increment stock in destination storage
+        // 1. Validate that products exist, but do not move stock yet.
         for (const product of products) {
-            await tx.storageProduct.upsert({
-                where: { storageId_productId: { storageId: destinationStorageId, productId: product.productId } },
-                update: { quantity: { increment: product.quantity } },
-                create: { storageId: destinationStorageId, productId: product.productId, quantity: product.quantity },
+            const p = await tx.product.findUnique({ where: { id: product.productId } });
+            if (!p) throw new Error(`Product with ID ${product.productId} not found.`);
+
+            const sp = await tx.storageProduct.findFirst({
+                where: { storageId: sourceStorageId, productId: product.productId }
             });
+            if (!sp || sp.quantity < product.quantity) {
+                throw new Error(`Insufficient stock for ${p.name}.`);
+            }
         }
 
-        // 3. Create Transfer record
+        // 2. Create Transfer record in PENDING state
         const transfer = await tx.transfer.create({
             data: {
                 sourceStorageId,
                 destinationStorageId,
                 userId,
+                status: 'PENDING', // Explicitly set as PENDING
                 products: {
                     create: products.map(p => ({
                         productId: p.productId,
@@ -64,7 +66,7 @@ async function handleStorageToStorageTransfer(sourceStorageId, destinationStorag
                 },
             },
         });
-        return { message: "Storage-to-storage transfer successful", transferId: transfer.id };
+        return { message: "Transfer initiated successfully and is pending confirmation.", transferId: transfer.id };
     });
 }
 

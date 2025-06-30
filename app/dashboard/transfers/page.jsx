@@ -52,6 +52,18 @@ export default function TransfersPage() {
             cell: ({ row }) => row.original.user?.name || row.original.user?.email || 'N/A',
         },
         {
+            accessorKey: 'status',
+            header: 'Статус',
+            cell: ({ row }) => {
+                const status = row.original.status;
+                return (
+                    <Badge variant={status === 'COMPLETED' ? 'success' : 'secondary'}>
+                        {status === 'COMPLETED' ? 'Завършен' : 'Чакащ'}
+                    </Badge>
+                )
+            }
+        },
+        {
             accessorKey: 'products',
             header: 'Продукти',
             cell: ({ row }) => <Badge variant="secondary">{row.original.products.length}</Badge>,

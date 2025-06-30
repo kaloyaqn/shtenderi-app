@@ -289,6 +289,9 @@ model Transfer {
   user                 User              @relation(fields: [userId], references: [id])
   userId               String
   products             TransferProduct[]
+  status               String            @default("PENDING") // PENDING, COMPLETED
+  confirmedById        String?
+  confirmedAt          DateTime?
 
   @@index([sourceStorageId])
   @@index([destinationStorageId])

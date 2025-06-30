@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Barcode } from 'lucide-react';
 
 export default function StorageTransferDialog({ open, onOpenChange, sourceStorageId, onTransferSuccess }) {
     const [step, setStep] = useState(1);
@@ -20,6 +21,7 @@ export default function StorageTransferDialog({ open, onOpenChange, sourceStorag
     const [destinationId, setDestinationId] = useState('');
     const [destinationType, setDestinationType] = useState('STORAGE');
     const [selectedProducts, setSelectedProducts] = useState([]); // { productId, name, quantity, maxQuantity }
+    const [barcodeInput, setBarcodeInput] = useState('');
 
     // State
     const [loading, setLoading] = useState(false);
@@ -46,6 +48,7 @@ export default function StorageTransferDialog({ open, onOpenChange, sourceStorag
             setSelectedProducts([]);
             setDestinationId('');
             setDestinationType('STORAGE');
+            setBarcodeInput('');
         }
     }, [open]);
 
@@ -67,6 +70,29 @@ export default function StorageTransferDialog({ open, onOpenChange, sourceStorag
             toast.error(error.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleBarcodeScanned = (e) => {
+        if (e.key === 'Enter' && barcodeInput) {
+            e.preventDefault();
+            const productInSource = productsInSource.find(p => p.product.barcode === barcodeInput);
+
+            if (!productInSource) {
+                toast.error('Продукт с този баркод не е намерен в изходния склад.');
+                setBarcodeInput('');
+                return;
+            }
+
+            const existingProduct = selectedProducts.find(p => p.productId === productInSource.product.id);
+            const currentQuantity = existingProduct?.quantity || 0;
+
+            if (currentQuantity >= productInSource.quantity) {
+                toast.warning(`Достигнато е максималното налично количество за ${productInSource.product.name}.`);
+            } else {
+                handleProductQuantityChange(productInSource.product.id, currentQuantity + 1);
+            }
+            setBarcodeInput('');
         }
     };
 
@@ -180,26 +206,44 @@ export default function StorageTransferDialog({ open, onOpenChange, sourceStorag
             <DialogHeader>
                 <DialogTitle>Стъпка 2: Изберете продукти за прехвърляне</DialogTitle>
             </DialogHeader>
-            <div className="py-4 space-y-2 max-h-[60vh] overflow-y-auto">
-                {productsInSource.length === 0 ? (
-                    <p className="text-center text-gray-500">Няма налични продукти в този склад.</p>
-                ) : productsInSource.map(p => (
-                    <div key={p.product.id} className="flex items-center justify-between gap-4 p-2 border rounded-md">
-                        <div className="flex-grow">
-                            <p className="font-medium">{p.product.name}</p>
-                            <p className="text-xs text-gray-500">Наличност: {p.quantity}</p>
+             <div className="relative my-4">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Input
+                    type="text"
+                    placeholder="Сканирайте баркод..."
+                    className="pl-10"
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    onKeyDown={handleBarcodeScanned}
+                />
+            </div>
+            <div className="py-4 space-y-2 max-h-[50vh] overflow-y-auto">
+                {selectedProducts.length > 0 && (
+                     <h3 className="text-sm font-medium text-gray-500 mb-2">Избрани продукти:</h3>
+                )}
+                {selectedProducts.map(p => {
+                    const productInSource = productsInSource.find(src => src.product.id === p.productId);
+                    return (
+                        <div key={p.productId} className="flex items-center justify-between gap-4 p-2 border rounded-md">
+                            <div className="flex-grow">
+                                <p className="font-medium">{p.name}</p>
+                                <p className="text-xs text-gray-500">Наличност: {productInSource?.quantity || 'N/A'}</p>
+                            </div>
+                            <Input
+                                type="number"
+                                className="w-24"
+                                placeholder="Бройка"
+                                value={p.quantity}
+                                onChange={(e) => handleProductQuantityChange(p.productId, e.target.value)}
+                                max={p.maxQuantity}
+                                min={0}
+                            />
                         </div>
-                        <Input
-                            type="number"
-                            className="w-24"
-                            placeholder="Бройка"
-                            value={selectedProducts.find(sp => sp.productId === p.product.id)?.quantity || ''}
-                            onChange={(e) => handleProductQuantityChange(p.product.id, e.target.value)}
-                            max={p.quantity}
-                            min={0}
-                        />
-                    </div>
-                ))}
+                    )
+                })}
+                {productsInSource.length === 0 && selectedProducts.length === 0 && (
+                    <p className="text-center text-gray-500">Няма налични продукти в този склад.</p>
+                )}
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setStep(1)}>Назад</Button>
