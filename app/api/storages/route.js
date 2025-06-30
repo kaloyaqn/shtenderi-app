@@ -10,21 +10,21 @@ export async function GET(req) {
         return new NextResponse('Unauthorized', { status: 401 });
     }
     
-    const whereClause = {};
-    if (session.user && session.user.role === 'USER') {
-      whereClause.userStorages = {
-        some: {
-          userId: session.user.id,
-        },
-      };
+    let storages;
+    if (session.user?.role === 'ADMIN') {
+        storages = await prisma.storage.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+    } else if (session.user?.role === 'USER') {
+        const userStorages = await prisma.userStorage.findMany({
+            where: { userId: session.user.id },
+            include: { storage: true }
+        });
+        storages = userStorages.map(us => us.storage);
+    } else {
+        storages = []; // Should not happen
     }
 
-    const storages = await prisma.storage.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
     return NextResponse.json(storages);
   } catch (error) {
     console.error('[STORAGES_GET]', error);

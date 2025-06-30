@@ -40,6 +40,7 @@ model Product {
   missingProducts MissingProduct[]
   storageProducts StorageProduct[]
   refundProducts  RefundProduct[]
+  transferProducts TransferProduct[]
 }
 
 model StandProduct {
@@ -61,6 +62,7 @@ model Check {
   standId   String
   user      String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   checkedProducts CheckedProduct[]
 }
@@ -83,10 +85,11 @@ model User {
   role           Role     @default(USER)
   emailVerified  DateTime?
   createdAt      DateTime @default(now())
+  updatedAt      DateTime? @updatedAt
 
   revisions      Revision[]
   refunds        Refund[]
-
+  transfers      Transfer[]
   userPartners   UserPartner[]
   userStands     UserStand[]
   userStorages   UserStorage[]
@@ -276,4 +279,29 @@ model UserStorage {
   storageId String
 
   @@unique([userId, storageId])
+}
+
+model Transfer {
+  id                   String            @id @default(uuid())
+  createdAt            DateTime          @default(now())
+  sourceStorageId      String
+  destinationStorageId String
+  user                 User              @relation(fields: [userId], references: [id])
+  userId               String
+  products             TransferProduct[]
+
+  @@index([sourceStorageId])
+  @@index([destinationStorageId])
+  @@index([userId])
+}
+
+model TransferProduct {
+  id         String   @id @default(uuid())
+  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  transferId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productId  String
+  quantity   Int
+
+  @@unique([transferId, productId])
 }

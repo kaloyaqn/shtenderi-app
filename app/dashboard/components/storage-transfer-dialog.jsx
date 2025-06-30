@@ -6,31 +6,36 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 export default function StorageTransferDialog({ open, onOpenChange, sourceStorageId, onTransferSuccess }) {
     const [step, setStep] = useState(1);
     
     // Data
     const [allStorages, setAllStorages] = useState([]);
+    const [allStands, setAllStands] = useState([]);
     const [productsInSource, setProductsInSource] = useState([]);
     
     // Selections
-    const [destinationStorageId, setDestinationStorageId] = useState('');
+    const [destinationId, setDestinationId] = useState('');
+    const [destinationType, setDestinationType] = useState('STORAGE');
     const [selectedProducts, setSelectedProducts] = useState([]); // { productId, name, quantity, maxQuantity }
 
     // State
     const [loading, setLoading] = useState(false);
 
-    // Fetch all storages for destination selection
+    // Fetch all storages and stands for destination selection
     useEffect(() => {
         if (open) {
-            fetch('/api/storages')
-                .then(res => res.json())
-                .then(data => {
-                    // Filter out the source storage from the list of destinations
-                    setAllStorages(data.filter(s => s.id !== sourceStorageId));
-                })
-                .catch(() => toast.error('Failed to fetch storages.'));
+            setLoading(true);
+            Promise.all([
+                fetch('/api/storages').then(res => res.json()),
+                fetch('/api/stands').then(res => res.json())
+            ]).then(([storagesData, standsData]) => {
+                setAllStorages(storagesData.filter(s => s.id !== sourceStorageId));
+                setAllStands(standsData);
+            }).catch(() => toast.error('Failed to fetch destinations.'))
+            .finally(() => setLoading(false));
         }
     }, [open, sourceStorageId]);
     
@@ -39,13 +44,18 @@ export default function StorageTransferDialog({ open, onOpenChange, sourceStorag
         if (open) {
             setStep(1);
             setSelectedProducts([]);
-            setDestinationStorageId('');
+            setDestinationId('');
+            setDestinationType('STORAGE');
         }
     }, [open]);
 
-    // Fetch products from the source storage once a destination is chosen
-    const handleDestinationSelect = async (destId) => {
-        setDestinationStorageId(destId);
+    const handleDestinationChange = (destId) => {
+        setDestinationId(destId);
+    };
+
+    const proceedToStepTwo = async () => {
+        if (!destinationId || !destinationType) return;
+        
         setLoading(true);
         try {
             const res = await fetch(`/api/storages/${sourceStorageId}/products`);
@@ -88,7 +98,8 @@ export default function StorageTransferDialog({ open, onOpenChange, sourceStorag
         try {
             const payload = {
                 sourceStorageId,
-                destinationStorageId,
+                destinationId,
+                destinationType,
                 products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
             };
             const res = await fetch('/api/storages/transfer', {
@@ -116,22 +127,50 @@ export default function StorageTransferDialog({ open, onOpenChange, sourceStorag
     const renderStepOne = () => (
         <>
             <DialogHeader>
-                <DialogTitle>Стъпка 1: Изберете склад-дестинация</DialogTitle>
+                <DialogTitle>Стъпка 1: Изберете дестинация</DialogTitle>
             </DialogHeader>
-            <div className="py-4">
-                <Select onValueChange={handleDestinationSelect} value={destinationStorageId}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Изберете склад..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {allStorages.map(storage => (
-                            <SelectItem key={storage.id} value={storage.id}>{storage.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+            <Tabs defaultValue="STORAGE" className="w-full" onValueChange={(val) => {
+                setDestinationType(val);
+                setDestinationId('');
+            }}>
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="STORAGE">Склад</TabsTrigger>
+                    <TabsTrigger value="STAND">Щанд</TabsTrigger>
+                </TabsList>
+                <TabsContent value="STORAGE">
+                    <div className="py-4">
+                        <Select onValueChange={handleDestinationChange} value={destinationId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Изберете склад..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allStorages.map(storage => (
+                                    <SelectItem key={storage.id} value={storage.id}>{storage.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </TabsContent>
+                <TabsContent value="STAND">
+                     <div className="py-4">
+                        <Select onValueChange={handleDestinationChange} value={destinationId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Изберете щанд..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allStands.map(stand => (
+                                    <SelectItem key={stand.id} value={stand.id}>{stand.name} - {stand.store?.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </TabsContent>
+            </Tabs>
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline">Отказ</Button></DialogClose>
+                <Button onClick={proceedToStepTwo} disabled={!destinationId || loading}>
+                    {loading ? 'Зареждане...' : 'Напред'}
+                </Button>
             </DialogFooter>
         </>
     );

@@ -44,6 +44,7 @@ const allDocuments = [
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: Undo2Icon, adminOnly: true },
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
     { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
+    { name: "Трансфери", url: "/dashboard/transfers", icon: Bus, adminOnly: true },
     { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
     { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
     { name: "Продукти", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
