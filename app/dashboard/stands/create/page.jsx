@@ -22,18 +22,20 @@ import {
 import QRCode from 'react-qr-code'
 import { useReactToPrint } from "react-to-print"
 import { PrinterIcon } from "lucide-react"
+import { toast } from "sonner"
 
 export default function CreateStandPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
   const [stores, setStores] = useState([])
   const [selectedStore, setSelectedStore] = useState("")
   const [createdStand, setCreatedStand] = useState(null)
 
 
   const contentRef = useRef();
-  const reactToPrintFn = useReactToPrint({contentRef});
+  const handlePrint = useReactToPrint({
+      content: () => contentRef.current,
+  });
   
   const [email, setEmail] = useState("");
 
@@ -47,7 +49,7 @@ export default function CreateStandPage() {
         const data = await response.json()
         setStores(data)
       } catch (err) {
-        setError(err.message)
+        toast.error(err.message)
       }
     }
     fetchStores()
@@ -56,11 +58,10 @@ export default function CreateStandPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!selectedStore) {
-      setError("Моля, изберете магазин")
+      toast.error("Моля, изберете магазин")
       return
     }
     setLoading(true)
-    setError(null)
 
     const formData = new FormData(e.target)
     const data = {
@@ -68,7 +69,6 @@ export default function CreateStandPage() {
       storeId: selectedStore,
       email: email.trim(),
     }
-    console.log("Submitting with data:", data);
 
     try {
       const response = await fetch('/api/stands', {
@@ -80,20 +80,26 @@ export default function CreateStandPage() {
       })
 
       const result = await response.json()
-      console.log("API Response:", result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Грешка при създаване на щанд')
       }
+      
+      toast.success('Щендерът е създаден успешно!');
+      // We no longer show the QR code on this page. Redirecting.
+      // setCreatedStand(result);
+      
+      setTimeout(() => {
+        router.push('/dashboard/stands');
+        router.refresh(); // To ensure the list is updated
+      }, 1000); // 1 second delay
 
-      setCreatedStand(result);
-      // router.push('/dashboard/stands')
-      // router.refresh()
     } catch (err) {
-      console.error("Error creating stand:", err);
-      setError(err.message)
+      toast.error(err.message)
+      setLoading(false);
     } finally {
-      setLoading(false)
+      // On success, we redirect, so no need to set loading to false.
+      // On error, it's set in the catch block.
     }
   }
 
@@ -146,9 +152,6 @@ export default function CreateStandPage() {
                   />
                 </div>
               </div>
-              {error && (
-                <div className="text-red-500 text-sm">{error}</div>
-              )}
               <div className="flex justify-end space-x-4">
                 <Button
                   type="button"
@@ -162,19 +165,6 @@ export default function CreateStandPage() {
                 </Button>
               </div>
             </form>
-            {createdStand && (
-              <div className="flex flex-col items-center mt-8">
-                <div className="mb-2 font-semibold">QR код за ревизия на щанд:</div>
-                <QRCode ref={contentRef} value={`https://shtenderi-app-production.up.railway.app/dashboard/stands/${createdStand.id}/revision`} size={180} />
-                <div className="mt-2 text-xs text-gray-500">https://shtenderi-app-production.up.railway.app/dashboard/stands/{createdStand.id}/revision</div>
-
-                <Button onClick={reactToPrintFn} variant={'outline'} className={'w-full mt-2 cursor-pointer'}>
-              <PrinterIcon /> Принт
-            </Button>
-              </div>
-            )}
-
-
           </CardContent>
         </Card>
       </div>
