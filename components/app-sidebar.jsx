@@ -8,7 +8,8 @@ import {
   IconSettings,
   IconHelp,
   IconSearch,
-  IconInnerShadowTop
+  IconInnerShadowTop,
+  IconTransfer
 } from "@tabler/icons-react"
 import {
     BoxIcon,
@@ -49,6 +50,7 @@ const groupedDocuments = {
     { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
     { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
     { name: "Продукти", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
+    { name: "Премествания", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
   ],
   Контрагенти: [
     { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
