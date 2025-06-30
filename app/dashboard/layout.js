@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import SessionLayout from "./SessionLayout";
 import MobileNavWrapper from "./MobileNavWrapper";
 import { ErrorBoundary } from "@/components/error-boundary";
+  
 
 export default async function DashboardLayout({children}) {
     const session = await getServerSession(authOptions)
@@ -15,6 +16,8 @@ export default async function DashboardLayout({children}) {
     if (!session) {
         redirect('/login')
     }
+
+
 
     return (
         <SessionLayout session={session}>

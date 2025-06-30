@@ -15,7 +15,11 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from '@/components/ui/command';
-import QRCode from 'react-qr-code';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Edit, Edit2, Edit3, EditIcon, Printer, Send } from 'lucide-react';
+import { IconInvoice } from '@tabler/icons-react';
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -254,48 +258,109 @@ export default function RevisionDetailPage() {
   const adminName = revision.user?.name || revision.user?.email || '';
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Детайли за продажба {revision.number}</h1>
-        <div className="flex gap-2">
-          <Button onClick={handlePrintStock}>Принтирай стокова</Button>
-          <Button onClick={handleSendToClient} variant="secondary">Изпрати на клиент</Button>
-          <Button onClick={() => setResupplyDialogOpen(true)} variant="outline">Зареди от склад</Button>
-          <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>Редактирай</Button>
-          <Button variant="ghost" onClick={() => router.push('/dashboard/revisions')}>Назад</Button>
+      <div className='flex items-center gap-2'>
+      <Button variant="ghost" size='sm' className='text-xs' onClick={() => router.push('/dashboard/revisions')}> {"<-"} Назад</Button>
+      <h1 className={`text-2xl text-gray-900 font-bold`}>Продажба #{revision.number}</h1>
+      </div>
+        <div className="flex items-center gap-2">
+          <Button variant={'outline'} onClick={handlePrintStock}><Printer/> Принтирай</Button>
+          <Button onClick={handleSendToClient} variant="outline"> <Send /> Изпрати</Button>
           {invoice ? (
-            <Button variant="success" onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}>
+            <Button variant="outline" onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}>
               Виж фактура
             </Button>
           ) : (
-            <Button variant="default" onClick={() => setIsPaymentModalOpen(true)} disabled={invoiceLoading}>
-              {invoiceLoading ? 'Обработка...' : 'Издай фактура'}
+            <Button variant="outline" onClick={() => setIsPaymentModalOpen(true)} disabled={invoiceLoading}>
+              <IconInvoice />
+              {invoiceLoading ? 'Обработка...' : 'Фактура'}
             </Button>
           )}
+          <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}><EditIcon /> Редактирай</Button>
+          <div className="h-6 w-px bg-gray-300"></div>
+
+          <Button onClick={() => setResupplyDialogOpen(true)} variant="default">Зареди от склад</Button>
+
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div><strong>№:</strong> {revision.number}</div>
-        <div><strong>Щанд:</strong> {revision.stand?.name || 'N/A'}</div>
-        <div><strong>Магазин:</strong> {revision.stand?.store?.name || 'N/A'}</div>
-        <div><strong>Партньор:</strong> {revision.partner?.name || 'N/A'}</div>
-        <div><strong>Ревизор:</strong> {revision.user?.name || revision.user?.email || 'N/a'}</div>
-        <div><strong>Дата:</strong> {new Date(revision.createdAt).toLocaleString('bg-BG')}</div>
-      </div>
+
 
       <div className="">
         <div className="mt-4">
-          <h2 className="text-xl font-semibold">Продадени продукти:</h2>
-          <div ref={contentRef}>
-            {revision.missingProducts?.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+          <div className="lg:col-span-1 order-2 lg:order-1">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base lg:text-lg">Информация за поръчката</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Номер</label>
+                    <p className="text-lg font-semibold">#{revision.number}</p>
+                  </div>
+                  {/* <div>
+                    <label className="text-sm font-medium text-gray-500">Статус</label>
+                    <Badge variant="secondary" className="mt-1">
+                      Активна
+                    </Badge>
+                  </div> */}
+                </div>
+
+                <Separator />
+
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Партньор</label>
+                  <p className="text-base font-medium">{revision.partner?.name}</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Щанд</label>
+                    <p className="text-base">{revision.stand?.name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Магазин</label>
+                    <p className="text-base">{revision.store?.name || "N/A"} </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Ревизор</label>
+                  <p className="text-base">{revision.user?.name || revision.user?.email || 'N/A'}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div ref={contentRef} className="lg:col-span-2 order-1 lg:order-2">
+              <Card>
+                <CardHeader>
+                  <div className='flex items-center justify-between'>
+                    <CardTitle className="text-base lg:text-lg">
+                      Продадени продукти
+                    </CardTitle>
+                    <Badge variant='outline'>
+                      2 продукта
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                {revision.missingProducts?.length > 0 ? (
               <DataTable columns={columns} data={data} searchKey="barcode" />
             ) : (
               <p>Няма регистрирани продажби.</p>
             )}
-          </div>
+                </CardContent>
+              </Card>
+          </div>    
+        </div>
         </div>
       </div>
+
+
       {/* Resupply Dialog */}
       <Dialog open={resupplyDialogOpen} onOpenChange={(open) => { setResupplyDialogOpen(open); if (!open) setResupplyErrors([]); }}>
         <DialogContent>

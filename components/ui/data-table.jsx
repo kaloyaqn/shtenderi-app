@@ -80,13 +80,14 @@ export function DataTable({
   if (isMobileState) {
     return (
       <div>
-        <div className="flex flex-col gap-2 py-3">
+        <div className="flex flex-col gap-2">
           {searchKey && (
             <Input
               placeholder="Потърси..."
               value={globalFilter ?? ""}
               onChange={(event) => setGlobalFilter(event.target.value)}
               className="max-w-sm text-xs"
+              
             />
           )}
           {filterableColumns.map((column) => (

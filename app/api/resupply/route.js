@@ -86,18 +86,12 @@ export async function POST(req) {
                     standId: destinationStandId,
                     partnerId: stand.store.partnerId,
                     userId: session.user.id,
-                    products: {
+                    missingProducts: {
                         create: products.map(p => ({
                             productId: p.productId,
-                            quantity: p.quantity,
-                            // Since this is a resupply, we assume expected equals actual
-                            expectedQuantity: p.quantity, 
-                            actualQuantity: p.quantity,
+                            missingQuantity: p.quantity,
                         }))
                     }
-                    // Note: 'missingProducts' will be empty for a resupply.
-                    // A new field could be added to the Revision model to differentiate,
-                    // but for now, the absence of missing products indicates a resupply.
                 },
             });
 
