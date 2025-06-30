@@ -1,8 +1,14 @@
 import { createStand, getAllStands } from "@/lib/stands/stand"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 export async function GET() {
   try {
-    const stands = await getAllStands()
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+    const stands = await getAllStands(session.user)
     return Response.json(stands)
   } catch (err) {
     console.error('[STANDS_GET_ERROR]', err)

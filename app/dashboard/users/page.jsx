@@ -73,6 +73,142 @@ function CreateUserDialog({ open, onOpenChange, onUserCreated }) {
   );
 }
 
+function EditUserDialog({ open, onOpenChange, user, onUserUpdated }) {
+  const [stands, setStands] = useState([]);
+  const [partners, setPartners] = useState([]);
+  const [selectedStands, setSelectedStands] = useState([]);
+  const [selectedPartners, setSelectedPartners] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && user) {
+      // Fetch stands and set selected
+      fetch('/api/stands')
+        .then(res => res.json())
+        .then(data => setStands(data));
+      setSelectedStands(user.stands?.map(s => s.id) || []);
+      
+      // Fetch partners and set selected
+      fetch('/api/partners')
+        .then(res => res.json())
+        .then(data => setPartners(data));
+      setSelectedPartners(user.partners?.map(p => p.id) || []);
+    }
+  }, [open, user]);
+
+  const handleStandChange = (e) => {
+    const value = e.target.value;
+    setSelectedStands(prev =>
+      prev.includes(value)
+        ? prev.filter(id => id !== value)
+        : [...prev, value]
+    );
+  };
+
+  const handlePartnerChange = (e) => {
+    const value = e.target.value;
+    setSelectedPartners(prev =>
+      prev.includes(value)
+        ? prev.filter(id => id !== value)
+        : [...prev, value]
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      // Update stands
+      await fetch(`/api/users/${user.id}/stands`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ standIds: selectedStands }),
+      });
+      
+      // Update partners
+      await fetch(`/api/users/${user.id}/partners`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partnerIds: selectedPartners }),
+      });
+
+      toast.success('Достъпът е обновен!');
+      onUserUpdated();
+      onOpenChange(false);
+    } catch (err) {
+      toast.error('Грешка при запис');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open || !user) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg p-6 w-full max-w-md shadow-lg">
+        <h2 className="text-xl font-semibold mb-4">Редактирай потребител</h2>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div>
+            <label className="block mb-1 font-medium">Име</label>
+            <input name="name" value={user.name} onChange={handleChange} className="border rounded px-2 py-1 w-full" />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Имейл *</label>
+            <input name="email" value={user.email} onChange={handleChange} required className="border rounded px-2 py-1 w-full" />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Парола *</label>
+            <input name="password" type="password" value={user.password} onChange={handleChange} required className="border rounded px-2 py-1 w-full" />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Роля *</label>
+            <select name="role" value={user.role} onChange={handleChange} className="border rounded px-2 py-1 w-full">
+              <option value="USER">Потребител</option>
+              <option value="ADMIN">Администратор</option>
+            </select>
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Щендери (достъп)</label>
+            <div className="max-h-40 overflow-y-auto border rounded p-2">
+              {stands.map(stand => (
+                <label key={stand.id} className="flex items-center gap-2 mb-1">
+                  <input
+                    type="checkbox"
+                    value={stand.id}
+                    checked={selectedStands.includes(stand.id)}
+                    onChange={handleStandChange}
+                  />
+                  {stand.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Партньори (достъп)</label>
+            <div className="max-h-40 overflow-y-auto border rounded p-2">
+              {partners.map(partner => (
+                <label key={partner.id} className="flex items-center gap-2 mb-1">
+                  <input
+                    type="checkbox"
+                    value={partner.id}
+                    checked={selectedPartners.includes(partner.id)}
+                    onChange={handlePartnerChange}
+                  />
+                  {partner.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Отказ</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Запис...' : 'Запази'}</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);

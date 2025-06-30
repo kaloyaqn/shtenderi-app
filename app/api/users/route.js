@@ -6,9 +6,43 @@ import bcrypt from 'bcryptjs';
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, name: true, email: true, role: true, createdAt: true }
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        userStands: {
+          select: {
+            stand: {
+              select: { id: true, name: true }
+            }
+          }
+        },
+        userPartners: {
+          select: {
+            partner: {
+              select: { id: true, name: true }
+            }
+          }
+        },
+        userStorages: {
+          select: {
+            storage: {
+              select: { id: true, name: true }
+            }
+          }
+        }
+      }
     });
-    return NextResponse.json(users);
+    // Flatten stands and partners for frontend
+    const usersWithRelations = users.map(u => ({
+      ...u,
+      stands: u.userStands.map(us => us.stand),
+      partners: u.userPartners.map(up => up.partner),
+      storages: u.userStorages.map(us => us.storage),
+    }));
+    return NextResponse.json(usersWithRelations);
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }

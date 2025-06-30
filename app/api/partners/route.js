@@ -1,9 +1,15 @@
 import { getAllPartners, createPartner } from '@/lib/partners/partner'
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // GET: Връща всички партньори с магазини
 export async function GET() {
   try {
-    const partners = await getAllPartners()
+    const session = await getServerSession(authOptions);
+    if (!session) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+    const partners = await getAllPartners(session.user)
     return Response.json(partners)
   } catch (error) {
     console.error('[PARTNERS_GET_ERROR]', error)

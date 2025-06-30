@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
@@ -19,6 +20,7 @@ import { toast } from 'sonner';
 
 export default function StoragesPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [storages, setStorages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -28,7 +30,14 @@ export default function StoragesPage() {
     setLoading(true);
     try {
       const response = await fetch('/api/storages');
-      if (!response.ok) throw new Error('Failed to fetch storages');
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error('Моля, влезте в системата.');
+        } else {
+          throw new Error('Failed to fetch storages');
+        }
+        return;
+      }
       const data = await response.json();
       setStorages(data);
     } catch (error) {
@@ -40,8 +49,10 @@ export default function StoragesPage() {
   };
 
   useEffect(() => {
-    fetchStorages();
-  }, []);
+    if (session) {
+      fetchStorages();
+    }
+  }, [session]);
 
   const handleDelete = async () => {
     if (!storageToDelete) return;
@@ -91,12 +102,13 @@ export default function StoragesPage() {
       id: 'actions',
       cell: ({ row }) => {
         const storage = row.original;
+        if (session?.user?.role !== 'ADMIN') return null;
         return (
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push(`/dashboard/storages/${storage.id}/edit`)}
+              disabled
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -116,14 +128,29 @@ export default function StoragesPage() {
     },
   ];
 
+  const userIsAdmin = session?.user?.role === 'ADMIN';
+
+  if (loading) return <div>Зареждане...</div>;
+
+  if (!loading && storages.length === 0 && !userIsAdmin) {
+    return (
+      <div className="md:py-10 py-5 text-center">
+        <h1 className="md:text-3xl text-xl font-bold mb-4">Складове</h1>
+        <p>Нямате зачислени складове. Моля, свържете се с администратор.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="md:py-10 py-5">
       <div className="flex justify-between items-center mb-8">
         <h1 className="md:text-3xl text-xl font-bold">Складове</h1>
-        <Button onClick={() => router.push('/dashboard/storages/create')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Създай склад
-        </Button>
+        {userIsAdmin && (
+          <Button onClick={() => router.push('/dashboard/storages/create')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Създай склад
+          </Button>
+        )}
       </div>
 
       <DataTable

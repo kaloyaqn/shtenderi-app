@@ -80,26 +80,55 @@ export async function POST(req) {
 // GET: Fetch all invoices or a specific invoice
 export async function GET(req) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const invoiceId = searchParams.get('id');
 
+    // If ID is present, get one specific invoice (check access later)
+    if (invoiceId) {
+      const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+      if (!invoice) {
+        return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+      }
+      // Security check: does user have access to this invoice's revision stand?
+      if (session.user.role === 'USER') {
+        const userStands = await prisma.userStand.findMany({ where: { userId: session.user.id }, select: { standId: true } });
+        const standIds = userStands.map(s => s.standId);
+        const revision = await prisma.revision.findFirst({ where: { number: invoice.revisionNumber }, select: { standId: true } });
+        if (!revision || !standIds.includes(revision.standId)) {
+          return new NextResponse('Forbidden', { status: 403 });
+        }
+      }
+      return NextResponse.json(invoice);
+    }
+
     // If no ID, get all invoices for the list view
-    if (!invoiceId) {
-      const invoices = await prisma.invoice.findMany({
-        orderBy: { invoiceNumber: 'desc' },
+    let whereClause = {};
+    if (session.user.role === 'USER') {
+      const userStands = await prisma.userStand.findMany({ where: { userId: session.user.id }, select: { standId: true } });
+      const standIds = userStands.map(s => s.standId);
+      const allowedRevisions = await prisma.revision.findMany({
+        where: { standId: { in: standIds } },
+        select: { number: true },
       });
-      return NextResponse.json(invoices);
+      const revisionNumbers = allowedRevisions.map(r => r.number);
+      whereClause = {
+        revisionNumber: {
+          in: revisionNumbers,
+        },
+      };
     }
 
-    // If ID is present, get one specific invoice
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
+    const invoices = await prisma.invoice.findMany({
+      where: whereClause,
+      orderBy: { invoiceNumber: 'desc' },
     });
+    return NextResponse.json(invoices);
 
-    if (!invoice) {
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
-    }
-    return NextResponse.json(invoice);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

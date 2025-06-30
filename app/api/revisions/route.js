@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(req) {
   try {
@@ -58,7 +60,27 @@ export async function POST(req) {
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    let whereClause = {};
+    if (session.user.role === 'USER') {
+      const userWithStands = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { userStands: { select: { standId: true } } },
+      });
+      const standIds = userWithStands.userStands.map(us => us.standId);
+      whereClause = {
+        standId: {
+          in: standIds,
+        },
+      };
+    }
+
     const revisions = await prisma.revision.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         stand: true,

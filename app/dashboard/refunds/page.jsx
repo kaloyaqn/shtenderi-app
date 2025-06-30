@@ -1,19 +1,32 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { DataTable } from "@/components/ui/data-table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function RefundsPage() {
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
 
   useEffect(() => {
-    fetch("/api/refunds")
-      .then((res) => res.json())
-      .then(setRefunds)
-      .finally(() => setLoading(false));
-  }, []);
+    if (session) {
+      fetch("/api/refunds")
+        .then((res) => {
+          if (!res.ok) {
+            if (res.status === 401) toast.error("Моля, влезте в системата.");
+            else toast.error("Грешка при зареждане на рекламации.");
+            return Promise.reject(new Error("Failed to fetch"));
+          }
+          return res.json();
+        })
+        .then(setRefunds)
+        .catch((err) => console.error("Fetch error:", err))
+        .finally(() => setLoading(false));
+    }
+  }, [session]);
 
   const columns = [
     {
@@ -72,6 +85,17 @@ export default function RefundsPage() {
   ];
 
   if (loading) return <div>Зареждане...</div>;
+
+  const userIsAdmin = session?.user?.role === 'ADMIN';
+
+  if (!loading && refunds.length === 0 && !userIsAdmin) {
+    return (
+      <div className="container mx-auto py-10 text-center">
+        <h1 className="text-3xl font-bold mb-6">Върщания и рекламации</h1>
+        <p>Нямате рекламации от зачислените Ви щандове или складове.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-10">

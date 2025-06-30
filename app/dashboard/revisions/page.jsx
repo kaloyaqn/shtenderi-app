@@ -1,31 +1,50 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
+import { toast } from 'sonner';
 
 export default function RevisionsListPage() {
   const [revisions, setRevisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { data: session } = useSession();
 
   useEffect(() => {
     const fetchRevisions = async () => {
-      const res = await fetch('/api/revisions');
-      let data = await res.json();
-      // Flatten for DataTable
-      data = data.map(rev => ({
-        ...rev,
-        standName: rev.stand?.name || '-',
-        partnerName: rev.partner?.name || '-',
-        userName: rev.user?.name || rev.user?.email || '-',
-      }));
-      console.log('Fetched revisions:', data); // DEBUG LOG
-      setRevisions(data);
-      setLoading(false);
+      try {
+        const res = await fetch('/api/revisions');
+        if (!res.ok) {
+          if (res.status === 401) {
+            toast.error('Моля, влезте в системата.');
+          } else {
+            toast.error('Грешка при зареждане на продажби.');
+          }
+          return;
+        }
+        let data = await res.json();
+        // Flatten for DataTable
+        data = data.map(rev => ({
+          ...rev,
+          standName: rev.stand?.name || '-',
+          partnerName: rev.partner?.name || '-',
+          userName: rev.user?.name || rev.user?.email || '-',
+        }));
+        console.log('Fetched revisions:', data); // DEBUG LOG
+        setRevisions(data);
+      } catch (error) {
+        toast.error('Грешка при зареждане на продажби.');
+        console.error('Failed to fetch revisions:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchRevisions();
-  }, []);
+    if (session) {
+      fetchRevisions();
+    }
+  }, [session]);
 
   const columns = [
     {
@@ -72,6 +91,17 @@ export default function RevisionsListPage() {
       ),
     },
   ];
+
+  const userIsAdmin = session?.user?.role === 'ADMIN';
+  if (loading) return <div>Зареждане...</div>;
+  if (!loading && revisions.length === 0 && !userIsAdmin) {
+    return (
+      <div className="container mx-auto py-10 text-center">
+        <h1 className="text-3xl font-bold mb-4">Продажби</h1>
+        <p>Нямате продажби от зачислените Ви щандове.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-10">

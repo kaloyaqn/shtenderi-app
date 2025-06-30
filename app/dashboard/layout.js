@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import SessionLayout from "./SessionLayout";
 import MobileNavWrapper from "./MobileNavWrapper";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export default async function DashboardLayout({children}) {
     const session = await getServerSession(authOptions)
@@ -26,7 +27,9 @@ export default async function DashboardLayout({children}) {
             <AppSidebar variant="inset" />
             <SidebarInset className='md:p-4 p-1 pb-4'>
               <Toaster position="top-center"/>
-              {children}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
             </SidebarInset>
             <MobileNavWrapper />
           </SidebarProvider>

@@ -50,7 +50,39 @@ export async function POST(req) {
 // GET: List all refunds, include stand/storage name
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    let whereClause = {};
+    if (session.user.role === 'USER') {
+      const userWithRelations = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { 
+          userStands: { select: { standId: true } },
+          userStorages: { select: { storageId: true } },
+        },
+      });
+      const standIds = userWithRelations.userStands.map(us => us.standId);
+      const storageIds = userWithRelations.userStorages.map(us => us.storageId);
+
+      whereClause = {
+        OR: [
+          {
+            sourceType: 'STAND',
+            sourceId: { in: standIds },
+          },
+          {
+            sourceType: 'STORAGE',
+            sourceId: { in: storageIds },
+          }
+        ]
+      };
+    }
+
     const refunds = await prisma.refund.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         user: true,

@@ -15,9 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useSession } from "next-auth/react"
+import { toast } from "sonner"
 
 export default function PartnersPage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -67,6 +70,7 @@ export default function PartnersPage() {
       id: "actions",
       cell: ({ row }) => {
         const partner = row.original
+        if (session?.user?.role !== 'ADMIN') return null;
         return (
           <div className="flex items-center gap-2">
             <Button
@@ -116,45 +120,58 @@ export default function PartnersPage() {
     }
   }
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchPartners = async () => {
-        try {
-            const response = await fetch('/api/partners');
-            if (!response.ok) throw new Error('Failed to fetch partners');
-            const partners = await response.json();
-            if (isMounted) {
-                setData(partners);
-            }
-        } catch (error) {
-            console.error('Error fetching partners:', error);
-        } finally {
-            if (isMounted) {
-                setLoading(false);
-            }
+  const fetchPartners = async () => {
+    try {
+        const response = await fetch('/api/partners');
+        if (!response.ok) {
+          if (response.status === 401) {
+            toast.error('Моля, влезте в системата');
+          } else {
+            throw new Error('Failed to fetch partners');
+          }
+          return;
         }
-    };
+        const partners = await response.json();
+        setData(partners);
+    } catch (error) {
+        console.error('Error fetching partners:', error);
+        toast.error('Грешка при зареждане на партньори');
+    } finally {
+        setLoading(false);
+    }
+  };
 
-    fetchPartners();
-
-    return () => {
-        isMounted = false;
-    };
-  }, []);
+  useEffect(() => {
+    if (session) { // Fetch only when session is available
+      fetchPartners();
+    }
+  }, [session]);
 
   if (loading) {
     return <div>Зареждане...</div>
+  }
+  
+  const userIsAdmin = session?.user?.role === 'ADMIN';
+
+  if (!loading && data.length === 0 && !userIsAdmin) {
+    return (
+      <div className="container mx-auto py-10 text-center">
+        <h1 className="text-3xl font-bold mb-4">Партньори</h1>
+        <p>Нямате зачислени партньори. Моля, свържете се с администратор.</p>
+      </div>
+    );
   }
 
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Партньори</h1>
-        <Button onClick={() => router.push('/dashboard/partners/create')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Добави партньор
-        </Button>
+        {userIsAdmin && (
+          <Button onClick={() => router.push('/dashboard/partners/create')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Добави партньор
+          </Button>
+        )}
       </div>
 
       <DataTable 

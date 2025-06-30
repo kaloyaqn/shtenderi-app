@@ -21,6 +21,8 @@ model Stand {
   standProducts StandProduct[]
   checks        Check[]
   revisions    Revision[]
+
+  userStands   UserStand[]
 }
 
 model Product {
@@ -84,6 +86,10 @@ model User {
 
   revisions      Revision[]
   refunds        Refund[]
+
+  userPartners   UserPartner[]
+  userStands     UserStand[]
+  userStorages   UserStorage[]
   @@map("users")
 }
 
@@ -103,6 +109,8 @@ model Partner {
 
   stores         Store[]                    // Връзка към магазини
   revisions     Revision[]
+
+  userPartners   UserPartner[]
 }
 
 model Store {
@@ -148,6 +156,7 @@ model Storage {
   createdAt DateTime @default(now())
 
   storageProducts StorageProduct[]
+  userStorages    UserStorage[]
 }
 
 model StorageProduct {
@@ -236,4 +245,34 @@ model RefundProduct {
 enum RefundSourceType {
   STAND
   STORAGE
+}
+
+model UserPartner {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  partner   Partner  @relation(fields: [partnerId], references: [id])
+  partnerId String
+
+  @@unique([userId, partnerId])
+}
+
+model UserStand {
+  id      String @id @default(uuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  stand   Stand  @relation(fields: [standId], references: [id])
+  standId String
+
+  @@unique([userId, standId])
+}
+
+model UserStorage {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  storage   Storage  @relation(fields: [storageId], references: [id])
+  storageId String
+
+  @@unique([userId, storageId])
 }

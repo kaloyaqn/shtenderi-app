@@ -5,6 +5,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -24,27 +25,32 @@ export default function Stands() {
     const [standToDelete, setStandToDelete] = useState(null)
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const router = useRouter();
+    const { data: session } = useSession();
+    const isAdmin = session?.user?.role === 'ADMIN';
 
     const fetchStands = async () => {
         setLoading(true);
         try {
             const res = await fetch("/api/stands")
             if (!res.ok) throw new Error('Failed to fetch stands')
-            const stands = await res.json();
-            setStands(stands);
+            const data = await res.json();
+            setStands(data);
         } catch (err) {
             console.error('Error fetching stands', err);
+            setStands([]); // Ensure stands is an empty array on error
         } finally {
             setLoading(false);
         }
     }
 
     useEffect(() => {
-        fetchStands();
-    }, [])
+        if (session) { // Only fetch stands if session is available
+            fetchStands();
+        }
+    }, [session])
 
     const handleDelete = async () => {
-        if (!standToDelete) return
+        if (!standToDelete || !isAdmin) return
     
         try {
           const response = await fetch(`/api/stands/${standToDelete.id}`, {
@@ -63,7 +69,7 @@ export default function Stands() {
           setDeleteDialogOpen(false)
           setStandToDelete(null)
         }
-      }
+    }
 
     const columns = [
         {
@@ -116,43 +122,67 @@ export default function Stands() {
     ]
 
     if (loading) {
-        return <div>Зареждане...</div>
+        return <div className="p-4">Зареждане на щендери...</div>
+    }
+    
+    if (!loading && stands.length === 0) {
+        return (
+            <div className="p-4">
+                <div className="flex md:flex-row flex-col w-full justify-between md:items-center mb-2">
+                    <h1 className="md:text-3xl text-xl md:mb-0 mb-2 font-bold">Щендери</h1>
+                    {isAdmin && (
+                        <Button onClick={() => router.push('/dashboard/stands/create')}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Добави щендер
+                        </Button>
+                    )}
+                </div>
+                <div className="text-center py-10 border-2 border-dashed rounded-lg">
+                    <h2 className="text-xl font-semibold">
+                        {isAdmin ? "Няма намерени щендери" : "Нямате достъп до щендери"}
+                    </h2>
+                    <p className="text-muted-foreground mt-2">
+                        {isAdmin ? "Създайте нов щендер, за да започнете." : "Моля, свържете се с администратор, за да ви бъде даден достъп."}
+                    </p>
+                </div>
+            </div>
+        )
     }
 
     return (
-        <>
+        <div className="p-4">
             <div className="flex md:flex-row flex-col w-full justify-between md:items-center mb-2">
                 <h1 className="md:text-3xl text-xl md:mb-0 mb-2 font-bold">Щендери</h1>
-                <Button onClick={() => router.push('/dashboard/stands/create')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Добави щендер
-                </Button>
-
-
-
-                </div>
+                {isAdmin && (
+                    <Button onClick={() => router.push('/dashboard/stands/create')}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Добави щендер
+                    </Button>
+                )}
+            </div>
             <DataTable 
                 columns={columns}
                 data={stands}
                 searchKey="name"
             />
-
             
-            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Изтриване на щанд</AlertDialogTitle>
-                        <AlertDialogDescription>
-                        Сигурни ли сте, че искате да изтриете щанд {standToDelete?.name}?
-                        Това действие не може да бъде отменено.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Отказ</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Изтрий</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
+            {isAdmin && (
+                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Изтриване на щанд</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            Сигурни ли сте, че искате да изтриете щанд {standToDelete?.name}?
+                            Това действие не може да бъде отменено.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Отказ</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete}>Изтрий</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
+        </div>
     )
 }
