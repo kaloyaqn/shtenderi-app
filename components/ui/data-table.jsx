@@ -20,9 +20,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
-import { ArrowUpDown, Pencil, Trash2 } from "lucide-react"
-import { Select } from "@/components/ui/select"
+import { ArrowUpDown, Pencil, Search, Trash2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
+import { Card } from "./card"
 
 // Helper function to get nested values
 const getNestedValue = (obj, path) => {
@@ -160,15 +161,20 @@ export function DataTable({
 
   return (
     <div>
-      <div className="flex items-center md:flex-row flex-col gap-4 py-4">
+      <Card className="flex px-4 items-center md:flex-row flex-col gap-4 py-4 mb-2">
         {searchKey && (
-          <Input
+          <div className="relative w-full">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
             placeholder="Потърси..."
             value={globalFilter ?? ""}
             onChange={(event) => setGlobalFilter(event.target.value)}
-            className="max-w-sm"
+            className="max-w-sm pl-10"
           />
+                    </div>
         )}
+
+
         {filterableColumns.map((column) => (
           <Input
             key={column.id}
@@ -181,21 +187,23 @@ export function DataTable({
           />
         ))}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Покажи по:</span>
-          <select
+          <Select
             className="border rounded px-2 py-1 text-sm"
-            value={table.getState().pagination.pageSize}
-            onChange={e => {
-              table.setPageSize(Number(e.target.value));
+            value={String(table.getState().pagination.pageSize)}
+            onValueChange={value => {
+              table.setPageSize(Number(value));
             }}
           >
-            {[10, 20, 30, 50, 100].map(size => (
-              <option key={size} value={size}>{size}</option>
-            ))}
-          </select>
+            <SelectTrigger>{table.getState().pagination.pageSize}</SelectTrigger>
+            <SelectContent>
+              {[10, 20, 30, 50, 100].map(size => (
+                <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
-      <div className="rounded-md border">
+      </Card>
+      <div className="rounded-xl border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -204,16 +212,17 @@ export function DataTable({
                   return (
                     <TableHead key={header.id}>
                       {header.isPlaceholder ? null : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center  gap-2">
                           <Button
                             variant="ghost"
+                            className="uppercase text-xs"
                             onClick={() => header.column.toggleSorting(header.column.getIsSorted() === "asc")}
                           >
                             {flexRender(
                               header.column.columnDef.header,
                               header.getContext()
                             )}
-                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                            <ArrowUpDown size={2} className="ml-2 w-2" />
                           </Button>
                         </div>
                       )}
@@ -265,7 +274,7 @@ export function DataTable({
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Предишна
+          {"<-"}  Предишна
           </Button>
           <Button
             variant="outline"
@@ -273,7 +282,7 @@ export function DataTable({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Следваща
+            Следваща {"->"}
           </Button>
         </div>
       </div>
