@@ -346,23 +346,6 @@ export default function StandDetailPage({ params }) {
             </AlertDialog>
 
             {importError && <div className="text-red-500 mb-4">{importError}</div>}
-
-            <div className="flex items-center gap-2">
-                {session?.user.role === 'ADMIN' && (
-                    <Button onClick={() => router.push(`/dashboard/stands/${standId}/edit`)}>
-                        <Pencil className="mr-2 h-4 w-4" /> Редактирай
-                    </Button>
-                )}
-                <Button onClick={() => router.push(`/dashboard/stands/${standId}/transfer`)}>
-                    <ArrowRightLeft className="mr-2 h-4 w-4" /> Трансфер
-                </Button>
-                <Button onClick={() => router.push(`/dashboard/stands/${standId}/revision`)}>
-                    <FilePlus className="mr-2 h-4 w-4" /> Ревизия
-                </Button>
-                <Button onClick={() => router.push(`/dashboard/stands/${standId}/refund`)}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Рекламация
-                </Button>
-            </div>
         </div>
     )
 } 

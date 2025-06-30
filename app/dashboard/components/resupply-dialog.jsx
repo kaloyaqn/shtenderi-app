@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
+import { Barcode } from 'lucide-react';
 
 export default function ResupplyDialog({ open, onOpenChange, standId, storageId: initialStorageId, onResupplySuccess }) {
     const { data: session } = useSession();
@@ -21,6 +22,7 @@ export default function ResupplyDialog({ open, onOpenChange, standId, storageId:
     const [sourceStorageId, setSourceStorageId] = useState(initialStorageId || '');
     const [destinationStandId, setDestinationStandId] = useState(standId || '');
     const [selectedProducts, setSelectedProducts] = useState([]);
+    const [barcodeInput, setBarcodeInput] = useState('');
 
     // State
     const [loading, setLoading] = useState(false);
@@ -31,6 +33,7 @@ export default function ResupplyDialog({ open, onOpenChange, standId, storageId:
             // Reset common state
             setStep(1);
             setSelectedProducts([]);
+            setBarcodeInput('');
             const isFromStorage = !!initialStorageId;
 
             setSourceStorageId(initialStorageId || '');
@@ -72,6 +75,29 @@ export default function ResupplyDialog({ open, onOpenChange, standId, storageId:
         setDestinationStandId(standId);
         fetchProductsForStep2(sourceStorageId, standId);
     }
+    
+    const handleBarcodeScanned = (e) => {
+        if (e.key === 'Enter' && barcodeInput) {
+            e.preventDefault();
+            const productInSource = productsInStorage.find(p => p.product.barcode === barcodeInput);
+
+            if (!productInSource) {
+                toast.error('Продукт с този баркод не е намерен в изходния склад.');
+                setBarcodeInput('');
+                return;
+            }
+
+            const existingProduct = selectedProducts.find(p => p.productId === productInSource.product.id);
+            const currentQuantity = existingProduct?.quantity || 0;
+
+            if (currentQuantity >= productInSource.quantity) {
+                toast.warning(`Достигнато е максималното налично количество за ${productInSource.product.name}.`);
+            } else {
+                handleProductQuantityChange(productInSource.product.id, String(currentQuantity + 1));
+            }
+            setBarcodeInput('');
+        }
+    };
 
     const handleProductQuantityChange = (productId, newQuantity) => {
         const product = productsInStorage.find(p => p.product.id === productId);
@@ -173,7 +199,18 @@ export default function ResupplyDialog({ open, onOpenChange, standId, storageId:
             <DialogHeader>
                 <DialogTitle>Стъпка 2: Изберете продукти и количества</DialogTitle>
             </DialogHeader>
-            <div className="py-4 space-y-2 max-h-[60vh] overflow-y-auto">
+            <div className="relative my-4">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Input
+                    type="text"
+                    placeholder="Сканирайте баркод..."
+                    className="pl-10"
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    onKeyDown={handleBarcodeScanned}
+                />
+            </div>
+            <div className="py-4 space-y-2 max-h-[50vh] overflow-y-auto">
                 {productsInStorage.length === 0 ? (
                     <p className="text-center text-gray-500">Няма налични продукти в този склад.</p>
                 ) : productsInStorage.map(p => (
