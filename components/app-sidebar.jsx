@@ -107,6 +107,11 @@ const data = {
       icon: Undo2Icon,
     },
     {
+      name: "Кредитни известия",
+      url: "/dashboard/credit-notes  ",
+      icon: Undo2Icon,
+    },
+    {
       name: "Фактури",
       url: "/dashboard/invoices",
       icon: IconInvoice,

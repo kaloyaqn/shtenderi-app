@@ -1,0 +1,70 @@
+"use client";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { toast } from 'sonner';
+
+export default function CreditNotesPage() {
+  const [creditNotes, setCreditNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchCreditNotes() {
+      try {
+        const res = await fetch('/api/credit-notes');
+        if (!res.ok) throw new Error('Failed to fetch credit notes');
+        const data = await res.json();
+        setCreditNotes(data);
+      } catch (error) {
+        toast.error('Failed to load credit notes.');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCreditNotes();
+  }, []);
+
+  const columns = [
+    {
+      accessorKey: 'creditNoteNumber',
+      header: '№ на кредитно известие',
+    },
+    {
+      accessorKey: 'invoiceNumber',
+      header: '№ на фактура',
+      cell: ({ row }) => row.original.invoiceNumber || '-',
+    },
+    {
+      accessorKey: 'partnerName',
+      header: 'Партньор',
+      cell: ({ row }) => row.original.partnerName || '-',
+    },
+    {
+        accessorKey: 'issuedAt',
+        header: 'Дата на издаване',
+        cell: ({ row }) => new Date(row.original.issuedAt).toLocaleString('bg-BG'),
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => (
+        <Button variant="outline" onClick={() => router.push(`/dashboard/credit-notes/${row.original.id}`)}>
+          Преглед
+        </Button>
+      ),
+    },
+  ];
+
+  if (loading) return <div>Зареждане...</div>;
+
+  return (
+    <div className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Кредитни известия</h1>
+      </div>
+      <DataTable columns={columns} data={creditNotes} searchKey="creditNoteNumber" />
+    </div>
+  );
+} 

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { DataTable } from "@/components/ui/data-table";
 import { useReactToPrint } from "react-to-print";
@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Loader2 } from 'lucide-react';
 
 export default function RefundDetailPage() {
   const { refundId } = useParams();
+  const router = useRouter();
   const [refund, setRefund] = useState(null);
   const [loading, setLoading] = useState(true);
   const printRef = useRef();
@@ -28,6 +30,8 @@ export default function RefundDetailPage() {
   const [returned, setReturned] = useState(false);
   const [returnedStorage, setReturnedStorage] = useState(null);
   const [returnedAt, setReturnedAt] = useState(null);
+  const [creatingCreditNote, setCreatingCreditNote] = useState(false);
+  const [creditNotesSummary, setCreditNotesSummary] = useState([]);
 
   useEffect(() => {
     if (!refundId) return;
@@ -35,6 +39,10 @@ export default function RefundDetailPage() {
       .then((res) => res.json())
       .then((data) => setRefund(data.find((r) => r.id === refundId) || null))
       .finally(() => setLoading(false));
+    // Fetch all credit notes for this refund
+    fetch(`/api/credit-notes?refundId=${refundId}`)
+      .then(res => res.json())
+      .then(setCreditNotesSummary);
   }, [refundId]);
 
   useEffect(() => {
@@ -124,6 +132,32 @@ export default function RefundDetailPage() {
         >
           {returned ? "Върнато в склад" : "Върни продуктите в склад"}
         </Button>
+        <Button
+          variant="outline"
+          disabled={creatingCreditNote}
+          onClick={async () => {
+            setCreatingCreditNote(true);
+            try {
+              const res = await fetch('/api/credit-notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refundId: refund.id }),
+              });
+              if (!res.ok) throw new Error('Грешка при създаване на кредитно известие');
+              // Always refresh the summary after generation
+              fetch(`/api/credit-notes?refundId=${refund.id}`)
+                .then(res => res.json())
+                .then(setCreditNotesSummary);
+            } catch (err) {
+              toast.error(err.message);
+            } finally {
+              setCreatingCreditNote(false);
+            }
+          }}
+        >
+          {creatingCreditNote && <Loader2 className="animate-spin w-4 h-4 mr-2" />}
+          Кредитно известие
+        </Button>
       </div>
       <DataTable columns={columns} data={refund.refundProducts} searchKey="product.name" />
       <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
@@ -177,6 +211,24 @@ export default function RefundDetailPage() {
           </tbody>
         </table>
       </div>
+      {creditNotesSummary && creditNotesSummary.length > 0 && (
+        <div className="mt-8 p-4 border rounded bg-gray-50">
+          <h2 className="text-lg font-bold mb-2">Кредитни известия към това връщане</h2>
+          <ul className="list-disc list-inside mb-2">
+            {creditNotesSummary.map(cn => (
+              <li key={cn.id}>
+                <Link href={`/dashboard/credit-notes/${cn.id}`} className="text-blue-600 hover:underline">
+                  Кредитно известие №{cn.creditNoteNumber}
+                </Link>
+                {cn.invoiceNumber && (
+                  <span className="ml-2 text-gray-600">(Фактура №{cn.invoiceNumber})</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="text-sm text-gray-500">Всеки продукт е върнат по фактурата, от която е бил последно продаден.</div>
+        </div>
+      )}
     </div>
   );
 } 

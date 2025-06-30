@@ -183,6 +183,30 @@ model Invoice {
   revisionNumber Int?
 }
 
+model CreditNote {
+  id             String   @id @default(uuid())
+  creditNoteNumber Int    @unique
+  issuedAt       DateTime @default(now())
+  // Partner info
+  partnerName    String
+  partnerBulstat String?
+  partnerMol     String?
+  partnerAddress String?
+  // User info
+  preparedBy     String
+  // Products as JSON
+  products       Json
+  // Totals
+  totalValue     Float
+  vatBase        Float
+  vatAmount      Float
+  paymentMethod  PaymentMethod @default(CASH)
+  // Reference to refund id
+  refundId       String
+  // Reference to related invoice number (optional)
+  invoiceNumber  Int?
+}
+
 enum PaymentMethod {
   CASH
   CARD
