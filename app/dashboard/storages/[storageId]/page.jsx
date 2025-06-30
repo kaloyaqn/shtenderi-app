@@ -248,25 +248,32 @@ export default function StorageDetailPage({ params }) {
   };
 
   if (loading) return <div>Зареждане...</div>;
-  if (error) return <div className="text-red-500">Грешка: {error}</div>;
+  if (error) return <div>Error: {error}</div>;
   if (!storage) return <div>Складът не е намерен.</div>;
 
   return (
-    <div className="md:py-10 py-5">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">{storage?.name || 'Зареждане...'}</h1>
-          <p className="text-gray-500">Управление на продуктите в склада</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button onClick={() => setRefundDialogOpen(true)} variant="destructive">
-            <Barcode className="mr-2 h-4 w-4" />
-            Рекламация
-          </Button>
-          <Button onClick={() => setDecisionDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Продажба / Прехвърляне
-          </Button>
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">{storage ? `Склад: ${storage.name}` : 'Зареждане...'}</h1>
+        <div className="flex items-center gap-2">
+            <Button variant='outline' onClick={handleImportClick}>
+                <Upload className="mr-2 h-4 w-4" />
+                Импорт на XML
+            </Button>
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
+            <Button className={'bg-amber-500 text-amber-900 hover:bg-amber-600'} onClick={() => setTransferDialogOpen(true)}>
+                Трансфер
+            </Button>
+            <Button onClick={() => setResupplyDialogOpen(true)}>
+                Зареждане шанд
+            </Button>
+            <Button variant={'destructive'} onClick={() => setRefundDialogOpen(true)}>
+                Връщане
+            </Button>
+            {/* <Button onClick={() => setAddProductDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Добави продукт
+            </Button> */}
         </div>
       </div>
       
