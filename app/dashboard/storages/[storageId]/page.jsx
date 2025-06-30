@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Plus, Pencil, Trash2, Upload, Barcode } from 'lucide-react';
@@ -27,6 +28,7 @@ import StorageTransferDialog from '@/app/dashboard/components/storage-transfer-d
 
 export default function StorageDetailPage({ params }) {
   const { storageId } = use(params);
+  const { data: session } = useSession();
   const [storage, setStorage] = useState(null);
   const [productsInStorage, setProductsInStorage] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -256,12 +258,16 @@ export default function StorageDetailPage({ params }) {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">{storage ? `Склад: ${storage.name}` : 'Зареждане...'}</h1>
         <div className="flex items-center gap-2">
-            <Button variant='outline' onClick={handleImportClick}>
-                <Upload className="mr-2 h-4 w-4" />
-                Импорт на XML
-            </Button>
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
-            <Button className={'bg-amber-500 text-amber-900 hover:bg-amber-600'} onClick={() => setTransferDialogOpen(true)}>
+            {session?.user?.role !== 'USER' && (
+              <>
+                <Button onClick={handleImportClick}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Импорт на XML
+                </Button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
+              </>
+            )}
+            <Button onClick={() => setTransferDialogOpen(true)}>
                 Трансфер
             </Button>
             <Button onClick={() => setResupplyDialogOpen(true)}>
