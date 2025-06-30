@@ -20,8 +20,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 
 // These components will be created later if they don't exist
-import AddProductToStorageDialog from './_components/add-product-dialog';
+// import AddProductToStorageDialog from './_components/add-product-dialog';
 import EditStorageQuantityDialog from './_components/edit-quantity-dialog';
+import ResupplyDialog from '@/app/dashboard/components/resupply-dialog';
+import StorageTransferDialog from '@/app/dashboard/components/storage-transfer-dialog';
 
 export default function StorageDetailPage({ params }) {
   const { storageId } = use(params);
@@ -38,6 +40,9 @@ export default function StorageDetailPage({ params }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [resupplyDialogOpen, setResupplyDialogOpen] = useState(false);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
   const [refundProducts, setRefundProducts] = useState([]); // [{product, quantity}]
   const [barcodeInput, setBarcodeInput] = useState("");
   const [refundLoading, setRefundLoading] = useState(false);
@@ -248,31 +253,20 @@ export default function StorageDetailPage({ params }) {
 
   return (
     <div className="md:py-10 py-5">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div>
-          <h1 className="md:text-3xl text-xl font-bold">{storage.name}</h1>
-          <p className="text-muted-foreground">Управление на продуктите в склада</p>
+          <h1 className="text-3xl font-bold">{storage?.name || 'Зареждане...'}</h1>
+          <p className="text-gray-500">Управление на продуктите в склада</p>
         </div>
-        <div className="flex gap-2">
-            <Button variant="outline" onClick={handleImportClick}>
-                <Upload className="mr-2 h-4 w-4" />
-                Импорт от XML
-            </Button>
-            <input
-                type="file"
-                accept=".xml"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-            />
-            <Button onClick={() => setAddProductDialogOpen(true) }>
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setRefundDialogOpen(true)} variant="destructive">
+            <Barcode className="mr-2 h-4 w-4" />
+            Рекламация
+          </Button>
+          <Button onClick={() => setDecisionDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Добави продукт
-            </Button>
-            <Button variant="secondary" onClick={() => setRefundDialogOpen(true)}>
-              <Barcode className="mr-2 h-4 w-4" />
-              Върни продукти
-            </Button>
+            Продажба / Прехвърляне
+          </Button>
         </div>
       </div>
       
@@ -294,17 +288,40 @@ export default function StorageDetailPage({ params }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отказ</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Премахни</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Изтрий</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AddProductToStorageDialog
-        open={addProductDialogOpen}
-        onOpenChange={setAddProductDialogOpen}
+      <ResupplyDialog
+        open={resupplyDialogOpen}
+        onOpenChange={setResupplyDialogOpen}
         storageId={storageId}
-        onProductAdded={fetchData}
+        onResupplySuccess={fetchData}
       />
+
+      <StorageTransferDialog
+        open={transferDialogOpen}
+        onOpenChange={setTransferDialogOpen}
+        sourceStorageId={storageId}
+        onTransferSuccess={fetchData}
+      />
+
+      <Dialog open={decisionDialogOpen} onOpenChange={setDecisionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Какво желаете да направите?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button variant="outline" className="h-20" onClick={() => { setDecisionDialogOpen(false); setResupplyDialogOpen(true); }}>
+              Прехвърляне към Щанд
+            </Button>
+            <Button variant="outline" className="h-20" onClick={() => { setDecisionDialogOpen(false); setTransferDialogOpen(true); }}>
+              Прехвърляне към Склад
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <EditStorageQuantityDialog
         open={editDialogOpen}

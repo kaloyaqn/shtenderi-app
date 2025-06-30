@@ -4,7 +4,7 @@ import { useState, useEffect, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
-import { Plus, Pencil, Trash2, Upload } from 'lucide-react'
+import { Plus, Pencil, Trash2, Upload, Barcode } from 'lucide-react'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -23,8 +23,7 @@ import {
     DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog'
-// We will create this component next
-import AddProductToStandDialog from './_components/add-product-dialog'
+import ResupplyDialog from '@/app/dashboard/components/resupply-dialog'
 import EditQuantityDialog from './_components/edit-quantity-dialog'
 import { XMLParser } from "fast-xml-parser"
 import { toast } from 'sonner'
@@ -41,7 +40,7 @@ export default function StandDetailPage({ params }) {
     const fileInputRef = useRef();
     
     // Dialog states
-    const [addProductDialogOpen, setAddProductDialogOpen] = useState(false);
+    const [resupplyDialogOpen, setResupplyDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [productOnStandToEdit, setProductOnStandToEdit] = useState(null);
@@ -246,57 +245,52 @@ export default function StandDetailPage({ params }) {
                     <p className="text-muted-foreground md:text-base text-sm">Управление на продуктите на щанда</p>
                 </div>
 
-                <div className='flex md:flex-row flex-col w-full gap-2 md:justify-end '>
-                
-                <div className="flex md:gap-2 md:flex-row flex-col gap-2 md:mb-4">
-                <Button variant="outline" onClick={handleImportClick}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Импортирай продукти от XML
-                </Button>
-                <Link href={`${standId}/refund`}>
-                
-                <Button className={'bg-blue-500 text-white w-full h-10'} variant="outline">
-                    Връщане
-                </Button>
-                </Link>
-                <Link href={`${standId}/revision`}>
-                <Button className={'md:bg-amber-500  bg-lime-500 w-full h-10'} variant="outline">
-                    Ревизия
-                </Button>
-                </Link>
-
-                <input
-                    type="file"
-                    accept=".xml"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                />
-            </div>
-                <Button className={'md:bg-lime-500 bg-transparent border'} onClick={() => setAddProductDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Добави продукт
-                </Button>
+                <div className='flex md:flex-row flex-col w-full gap-2 md:justify-end'>
+                    <div className="flex md:gap-2 md:flex-row flex-col gap-2 md:mb-4">
+                        <Button variant="outline" onClick={handleImportClick}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Импортирай продукти от XML
+                        </Button>
+                        <input
+                            type="file"
+                            accept=".xml"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            style={{ display: 'none' }}
+                        />
+                        <Link href={`/dashboard/stands/${standId}/refund`}>
+                            <Button className={'bg-red-500 hover:text-white hover:bg-red-600 text-white w-full h-10'} variant="outline">
+                                Рекламация
+                            </Button>
+                        </Link>
+                        <Link href={`/dashboard/stands/${standId}/revision`}>
+                            <Button className={'md:bg-amber-500 md:hover:bg-amber-600 bg-lime-500 w-full h-10'} variant="outline">
+                               <Barcode /> Проверка на щанд
+                            </Button>
+                        </Link>
+                    </div>
+                    <Button className={'md:bg-lime-500 bg-transparent border'} onClick={() => setResupplyDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Добави продукт
+                    </Button>
                 </div>
             </div>
-            
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Продукти на щанда</h2>
-                <span className="text-sm text-muted-foreground">Търси по баркод</span>
-            </div>
-            <DataTable
-                columns={columns}
-                data={productsOnStand}
-                searchKey="product.barcode"
-                filterableColumns={[]}
-            />
 
-            <AddProductToStandDialog
-                open={addProductDialogOpen}
-                onOpenChange={setAddProductDialogOpen}
+            <div className="container mx-auto p-0">
+                {error && <p className="text-red-500">{error}</p>}
+                <DataTable
+                    columns={columns}
+                    data={productsOnStand}
+                    searchKey="product.barcode"
+                    filterableColumns={[]}
+                />
+            </div>
+
+            <ResupplyDialog
+                open={resupplyDialogOpen}
+                onOpenChange={setResupplyDialogOpen}
                 standId={standId}
-                onProductAdded={fetchData}
-                productsOnStand={productsOnStand}
+                onResupplySuccess={fetchData}
             />
 
             <EditQuantityDialog
