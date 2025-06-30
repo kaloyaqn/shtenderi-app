@@ -190,6 +190,8 @@ model Invoice {
   paymentMethod  PaymentMethod @default(CASH)
   // Reference to revision number
   revisionNumber Int?
+
+  creditNotes    CreditNote[] // An invoice can have many credit notes
 }
 
 model CreditNote {
@@ -210,10 +212,9 @@ model CreditNote {
   vatBase        Float
   vatAmount      Float
   paymentMethod  PaymentMethod @default(CASH)
-  // Reference to refund id
-  refundId       String
-  // Reference to related invoice number (optional)
-  invoiceNumber  Int?
+  // Reference to the credited invoice
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
 }
 
 enum PaymentMethod {

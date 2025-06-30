@@ -90,7 +90,10 @@ export async function GET(req) {
 
     // If ID is present, get one specific invoice (check access later)
     if (invoiceId) {
-      const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+      const invoice = await prisma.invoice.findUnique({ 
+        where: { id: invoiceId },
+        include: { creditNotes: true } // Include related credit notes
+      });
       if (!invoice) {
         return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
       }

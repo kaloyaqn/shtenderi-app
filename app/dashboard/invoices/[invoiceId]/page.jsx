@@ -13,6 +13,7 @@ export default function InvoicePage() {
   const { invoiceId } = params;
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isCreatingCreditNote, setIsCreatingCreditNote] = useState(false);
   const router = useRouter();
 
   const printOriginal = useReactToPrint({ 
@@ -34,6 +35,35 @@ export default function InvoicePage() {
       .catch(() => toast.error("Failed to load invoice data."))
       .finally(() => setLoading(false));
   }, [invoiceId]);
+
+  const handleCreateCreditNote = async () => {
+    setIsCreatingCreditNote(true);
+    const promise = () => new Promise(async (resolve, reject) => {
+      try {
+        const response = await fetch('/api/credit-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoiceId }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Something went wrong");
+        }
+        router.push(`/dashboard/credit-notes/${data.id}`);
+        resolve(data);
+      } catch (error) {
+        console.error("Credit note creation failed", error);
+        reject(error);
+      }
+    });
+
+    toast.promise(promise(), {
+        loading: 'Създаване на кредитно известие...',
+        success: (data) => `Кредитно известие ${data.creditNoteNumber} беше създадено успешно.`,
+        error: (err) => `Грешка: ${err.message}`,
+        finally: () => setIsCreatingCreditNote(false)
+    });
+  };
 
   const handlePrint = (type) => {
     if (type === 'original') {
@@ -219,6 +249,13 @@ export default function InvoicePage() {
           <Button onClick={() => handlePrint("copy")} variant="secondary">
             Принтирай копие
           </Button>
+          <Button 
+            onClick={handleCreateCreditNote} 
+            disabled={isCreatingCreditNote || invoice?.creditNotes?.length > 0}
+            variant="destructive"
+          >
+            {invoice?.creditNotes?.length > 0 ? 'Има издадено КИ' : 'Кредитно известие'}
+          </Button>
           <Button
             variant="ghost"
             onClick={() => router.push("/dashboard/invoices")}
@@ -227,6 +264,26 @@ export default function InvoicePage() {
           </Button>
         </div>
       </div>
+
+      {/* Credit Notes Link */}
+      {invoice.creditNotes && invoice.creditNotes.length > 0 && (
+        <div className="my-8 p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
+          <h3 className="font-bold text-lg text-yellow-800 mb-2">Свързани кредитни известия</h3>
+          <ul>
+            {invoice.creditNotes.map(cn => (
+              <li key={cn.id} className="list-disc list-inside">
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto"
+                  onClick={() => router.push(`/dashboard/credit-notes/${cn.id}`)}
+                >
+                  Кредитно известие № {cn.creditNoteNumber}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* ORIGINAL INVOICE */}
       <div className="mb-8">

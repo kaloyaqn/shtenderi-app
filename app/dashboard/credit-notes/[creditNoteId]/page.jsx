@@ -63,6 +63,19 @@ export default function CreditNotePage() {
           {new Date(creditNote.issuedAt).toLocaleDateString("bg-BG")}
         </div>
       </div>
+       {/* Link to original invoice */}
+       {creditNote.invoice && (
+        <div className="mb-4 text-lg">
+            Към фактура №{" "}
+            <Button
+              variant="link"
+              className="p-0 h-auto text-lg"
+              onClick={() => router.push(`/dashboard/invoices/${creditNote.invoiceId}`)}
+            >
+              {creditNote.invoice.invoiceNumber}
+            </Button>
+        </div>
+      )}
 
       {/* Recipient and Executor */}
       <div className="grid grid-cols-2 gap-8 mb-8">
