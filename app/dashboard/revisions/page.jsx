@@ -10,6 +10,7 @@ import { IconDetails, IconEye } from "@tabler/icons-react";
 import { RefreshCcw } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import LoadingScreen from "@/components/LoadingScreen";
+import BasicHeader from "@/components/BasicHeader";
 
 export default function RevisionsListPage() {
   const [revisions, setRevisions] = useState([]);
@@ -132,26 +133,10 @@ export default function RevisionsListPage() {
 
   return (
     <div className="container mx-auto">
-      <div className="flex justify-between items-center pb-4 border-b">
-        <div className="flex flex-col">
-          <h1 className="text-2xl font-bold text-gray-900">Продажби</h1>
-          <p className="text-base text-gray-600">
-            Управление на продажби и зареждане на стока
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            router.refresh();
-            setIsRefreshing(true);
-          }}
-          variant="outline"
-        >
-          <RefreshCcw className={isRefreshing && "animate-spin"} /> Обнови
-        </Button>
-      </div>
+      <BasicHeader title="Продажби" subtitle="Управление на продажби и зареждане на стока" />
 
           {userIsAdmin && (
-                  <div className="my-4 flex justify-between items-center gap-2">
+                  <div className="my-4 md:flex-row flex-col flex justify-between items-center gap-2">
                   <Card className="w-full">
                     <CardContent>
                       <CardTitle className="text-lg">Продажби</CardTitle>

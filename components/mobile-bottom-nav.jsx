@@ -5,12 +5,12 @@ import { Bus, Home, ListChecks, Store, Users, PersonStanding } from "lucide-reac
 
 const navItems = [
   { href: "/dashboard", label: "Начало", icon: Home },
-  { href: "/dashboard/stands", label: "Щендери", icon: ListChecks },
-  { href: "/dashboard/products", label: "БУС", icon: Bus },
-  { href: "/dashboard/stores", label: "Магазини", icon: Store },
-  { href: "/dashboard/partners", label: "Партньори", icon: PersonStanding },
-  { href: "/dashboard/revisions", label: "Ревизии", icon: Store },
-  { href: "/dashboard/users", label: "Потребители", icon: Users },
+  // { href: "/dashboard/stands", label: "Щендери", icon: ListChecks },
+  // { href: "/dashboard/products", label: "БУС", icon: Bus },
+  // { href: "/dashboard/stores", label: "Магазини", icon: Store },
+  // { href: "/dashboard/partners", label: "Партньори", icon: PersonStanding },
+  // { href: "/dashboard/revisions", label: "Ревизии", icon: Store },
+  // { href: "/dashboard/users", label: "Потребители", icon: Users },
 ];
 
 export default function MobileBottomNav() {

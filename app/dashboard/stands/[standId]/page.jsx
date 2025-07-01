@@ -339,7 +339,7 @@ export default function StandDetailPage({ params }) {
         </div>
       </div>
       {userIsAdmin && (
-                  <div className="my-4 flex justify-between items-center gap-2">
+                  <div className="my-4 flex md:flex-row flex-col justify-between items-center gap-2">
                   <Card className="w-full">
                     <CardContent>
                       <CardTitle className="text-lg">Продажби</CardTitle>

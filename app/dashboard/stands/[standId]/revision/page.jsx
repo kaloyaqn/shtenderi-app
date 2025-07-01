@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
-import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon, PlusIcon } from 'lucide-react';
+import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon, PlusIcon, Link } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { useSession } from 'next-auth/react';
@@ -311,9 +311,7 @@ export default function StandRevisionPage({ params }) {
   return (
     <div className="pb-15">
       {standName && (
-        <>
-      <h1 className="text-xl lg:text-2xl font-bold md:pb-4 p-4 border-b mb-4">Чекиране на {standName}</h1>
-      </>
+      <h1 className="text-xl lg:text-2xl font-bold md:pb-4 md:p-0 p-4 border-b mb-4">Чекиране на {standName}</h1>
       )}
 
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

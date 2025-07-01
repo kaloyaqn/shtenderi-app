@@ -5,6 +5,10 @@ import { DataTable } from "@/components/ui/data-table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import TableLink from "@/components/ui/table-link";
+import { Eye, RefreshCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import BasicHeader from "@/components/BasicHeader";
 
 export default function RefundsPage() {
   const [refunds, setRefunds] = useState([]);
@@ -51,9 +55,9 @@ export default function RefundsPage() {
           <span>
             {sourceType}
             <br />
-            <Link href={href} className="text-blue-600 hover:underline text-xs">
+            <TableLink href={href} className="text-blue-600 hover:underline text-xs">
               {sourceName}
-            </Link>
+            </TableLink>
           </span>
         );
       },
@@ -63,11 +67,15 @@ export default function RefundsPage() {
       header: "Продукти",
       cell: ({ row }) => (
         <ul className="list-disc pl-4">
-          {row.original.refundProducts.map((rp) => (
+          {/* {row.original.refundProducts.map((rp) => (
             <li key={rp.id}>
               {rp.product?.name || "-"} <span className="text-xs text-gray-500">({rp.product?.barcode || "-"})</span> — <b>{rp.quantity}</b> бр.
             </li>
-          ))}
+          ))} */}
+
+          <Badge variant="outline">
+          {row.original.refundProducts.length} бр.
+          </Badge>
         </ul>
       ),
     },
@@ -76,8 +84,8 @@ export default function RefundsPage() {
       header: "Действия",
       cell: ({ row }) => (
         <Link href={`/dashboard/refunds/${row.original.id}`} className="">
-          <Button variant='outline'>
-            Виж
+          <Button  variant='table'>
+            <Eye /> Виж
           </Button>
         </Link>
       ),
@@ -98,8 +106,8 @@ export default function RefundsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Върщания и рекламации</h1>
+    <div className="container mx-auto">
+      <BasicHeader title="Връщания и рекламации" subtitle="Управление на продажби и зареждане на стока"/>
       <DataTable columns={columns} data={refunds} searchKey="user.email" />
     </div>
   );

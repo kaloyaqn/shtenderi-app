@@ -23,7 +23,7 @@ import { useState, useEffect } from "react"
 import { ArrowUpDown, Pencil, Search, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-import { Card } from "./card"
+import { Card, CardContent } from "./card"
 
 // Helper function to get nested values
 const getNestedValue = (obj, path) => {
@@ -81,13 +81,14 @@ export function DataTable({
   if (isMobileState) {
     return (
       <div>
-        <div className="flex flex-col gap-2">
+        <Card className="flex flex-col gap-2 w-full mb-2">
+          <CardContent>
           {searchKey && (
             <Input
               placeholder="Потърси..."
               value={globalFilter ?? ""}
               onChange={(event) => setGlobalFilter(event.target.value)}
-              className="max-w-sm text-xs"
+              className="max-w-sm text-xs w-full"
               
             />
           )}
@@ -102,7 +103,8 @@ export function DataTable({
               className="max-w-sm text-xs"
             />
           ))}
-        </div>
+          </CardContent>
+        </Card>
         <div className="flex flex-col gap-2">
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
@@ -132,44 +134,47 @@ export function DataTable({
             <div className="text-center text-gray-500 py-8 text-xs">Няма намерени резултати.</div>
           )}
         </div>
-        <div className="flex items-center justify-between py-4">
-          <div className="text-xs text-muted-foreground ml-2">
-            Страница {table.getState().pagination.pageIndex + 1} от {table.getPageCount()}
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Предишна
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Следваща
-            </Button>
-          </div>
-        </div>
+        <div className="flex flex-col gap-4 w-full py-4 sm:flex-row sm:items-center sm:justify-between">
+  <div className="text-sm text-muted-foreground text-center sm:text-left sm:ml-2">
+    Страница {table.getState().pagination.pageIndex + 1} от{" "}
+    {table.getPageCount()}
+  </div>
+  <div className="flex flex-col gap-2 items-center sm:flex-row sm:space-x-2 sm:gap-0">
+    <Button
+      variant="outline"
+      className="w-full sm:w-auto"
+      size="sm"
+      onClick={() => table.previousPage()}
+      disabled={!table.getCanPreviousPage()}
+    >
+      {"<-"} Предишна
+    </Button>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => table.nextPage()}
+      disabled={!table.getCanNextPage()}
+      className="w-full sm:w-auto"
+    >
+      Следваща {"->"}
+    </Button>
+  </div>
+</div>
       </div>
     )
   }
 
   return (
     <div>
-      <Card className="flex px-4 items-center md:flex-row flex-col gap-4 py-4 mb-2">
+      <Card className="flex px-4 items-center md:flex-row flex-col gap-4 py-4 mb-2 md:w-auto w-full">
         {searchKey && (
-          <div className="relative w-full">
+          <div className="relative w-full md:mb-0 mb-2">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
             placeholder="Потърси..."
             value={globalFilter ?? ""}
             onChange={(event) => setGlobalFilter(event.target.value)}
-            className="max-w-sm pl-10"
+            className="md:max-w-sm pl-10 w-full"
           />
                     </div>
         )}
@@ -183,7 +188,7 @@ export function DataTable({
             onChange={(event) =>
               table.getColumn(column.id)?.setFilterValue(event.target.value)
             }
-            className="max-w-sm"
+            className="md:max-w-sm w-full md:mb-0 mb-2"
           />
         ))}
         <div className="ml-auto flex items-center gap-2">
@@ -203,7 +208,7 @@ export function DataTable({
           </Select>
         </div>
       </Card>
-      <div className="rounded-xl border">
+      <div className="rounded-xl border w-full">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -263,31 +268,32 @@ export function DataTable({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center md:flex-row flex-col justify-between w-full py-4">
-        <div className="text-sm text-muted-foreground ml-2">
-          Страница {table.getState().pagination.pageIndex + 1} от {table.getPageCount()}
-        </div>
-        <div className="flex md:flex-row flex-col items-center space-x-2">
-          <Button
-            variant="outline"
-            className="w-auto"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-          {"<-"}  Предишна
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className={'w-auto'}
-          >
-            Следваща {"->"}
-          </Button>
-        </div>
-      </div>
+      <div className="flex flex-col gap-4 w-full py-4 sm:flex-row sm:items-center sm:justify-between">
+  <div className="text-sm text-muted-foreground text-center sm:text-left sm:ml-2">
+    Страница {table.getState().pagination.pageIndex + 1} от{" "}
+    {table.getPageCount()}
+  </div>
+  <div className="flex flex-col gap-2 items-center sm:flex-row sm:space-x-2 sm:gap-0">
+    <Button
+      variant="outline"
+      className="w-full sm:w-auto"
+      size="sm"
+      onClick={() => table.previousPage()}
+      disabled={!table.getCanPreviousPage()}
+    >
+      {"<-"} Предишна
+    </Button>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => table.nextPage()}
+      disabled={!table.getCanNextPage()}
+      className="w-full sm:w-auto"
+    >
+      Следваща {"->"}
+    </Button>
+  </div>
+</div>
     </div>
   )
 } 
