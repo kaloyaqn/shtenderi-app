@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import SessionLayout from "./SessionLayout";
 import MobileNavWrapper from "./MobileNavWrapper";
 import { ErrorBoundary } from "@/components/error-boundary";
+import AnnouncementModal from "@/components/announcements/NewDesign";
   
 
 export default async function DashboardLayout({children}) {
@@ -30,6 +31,7 @@ export default async function DashboardLayout({children}) {
             <AppSidebar variant="inset" />
             <SidebarInset className='md:p-4 p-1 pb-4'>
               <Toaster position="top-center"/>
+              <AnnouncementModal />
               <ErrorBoundary>
                 {children}
               </ErrorBoundary>

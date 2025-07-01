@@ -4,6 +4,25 @@ import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import {
+  ArrowLeft,
+  Edit,
+  Phone,
+  User,
+  Building,
+  MapPin,
+  Store as StoreIcon,
+  ExternalLink,
+  Mail,
+  Calendar,
+  Activity,
+  TrendingUp,
+  Package,
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import BasicHeader from "@/components/BasicHeader"
 
 export default function PartnerViewPage({ params }) {
   const router = useRouter()
@@ -33,45 +52,257 @@ export default function PartnerViewPage({ params }) {
   if (!partner) return null
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="max-w-xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Детайли за партньор</CardTitle>
-            <CardDescription>Вижте информацията за този партньор</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div><b>ID:</b> {partner.id}</div>
-            <div><b>Име на фирмата:</b> {partner.name}</div>
-            <div><b>Булстат:</b> {partner.bulstat || '-'}</div>
-            <div><b>Лице за контакт:</b> {partner.contactPerson || '-'}</div>
-            <div><b>Телефон:</b> {partner.phone || '-'}</div>
-            <div className="mb-2">
-              <strong>Седалище:</strong> {partner.address || '-'}
-            </div>
-            {Array.isArray(partner.stores) && (
-              <div>
-                <b>Магазини ({partner.stores.length}):</b>
-                <ul className="list-disc ml-6 mt-2">
-                  {partner.stores.map((store) => (
-                    <li key={store.id}>
-                      <a
-                        href={`/dashboard/stores/${store.id}`}
-                        className="text-blue-600 underline hover:text-blue-800"
-                      >
-                        {store.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div className="flex gap-2 mt-6">
-              <Button variant="outline" onClick={() => router.back()}>Назад</Button>
-              <Button onClick={() => router.push(`/dashboard/partners/${partner.id}/edit`)}>Редактирай</Button>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="">
+      {/* Header */}
+      <BasicHeader
+      hasBackButton={true}
+      
+      title={partner.name} 
+      subtitle={'Всички данни за Вашия партньор'}
+      >
+
+        <Button variant={'outline'}>
+          <Edit />
+          Редактирай
+        </Button>
+
+      </BasicHeader>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Partner Information */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Basic Information */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarFallback className="bg-gray-100 text-gray-600 text-xl font-bold">
+                      {partner.name?.slice(0,2).toUpperCase() || "П"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-xl">{partner.name}</CardTitle>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        ID: {partner.id}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        {partner.active !== false ? "Активен" : "Неактивен"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <Building className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Булстат</p>
+                        <p className="text-base font-mono">{partner.bulstat || '-'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <User className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Лице за контакт</p>
+                        <p className="text-base">{partner.contactPerson || '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <Phone className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Телефон</p>
+                        <a href={`tel:${partner.phone || ''}`} className="text-base text-blue-600 hover:text-blue-800">
+                          {partner.phone || '-'}
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <MapPin className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Седалище</p>
+                        <p className="text-base text-gray-500">{partner.address || 'Не е посочено'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stores */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <StoreIcon className="h-5 w-5 mr-2 text-gray-700" />
+                  Магазини
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {Array.isArray(partner.stores) ? partner.stores.length : 0}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Array.isArray(partner.stores) && partner.stores.length > 0 ? (
+                  partner.stores.map((store) => (
+                    <div key={store.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors mb-2">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <StoreIcon className="h-5 w-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <a href={`/dashboard/stores/${store.id}`} className="text-blue-600 hover:text-blue-800 font-medium text-sm underline decoration-2 underline-offset-2 flex items-center group">
+                            {store.name}
+                            <ExternalLink className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </a>
+                          <p className="text-xs text-gray-500 mt-1">{store.isMain ? 'Основен магазин' : ''}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        {store.active !== false ? "Активен" : "Неактивен"}
+                      </Badge>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-gray-500 text-sm">Няма магазини</div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity (placeholder) */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Activity className="h-5 w-5 mr-2 text-gray-700" />
+                  Последна активност
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="h-2 w-2 bg-green-500 rounded-full mt-2"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">Нова продажба в магазин {partner.stores?.[0]?.name || ''}</p>
+                      <p className="text-xs text-gray-500 mt-1">Преди 2 часа</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      Продажба
+                    </Badge>
+                  </div>
+                  <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="h-2 w-2 bg-blue-500 rounded-full mt-2"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">Обновена информация за контакт</p>
+                      <p className="text-xs text-gray-500 mt-1">Преди 1 седмица</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      Обновление
+                    </Badge>
+                  </div>
+                  <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="h-2 w-2 bg-purple-500 rounded-full mt-2"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">Създаден партньор профил</p>
+                      <p className="text-xs text-gray-500 mt-1">Преди 2 месеца</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      Създаване
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Statistics Sidebar */}
+          <div className="space-y-6">
+            {/* Quick Stats (placeholder) */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Статистики</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">Общо продажби</span>
+                  </div>
+                  <span className="text-lg font-bold text-gray-900">24</span>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Package className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">Продукти</span>
+                  </div>
+                  <span className="text-lg font-bold text-gray-900">156</span>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">Последна продажба</span>
+                  </div>
+                  <span className="text-sm text-gray-600">Днес</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contact Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Бързи действия</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <Phone className="h-4 w-4 mr-2" />
+                  Обади се
+                </Button>
+                <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Изпрати имейл
+                </Button>
+                <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Виж продажби
+                </Button>
+                <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <StoreIcon className="h-4 w-4 mr-2" />
+                  Управление на магазини
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Partner Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Статус на партньора</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Статус</span>
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      {partner.active !== false ? "Активен" : "Неактивен"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Тип партньор</span>
+                    <Badge variant="outline">Стандартен</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Създаден</span>
+                    <span className="text-sm text-gray-600">{partner.createdAt ? new Date(partner.createdAt).toLocaleDateString('bg-BG') : '-'}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

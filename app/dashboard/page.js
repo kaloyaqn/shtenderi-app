@@ -21,8 +21,8 @@ export default async function DashboardHome() {
         { name: 'Магазини', value: stores.length },
     ];
     return (
-        <div className=" py-10 px-4">
-            <h1 className="text-3xl font-bold mb-8 text-center">Добре дошли в административното табло</h1>
+        <div className="">
+            <h1 className="text-2xl font-bold mb-8 text-left">Добре дошли в административното табло</h1>
             <div className="grid md:grid-cols-4 grid-cols-2 gap-6 mb-10">
                 <Card>
                     <CardHeader>

@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { toast } from 'sonner';
+import BasicHeader from '@/components/BasicHeader';
+import { EyeIcon } from 'lucide-react';
 
 export default function CreditNotesPage() {
   const [creditNotes, setCreditNotes] = useState([]);
@@ -50,8 +52,8 @@ export default function CreditNotesPage() {
     {
       id: 'actions',
       cell: ({ row }) => (
-        <Button variant="outline" onClick={() => router.push(`/dashboard/credit-notes/${row.original.id}`)}>
-          Преглед
+        <Button variant="table" onClick={() => router.push(`/dashboard/credit-notes/${row.original.id}`)}>
+         <EyeIcon /> Виж
         </Button>
       ),
     },
@@ -60,10 +62,8 @@ export default function CreditNotesPage() {
   if (loading) return <div>Зареждане...</div>;
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Кредитни известия</h1>
-      </div>
+    <div className="container mx-auto">
+      <BasicHeader title="Кредитни известия" subtitle={"Всичко нужно за твоите кредитни известия"} />
       <DataTable columns={columns} data={creditNotes} searchKey="creditNoteNumber" />
     </div>
   );

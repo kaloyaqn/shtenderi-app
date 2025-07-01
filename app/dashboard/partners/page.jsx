@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
+import TableLink from "@/components/ui/table-link"
+import LoadingScreen from "@/components/LoadingScreen"
+import BasicHeader from "@/components/BasicHeader"
 
 export default function PartnersPage() {
   const router = useRouter()
@@ -33,12 +36,11 @@ export default function PartnersPage() {
       cell: ({ row }) => {
         const partner = row.original;
         return (
-          <a
+          <TableLink
             href={`/dashboard/partners/${partner.id}`}
-            className="text-blue-600 underline hover:text-blue-800"
           >
             {partner.id}
-          </a>
+          </TableLink>
         );
       },
     },
@@ -74,15 +76,13 @@ export default function PartnersPage() {
         return (
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              size="icon"
+              variant="table"
               onClick={() => router.push(`/dashboard/partners/${partner.id}/edit`)}
             >
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
-              size="icon"
+              variant="table"
               onClick={() => {
                 setPartnerToDelete(partner)
                 setDeleteDialogOpen(true)
@@ -148,7 +148,7 @@ export default function PartnersPage() {
   }, [session]);
 
   if (loading) {
-    return <div>Зареждане...</div>
+    return <LoadingScreen />
   }
   
   const userIsAdmin = session?.user?.role === 'ADMIN';
@@ -163,8 +163,8 @@ export default function PartnersPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-8">
+    <div className="">
+      {/* <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Партньори</h1>
         {userIsAdmin && (
           <Button onClick={() => router.push('/dashboard/partners/create')}>
@@ -172,7 +172,21 @@ export default function PartnersPage() {
             Добави партньор
           </Button>
         )}
-      </div>
+      </div> */}
+
+
+      <BasicHeader
+      title={'Партньори'}
+      subtitle={'Управлявай партньорите си.'}
+      >
+      {userIsAdmin && (
+          <Button onClick={() => router.push('/dashboard/partners/create')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Добави партньор
+          </Button>
+        )}
+
+      </BasicHeader>
 
       <DataTable 
         columns={columns} 

@@ -6,7 +6,74 @@ import { authOptions } from '@/lib/auth';
 // POST: Create a credit note as a mirror of an existing invoice
 export async function POST(req) {
   try {
-    const { invoiceId } = await req.json();
+    const body = await req.json();
+    const { invoiceId, refundId, products } = body;
+    const session = await getServerSession(authOptions);
+    const preparedBy = session?.user?.name || session?.user?.email || 'System';
+
+    // --- NEW LOGIC: Create credit note from refund ---
+    if (refundId) {
+      // 1. Fetch the refund and its products
+      const refund = await prisma.refund.findUnique({
+        where: { id: refundId },
+        include: {
+          refundProducts: { include: { product: true } },
+          user: true,
+        },
+      });
+      if (!refund) {
+        return NextResponse.json({ error: 'Refund not found' }, { status: 404 });
+      }
+      // 2. Partner info: get from the first product's partner (or extend Refund schema if needed)
+      // For now, assume partner info is in the refund's user or source (customize as needed)
+      // 3. Validate products
+      if (!Array.isArray(products) || products.length === 0) {
+        return NextResponse.json({ error: 'No products provided' }, { status: 400 });
+      }
+      // 4. For each product, check if it is in the refund and not already credited
+      for (const p of products) {
+        const refundProduct = refund.refundProducts.find(rp => rp.productId === p.productId);
+        if (!refundProduct) {
+          return NextResponse.json({ error: `Този продукт не фигурира в избраното връщане` }, { status: 400 });
+        }
+        // Check if already credited for this refund (one credit per product per refund)
+        const alreadyCredited = await prisma.creditNote.findFirst({
+          where: {
+            products: { path: ["productId"], equals: p.productId },
+            // Optionally, store refundId in credit note for easier lookup
+          },
+        });
+        if (alreadyCredited) {
+          return NextResponse.json({ error: `Продуктът вече е кредитиран по това връщане` }, { status: 400 });
+        }
+      }
+      // 5. For each product, find invoices for the partner where the product is present and not fully credited
+      // (Assume partner info is available, or extend Refund to include partnerId)
+      // For now, skip invoice linkage and just create the credit note with the products and refund info
+      // 6. Get the next credit note number
+      const lastCreditNote = await prisma.creditNote.findFirst({ orderBy: { creditNoteNumber: 'desc' } });
+      const nextNumber = (lastCreditNote?.creditNoteNumber || 0) + 1;
+      // 7. Create the credit note
+      const newCreditNote = await prisma.creditNote.create({
+        data: {
+          creditNoteNumber: nextNumber,
+          issuedAt: new Date(),
+          partnerName: refund.user?.name || '', // Adjust as needed
+          partnerBulstat: '',
+          partnerMol: '',
+          partnerAddress: '',
+          preparedBy,
+          products: products,
+          totalValue: products.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)), 0),
+          vatBase: products.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) / 1.2, 0),
+          vatAmount: products.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) * 0.2 / 1.2, 0),
+          paymentMethod: 'CASH',
+          invoiceId: products[0]?.invoiceId || null, // Link to the first invoice if available
+        },
+      });
+      return NextResponse.json(newCreditNote, { status: 201 });
+    }
+    // --- EXISTING LOGIC: Create credit note from invoice ---
     if (!invoiceId) {
       return NextResponse.json({ error: 'invoiceId is required' }, { status: 400 });
     }
@@ -32,11 +99,7 @@ export async function POST(req) {
     const lastCreditNote = await prisma.creditNote.findFirst({ orderBy: { creditNoteNumber: 'desc' } });
     const nextNumber = (lastCreditNote?.creditNoteNumber || 0) + 1;
 
-    // 4. Get current user
-    const session = await getServerSession(authOptions);
-    const preparedBy = session?.user?.name || session?.user?.email || 'System';
-
-    // 5. Create the new credit note by copying data
+    // 4. Create the new credit note by copying data
     const newCreditNote = await prisma.creditNote.create({
       data: {
         creditNoteNumber: nextNumber,

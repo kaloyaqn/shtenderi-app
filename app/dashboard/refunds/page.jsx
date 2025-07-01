@@ -9,6 +9,7 @@ import TableLink from "@/components/ui/table-link";
 import { Eye, RefreshCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import BasicHeader from "@/components/BasicHeader";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function RefundsPage() {
   const [refunds, setRefunds] = useState([]);
@@ -92,7 +93,7 @@ export default function RefundsPage() {
     },
   ];
 
-  if (loading) return <div>Зареждане...</div>;
+  if (loading) return <LoadingScreen />;
 
   const userIsAdmin = session?.user?.role === 'ADMIN';
 

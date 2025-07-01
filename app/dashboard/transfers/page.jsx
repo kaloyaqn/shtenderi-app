@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import BasicHeader from '@/components/BasicHeader';
+import { Eye } from 'lucide-react';
 
 export default function TransfersPage() {
     const [transfers, setTransfers] = useState([]);
@@ -72,19 +74,21 @@ export default function TransfersPage() {
             id: 'actions',
             cell: ({ row }) => (
                 <Button 
-                    variant="outline" 
-                    size="sm" 
+                    variant="table" 
                     onClick={() => router.push(`/dashboard/transfers/${row.original.id}`)}
                 >
-                    Детайли
+                 <Eye />   Виж
                 </Button>
             ),
         }
     ];
 
     return (
-        <div className="container mx-auto py-10">
-            <h1 className="text-3xl font-bold mb-8">Премествания между складове</h1>
+        <div className="">
+            <BasicHeader 
+            title={'Премествания между складове'}
+            subtitle={"Управлявай преместванията между складовете"}
+            />
                     <DataTable
                         columns={columns}
                         data={transfers}

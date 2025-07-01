@@ -5,6 +5,9 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { toast } from 'sonner';
+import LoadingScreen from '@/components/LoadingScreen';
+import BasicHeader from '@/components/BasicHeader';
+import { Eye } from 'lucide-react';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -61,8 +64,8 @@ export default function InvoicesPage() {
     {
       id: 'actions',
       cell: ({ row }) => (
-        <Button variant="outline" onClick={() => router.push(`/dashboard/invoices/${row.original.id}`)}>
-          Преглед
+        <Button variant="table" onClick={() => router.push(`/dashboard/invoices/${row.original.id}`)}>
+          <Eye /> Виж
         </Button>
       ),
     },
@@ -70,7 +73,7 @@ export default function InvoicesPage() {
 
   const userIsAdmin = session?.user?.role === 'ADMIN';
 
-  if (loading) return <div>Зареждане...</div>;
+  if (loading) return <LoadingScreen />;
 
   if (!loading && invoices.length === 0 && !userIsAdmin) {
     return (
@@ -82,10 +85,8 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Фактури</h1>
-      </div>
+    <div className="container mx-auto">
+      <BasicHeader title={"Фактури"} subtitle={'Виж всички твои зачислени фактури'} />
       <DataTable columns={columns} data={invoices} searchKey="invoiceNumber" />
     </div>
   );

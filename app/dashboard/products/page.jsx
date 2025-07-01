@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Trash2, Bus, Upload, Loader2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Bus, Upload, Loader2, PlusIcon, ImportIcon } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,8 @@ import {
   } from "@/components/ui/tooltip"
 import { XMLParser } from "fast-xml-parser"
 import { toast } from 'sonner'
+import LoadingScreen from "@/components/LoadingScreen"
+import BasicHeader from "@/components/BasicHeader"
 
 function EditableCell({ value, onSave, type = 'text', min, max }) {
   const [editing, setEditing] = useState(false);
@@ -451,12 +453,12 @@ export default function ProductsPage() {
   ]
 
   if (loading) {
-    return <div>Зареждане...</div>
+    return <LoadingScreen />
   }
 
   return (
-    <div className=" md:py-10 py-5 w-full">
-      <div className="flex justify-between md:flex-row flex-col  md:items-center w-full mb-8">
+    <div className="">
+      {/* <div className="flex justify-between md:flex-row flex-col  md:items-center w-full mb-8">
         <h1 className="md:text-3xl w-full text-xl text-left font-bold flex items-center gap-2 md:mb-0 mb-2"> Глобални продукти</h1>
         <div className="flex justify-end w-full md:flex-row flex-col gap-2">
           <Button onClick={() => router.push('/dashboard/products/create')}>
@@ -475,7 +477,31 @@ export default function ProductsPage() {
             style={{ display: 'none' }}
           />
         </div>
-      </div>
+      </div> */}
+
+      <BasicHeader 
+      title="Глобални продукти"
+      subtitle="Управлявай продукти на глобално ниво"
+      >
+        <Button
+        onClick={handleImportClick}
+        variant={'outline'}>
+          <ImportIcon />
+          Импорт
+        </Button>
+        <input
+            type="file"
+            accept=".xml"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+        <Button
+        onClick={() => router.push('/dashboard/products/create')}
+        >
+        <PlusIcon />  Добави продукт
+        </Button>
+      </BasicHeader>
 
       {importError && <div className="text-red-500 mb-4">{importError}</div>}
 

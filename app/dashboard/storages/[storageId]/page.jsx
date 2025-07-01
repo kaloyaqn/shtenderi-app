@@ -4,7 +4,7 @@ import { useState, useEffect, use, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { Plus, Pencil, Trash2, Upload, Barcode } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Barcode, ImportIcon, LucideUpload } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,9 @@ import { Input } from '@/components/ui/input';
 import EditStorageQuantityDialog from './_components/edit-quantity-dialog';
 import ResupplyDialog from '@/app/dashboard/components/resupply-dialog';
 import StorageTransferDialog from '@/app/dashboard/components/storage-transfer-dialog';
+import LoadingScreen from '@/components/LoadingScreen';
+import BasicHeader from '@/components/BasicHeader';
+import { IconPackageImport, IconTransfer, IconTruckReturn } from '@tabler/icons-react';
 
 export default function StorageDetailPage({ params }) {
   const { storageId } = use(params);
@@ -176,13 +179,13 @@ export default function StorageDetailPage({ params }) {
         const storageProduct = row.original;
         return (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => {
+            <Button variant="table" onClick={() => {
                 setProductToEdit(storageProduct);
                 setEditDialogOpen(true);
             }}>
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => {
+            <Button variant="table" onClick={() => {
               setProductToDelete(storageProduct);
               setDeleteDialogOpen(true);
             }}>
@@ -249,39 +252,40 @@ export default function StorageDetailPage({ params }) {
     }
   };
 
-  if (loading) return <div>Зареждане...</div>;
+  if (loading) return <LoadingScreen />;
   if (error) return <div>Error: {error}</div>;
   if (!storage) return <div>Складът не е намерен.</div>;
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">{storage ? `Склад: ${storage.name}` : 'Зареждане...'}</h1>
-        <div className="flex items-center gap-2">
-            {session?.user?.role !== 'USER' && (
-              <>
-                <Button onClick={handleImportClick}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Импорт на XML
-                </Button>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
-              </>
-            )}
-            <Button onClick={() => setTransferDialogOpen(true)}>
-                Трансфер
+    <div className="">
+      <BasicHeader subtitle={"Упраялавай стоката в склада"} title={storage ? `Склад: ${storage.name}` : "Зареждане..."}>
+      <Button
+      onClick={handleImportClick}
+      variant={'outline'}>
+            <ImportIcon />  Импорт
             </Button>
-            <Button onClick={() => setResupplyDialogOpen(true)}>
-                Зареждане шанд
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
+
+      <Button
+      onClick={() => setTransferDialogOpen(true)}
+      variant={'outline'}>
+              <IconTransfer />
+              Преместване
             </Button>
-            <Button variant={'destructive'} onClick={() => setRefundDialogOpen(true)}>
-                Връщане
+            <Button
+            onClick={() => setRefundDialogOpen(true)}
+            variant={'outline'}>
+              <IconTruckReturn />
+              Връщане
             </Button>
-            {/* <Button onClick={() => setAddProductDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Добави продукт
-            </Button> */}
-        </div>
-      </div>
+            <div className='w-px h-6 bg-gray-300'></div>
+            <Button
+            onClick={() => setResupplyDialogOpen(true)}
+            >
+              <IconPackageImport />
+              Зареди щендер
+            </Button>
+      </BasicHeader>
       
       <DataTable
         columns={columns}

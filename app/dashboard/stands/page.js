@@ -101,14 +101,13 @@ export default function Stands() {
                 <div className="flex items-center gap-2">
                   <Button
                     variant="table"
-                    size="icon"
+                    
                     onClick={() => router.push(`/dashboard/stands/${stand.id}/edit`)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="table"
-                    size="icon"
                     onClick={() => {
                         setStandToDelete(stand)
                         setDeleteDialogOpen(true)

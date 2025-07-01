@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, PlusIcon } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import BasicHeader from "@/components/BasicHeader"
+import LoadingScreen from "@/components/LoadingScreen"
+import TableLink from "@/components/ui/table-link"
 
 export default function StoresPage() {
   const router = useRouter()
@@ -30,12 +33,11 @@ export default function StoresPage() {
       cell: ({ row }) => {
         const store = row.original;
         return (
-          <a
+          <TableLink
             href={`/dashboard/stores/${store.id}`}
-            className="text-blue-600 underline hover:text-blue-800"
           >
             {store.name}
-          </a>
+          </TableLink>
         );
       },
     },
@@ -64,15 +66,13 @@ export default function StoresPage() {
         return (
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              size="icon"
+              variant="table"
               onClick={() => router.push(`/dashboard/stores/${store.id}/edit`)}
             >
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
-              size="icon"
+              variant="table"
               onClick={() => {
                 setStoreToDelete(store)
                 setDeleteDialogOpen(true)
@@ -123,18 +123,26 @@ export default function StoresPage() {
   }, [])
 
   if (loading) {
-    return <div>Зареждане...</div>
+    return <LoadingScreen />
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-8">
+    <div className="">
+      {/* <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Магазини</h1>
         <Button onClick={() => router.push('/dashboard/stores/create')}>
           <Plus className="mr-2 h-4 w-4" />
           Добави магазин
         </Button>
-      </div>
+      </div> */}
+
+      <BasicHeader title={"Магазини"}
+      subtitle={"Управлявай твоите магазини"}
+      button_text={'Добави магазин'}
+      button_icon={<PlusIcon/>}
+      onClick={() => router.push('/dashboard/stores/create')}
+
+      />
       <DataTable
         columns={columns}
         data={data}

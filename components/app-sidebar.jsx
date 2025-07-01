@@ -14,6 +14,7 @@ import {
 import {
     BoxIcon,
     CircleDollarSignIcon,
+    FileMinus,
     HomeIcon,
     PackageOpenIcon,
     PersonStanding,
@@ -43,7 +44,7 @@ const groupedDocuments = {
   Счетоводство: [
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
-    { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: Undo2Icon, adminOnly: true },
+    { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
   ],
   Склад: [

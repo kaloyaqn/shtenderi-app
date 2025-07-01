@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, PlusIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +17,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import BasicHeader from '@/components/BasicHeader';
+import TableLink from '@/components/ui/table-link';
+import LoadingScreen from '@/components/LoadingScreen';
+import {Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import CreateStorageForm from '@/components/forms/storage/create';
 
 export default function StoragesPage() {
   const router = useRouter();
@@ -24,6 +29,7 @@ export default function StoragesPage() {
   const [storages, setStorages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [storageToDelete, setStorageToDelete] = useState(null);
 
   const fetchStorages = async () => {
@@ -85,12 +91,11 @@ export default function StoragesPage() {
       accessorKey: 'name',
       header: 'Име',
       cell: ({ row }) => (
-        <a
+        <TableLink
           href={`/dashboard/storages/${row.original.id}`}
-          className="font-medium text-blue-600 hover:underline"
         >
           {row.original.name}
-        </a>
+        </TableLink>
       ),
     },
     {
@@ -106,15 +111,12 @@ export default function StoragesPage() {
         return (
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              size="icon"
-              disabled
+              variant="table"
             >
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
-              size="icon"
+              variant="table"
               onClick={() => {
                 setStorageToDelete(storage);
                 setDeleteDialogOpen(true);
@@ -130,7 +132,7 @@ export default function StoragesPage() {
 
   const userIsAdmin = session?.user?.role === 'ADMIN';
 
-  if (loading) return <div>Зареждане...</div>;
+  if (loading) return <LoadingScreen />
 
   if (!loading && storages.length === 0 && !userIsAdmin) {
     return (
@@ -142,16 +144,23 @@ export default function StoragesPage() {
   }
 
   return (
-    <div className="md:py-10 py-5">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="md:text-3xl text-xl font-bold">Складове</h1>
+    <div className="">      
         {userIsAdmin && (
-          <Button onClick={() => router.push('/dashboard/storages/create')}>
-            <Plus className="mr-2 h-4 w-4" />
-            Създай склад
-          </Button>
+                <BasicHeader 
+                title="Складове"
+                subtitle="Вижте всички складове, които са Ви начислени."
+                button_text={"Добави склад"}
+                button_icon={<PlusIcon />}
+                onClick={() => setCreateDialogOpen(true)}
+                />
         )}
-      </div>
+
+        {!userIsAdmin && (
+                  <BasicHeader 
+                  title={'Складове'}
+                  subtitle={"Вижте всички складове, които са Ви начислени"}
+                  />
+        )}
 
       <DataTable
         columns={columns}
@@ -160,6 +169,22 @@ export default function StoragesPage() {
         loading={loading}
         filterableColumns={[{ id: 'name', title: 'Име' }]}
       />
+
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Създаване на склад
+            </DialogTitle>
+          </DialogHeader>
+          <CreateStorageForm
+            onSuccess={async () => {
+              await fetchStorages();
+              setCreateDialogOpen(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
