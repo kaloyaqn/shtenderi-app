@@ -9,6 +9,7 @@ import TableLink from "@/components/ui/table-link";
 import { IconDetails, IconEye } from "@tabler/icons-react";
 import { RefreshCcw } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function RevisionsListPage() {
   const [revisions, setRevisions] = useState([]);
@@ -117,7 +118,7 @@ export default function RevisionsListPage() {
   ];
 
   const userIsAdmin = session?.user?.role === "ADMIN";
-  if (loading) return <div>Зареждане...</div>;
+  if (loading) return <LoadingScreen />;
   if (!loading && revisions.length === 0 && !userIsAdmin) {
     return (
       <div className="container mx-auto py-10 text-center">

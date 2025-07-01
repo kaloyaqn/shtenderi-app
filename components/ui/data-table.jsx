@@ -263,13 +263,14 @@ export function DataTable({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between py-4">
+      <div className="flex items-center md:flex-row flex-col justify-between w-full py-4">
         <div className="text-sm text-muted-foreground ml-2">
           Страница {table.getState().pagination.pageIndex + 1} от {table.getPageCount()}
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex md:flex-row flex-col items-center space-x-2">
           <Button
             variant="outline"
+            className="w-auto"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
@@ -281,6 +282,7 @@ export function DataTable({
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            className={'w-auto'}
           >
             Следваща {"->"}
           </Button>

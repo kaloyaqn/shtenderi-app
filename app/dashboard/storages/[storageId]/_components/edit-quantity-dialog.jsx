@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
+  ResponsiveDialog,
+  ResponsiveDialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -59,8 +59,8 @@ export default function EditStorageQuantityDialog({ open, onOpenChange, storageP
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Редактирай количество</DialogTitle>
           <DialogDescription>
@@ -88,7 +88,7 @@ export default function EditStorageQuantityDialog({ open, onOpenChange, storageP
             {loading ? 'Запазване...' : 'Запази'}
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 } 

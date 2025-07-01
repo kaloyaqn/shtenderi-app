@@ -17,6 +17,8 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import CreateStandPage from "./create/page";
+import LoadingScreen from "@/components/LoadingScreen";
+import TableLink from "@/components/ui/table-link";
 
 export default function Stands() {
     const [stands, setStands] = useState([]);
@@ -78,12 +80,11 @@ export default function Stands() {
             cell: ({ row }) => {
                 const stand = row.original;
                 return (
-                  <a
+                  <TableLink
                     href={`/dashboard/stands/${stand.id}`}
-                    className="text-blue-600 underline hover:text-blue-800"
                   >
                     {stand.name}
-                  </a>
+                  </TableLink>
                 );
             },
         },
@@ -99,21 +100,21 @@ export default function Stands() {
               return (
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="ghost"
+                    variant="table"
                     size="icon"
                     onClick={() => router.push(`/dashboard/stands/${stand.id}/edit`)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="table"
                     size="icon"
                     onClick={() => {
                         setStandToDelete(stand)
                         setDeleteDialogOpen(true)
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-2 w-2" />
                   </Button>
                 </div>
               )
@@ -122,14 +123,14 @@ export default function Stands() {
     ]
 
     if (loading) {
-        return <div className="p-4">Зареждане на щендери...</div>
+        return <LoadingScreen />
     }
     
     if (!loading && stands.length === 0) {
         return (
-            <div className="p-4">
+            <div className="">
                 <div className="flex md:flex-row flex-col w-full justify-between md:items-center mb-2">
-                    <h1 className="md:text-3xl text-xl md:mb-0 mb-2 font-bold">Щендери</h1>
+                    <h1 className="md:text-xl text-xl md:mb-0 mb-2 font-bold">Щендери</h1>
                     {isAdmin && (
                         <Button onClick={() => router.push('/dashboard/stands/create')}>
                             <Plus className="mr-2 h-4 w-4" />
@@ -150,16 +151,22 @@ export default function Stands() {
     }
 
     return (
-        <div className="p-4">
-            <div className="flex md:flex-row flex-col w-full justify-between md:items-center mb-2">
-                <h1 className="md:text-3xl text-xl md:mb-0 mb-2 font-bold">Щендери</h1>
-                {isAdmin && (
+        <div className="">
+
+    <div className="flex justify-between items-center pb-4 border-b mb-4">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-bold text-gray-900">Щендери</h1>
+          <p className="text-base text-gray-600">
+            Управление на щендери и зареждане на стока
+          </p>
+        </div>
+        {isAdmin && (
                     <Button onClick={() => router.push('/dashboard/stands/create')}>
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Plus className="h-4 w-4" />
                         Добави щендер
                     </Button>
                 )}
-            </div>
+      </div>
             <DataTable 
                 columns={columns}
                 data={stands}

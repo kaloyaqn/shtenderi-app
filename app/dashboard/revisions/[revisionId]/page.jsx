@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Edit2, Edit3, EditIcon, Printer, Send } from 'lucide-react';
 import { IconInvoice } from '@tabler/icons-react';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -222,7 +223,7 @@ export default function RevisionDetailPage() {
     }
   };
 
-  if (loading) return <div>Зареждане...</div>;
+  if (loading) return <LoadingScreen />;
   if (!revision) return <div>Ревизията не е намерена.</div>;
 
   const columns = [
@@ -289,7 +290,7 @@ export default function RevisionDetailPage() {
 
       <div className="">
         <div className="mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-2">
           <div className="lg:col-span-1 order-2 lg:order-1">
             <Card>
               <CardHeader>
