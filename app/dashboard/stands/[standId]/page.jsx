@@ -338,7 +338,7 @@ export default function StandDetailPage({ params }) {
           </Link>
         </div>
       </div>
-      {/* {userIsAdmin && (
+      {userIsAdmin && (
                   <div className="my-4 flex justify-between items-center gap-2">
                   <Card className="w-full">
                     <CardContent>
@@ -373,7 +373,7 @@ export default function StandDetailPage({ params }) {
                     </CardContent>
                   </Card>
                 </div>
-          )} */}
+          )}
       <div className="container mx-auto p-0">
         {error && <p className="text-red-500">{error}</p>}
         <DataTable

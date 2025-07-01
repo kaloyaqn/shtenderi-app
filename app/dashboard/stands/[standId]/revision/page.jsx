@@ -4,10 +4,12 @@ import { useEffect, useState, useRef, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
-import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon } from 'lucide-react';
+import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon, PlusIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
@@ -310,42 +312,44 @@ export default function StandRevisionPage({ params }) {
     <div className="pb-15">
       {standName && (
         <>
-      <h1 className="text-xl font-semibold mt-4 mb-4 text-center">Чекиране на {standName}</h1>
+      <h1 className="text-xl lg:text-2xl font-bold md:pb-4 p-4 border-b mb-4">Чекиране на {standName}</h1>
       </>
       )}
 
-      {!finished && (
-        <>
-          <form onSubmit={handleScan} className="mb-2 flex flex-col sm:flex-row gap-2 items-stretch relative">
-            <input
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+<div className="lg:col-span-1">
+{!finished && (
+        <Card>
+          <CardContent>
+            <CardTitle className='mb-2'>Сканиране</CardTitle>
+            <form onSubmit={handleScan} className="mb-2 flex flex-col gap-2 items-stretch relative">
+            <Input
               name="barcode"
               ref={inputRef}
               placeholder="Сканирай или въведи баркод..."
-              className="border relative rounded-full px-4 py-3 text-lg w-full shadow-sm focus:ring-2 focus:ring-blue-400 outline-none pr-10"
+              className=""
               autoComplete="off"
               inputMode="numeric"
               pattern="[0-9]*"
               readOnly={inputReadOnly}
               onFocus={() => setInputReadOnly(false)}
             />
-            {showCheck && (
-              <div className='absolute right-3 w-7 h-7 flex justify-center items-center rounded-full text-center bg-lime-500 text-lime-900  top-3.5'>
-              <CheckCircle className="" size={22} />
-
-              </div>
-            )}
-            <Button type="submit" className="w-full sm:w-auto text-lg py-3 rounded-full">Добави</Button>
+            <Button type="submit" className=""> <PlusIcon /> Добави</Button>
           </form>
-          <div className="flex justify-center mb-2">
-            <Button variant="ghost" className="text-base px-4 py-2 rounded-full" onClick={handleReset}>Изчисти</Button>
+          <div className="text-center p-4 bg-blue-50 rounded-lg text-sm text-blue-700">
+            <b>Съвет:</b> <br />
+            Можеш да сканираш нови продукти и да въвеждаш ръчно баркод
           </div>
-          <div className="text-sm text-muted-foreground mb-2 text-center">Можеш да въведеш баркод ръчно</div>
-        </>
+          </CardContent>
+        </Card>
       )}
-      {/* Product list as cards - only show if not finished */}
-      {!finished && (
-        <>
-          <h2 className="text-lg font-semibold mb-2 mt-6 flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</h2>
+</div>
+
+<div className="lg:col-span-2 gap-4 w-full">
+  <Card>
+  {!finished && (
+        <CardContent>
+          <CardTitle className="text-base font-semibold mb-2  flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</CardTitle>
           <div className="grid gap-2 mb-6 sm:grid-cols-2">
             {allProducts.map(p => (
               <div key={p.barcode} className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${p.isPending ? 'bg-yellow-100 border-yellow-400' : ''}`}>
@@ -360,10 +364,13 @@ export default function StandRevisionPage({ params }) {
               </div>
             ))}
           </div>
-        </>
+        </CardContent>
       )}
-      {/* Checked products as cards */}
-      <h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/> Непродадени продукти</h2>
+  </Card>
+
+  <Card className='mt-2'>
+      <CardContent>
+      <CardTitle className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/> Непродадени продукти</CardTitle>
       <div className="grid gap-2 mb-6 sm:grid-cols-2">
         {checked.length === 0 && <div className="text-muted-foreground text-sm">Няма непродадени продукти.</div>}
         {checked.map(p => (
@@ -379,53 +386,16 @@ export default function StandRevisionPage({ params }) {
           </div>
         ))}
       </div>
-      {/* Missing products as cards after finish */}
-      {finished && report && (
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2 flex items-center gap-2 text-red-700"><XCircle size={20}/> Продадени продукти</h2>
-          {report.length === 0 ? (
-            <div className="text-green-600">Няма липсващи продукти!</div>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {report.map((item, i) => (
-                <div key={item.barcode} className='rounded-sm border border-red-200 bg-red-50 p-3 flex flex-col justify-between text-red-700'>
-                  <h3 className='text-sm leading-[110%]'>{item.name}</h3>
-                  <div className='w-full flex justify-between items-end'>
-                    <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
-                      <Barcode size={12} />
-                      <span className='leading-tight'>{item.barcode}</span>
-                    </div>
-                    <h6 className='font-bold text-base'>{item.remaining}</h6>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {/* Show link to revision if available */}
-          {revisionId && (
-            <div className="flex w-full justify-center mt-6">
-              <a
-                href={`/dashboard/revisions/${revisionId}`}
-                className="inline-block bg-blue-600 w-full text-center hover:bg-blue-700 text-white font-bold rounded-full px-8 py-3 text-lg shadow transition"
-              >
-                Виж продажбата
-              </a>
-            </div>
-          )}
-        </div>
-      )}
-      {/* Complete button at the bottom */}
-      {!finished && (
-        <div className="flex w-full justify-center mt-6 mb-4">
-          <Button
-            onClick={handleFinish}
-            disabled={products.length === 0}
-            className="text-lg w-full px-8 py-8 rounded-sm font-bold"
-          >
-            <CheckCircle size={22} className="mr-2" /> Приключи чекиране
-          </Button>
-        </div>
-      )}
+      </CardContent>
+  </Card>
+
+  <Button  size="lg" className='w-full! h-15 mt-3'>
+  <CheckCircle />  Приключи чекиране
+  </Button>
+</div>
+</div>
+
+
     </div>
   );
 } 
