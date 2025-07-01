@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function StoreDetailPage({ params }) {
     const router = useRouter();
@@ -51,7 +52,7 @@ export default function StoreDetailPage({ params }) {
         },
     ];
 
-    if (loading) return <div>Зареждане...</div>;
+    if (loading) return <LoadingScreen />;
     if (error) return <div className="text-red-500">Грешка: {error}</div>;
     if (!store) return <div>Магазинът не е намерен.</div>;
 

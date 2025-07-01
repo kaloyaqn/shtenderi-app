@@ -161,7 +161,7 @@ export default function InvoicePage() {
             <th className="p-2 border">Име на продукта</th>
             <th className="p-2 border">EAN код</th>
             <th className="p-2 border text-center">Количество</th>
-            <th className="p-2 border text-right">Дилърска цена</th>
+            <th className="p-2 border text-right">Единична цена без ДДС</th>
             <th className="p-2 border text-right">Стойност</th>
           </tr>
         </thead>

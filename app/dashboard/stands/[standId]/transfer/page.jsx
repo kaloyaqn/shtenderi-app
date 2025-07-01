@@ -181,7 +181,7 @@ export default function StandTransferPage() {
                     )}
                     {step === 2 && (
                         <>
-                             <div className="relative my-4">
+                            <div className="relative my-4">
                                 <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                                 <Input
                                     type="text"
@@ -193,24 +193,32 @@ export default function StandTransferPage() {
                                 />
                             </div>
                             <div className="space-y-2 max-h-[50vh] overflow-y-auto p-1">
-                                {selectedProducts.length > 0 && <h3 className="text-sm font-medium text-gray-500 mb-2">Избрани продукти:</h3>}
-                                {selectedProducts.map(p => (
-                                    <div key={p.productId} className="flex items-center justify-between gap-4 p-2 border rounded-md">
-                                        <div className="flex-grow">
-                                            <p className="font-medium">{p.name}</p>
-                                            <p className="text-xs text-gray-500">Наличност: {p.maxQuantity}</p>
-                                        </div>
-                                        <Input
-                                            type="number"
-                                            className="w-24"
-                                            value={p.quantity}
-                                            onChange={(e) => handleProductQuantityChange(p.productId, e.target.value)}
-                                            max={p.maxQuantity}
-                                            min={0}
-                                        />
-                                    </div>
-                                ))}
-                                {productsInSource.length === 0 && selectedProducts.length === 0 && (
+                                {productsInSource.length > 0 ? (
+                                    <>
+                                        <h3 className="text-sm font-medium text-gray-500 mb-2">Продукти за трансфер:</h3>
+                                        {productsInSource.map(p => {
+                                            const selected = selectedProducts.find(sel => sel.productId === p.product.id);
+                                            return (
+                                                <div key={p.product.id} className="flex items-center justify-between gap-4 p-2 border rounded-md">
+                                                    <div className="flex-grow">
+                                                        <p className="font-medium">{p.product.name}</p>
+                                                        <p className="text-xs text-gray-500">Баркод: {p.product.barcode}</p>
+                                                        <p className="text-xs text-gray-500">Наличност: {p.quantity}</p>
+                                                    </div>
+                                                    <Input
+                                                        type="number"
+                                                        className="w-24"
+                                                        value={selected ? selected.quantity : ''}
+                                                        placeholder="0"
+                                                        onChange={e => handleProductQuantityChange(p.product.id, e.target.value)}
+                                                        max={p.quantity}
+                                                        min={0}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </>
+                                ) : (
                                     <p className="text-center text-gray-500">Няма налични продукти в този щанд.</p>
                                 )}
                             </div>

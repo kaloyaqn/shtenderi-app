@@ -520,7 +520,7 @@ export default function RevisionDetailPage() {
               <th className="border border-black px-2 py-1">Име на продукта</th>
               <th className="border border-black px-2 py-1">EAN код</th>
               <th className="border border-black px-2 py-1">Количество</th>
-              <th className="border border-black px-2 py-1">Дилърска цена</th>
+              <th className="border border-black px-2 py-1">Единична цена без ДДС</th>
               <th className="border border-black px-2 py-1">ПЦД</th>
             </tr>
           </thead>

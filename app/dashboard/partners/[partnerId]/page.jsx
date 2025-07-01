@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import BasicHeader from "@/components/BasicHeader"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function PartnerViewPage({ params }) {
   const router = useRouter()
@@ -30,6 +31,8 @@ export default function PartnerViewPage({ params }) {
   const [partner, setPartner] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [stands, setStands] = useState([]);
+  const [selectedStandId, setSelectedStandId] = useState('');
 
   useEffect(() => {
     const fetchPartner = async () => {
@@ -47,6 +50,13 @@ export default function PartnerViewPage({ params }) {
     fetchPartner()
   }, [partnerId])
 
+  useEffect(() => {
+    if (!partner?.id) return;
+    fetch('/api/stands')
+      .then(res => res.json())
+      .then(allStands => setStands(allStands.filter(s => s.partnerId === partner.id)));
+  }, [partner?.id]);
+
   if (loading) return <div>Зареждане...</div>
   if (error) return <div className="text-red-500">{error}</div>
   if (!partner) return null
@@ -61,12 +71,37 @@ export default function PartnerViewPage({ params }) {
       subtitle={'Всички данни за Вашия партньор'}
       >
 
-        <Button variant={'outline'}>
+        <Button variant={'outline'} onClick={() => router.push(`/dashboard/partners/${partner.id}/edit`)}>
           <Edit />
           Редактирай
         </Button>
 
       </BasicHeader>
+
+      {/* Stand-to-stand transfer UI */}
+      {stands.length > 0 && (
+        <div className="mb-6 max-w-md">
+          <Select onValueChange={setSelectedStandId} value={selectedStandId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Изберете изходен щанд за трансфер..." />
+            </SelectTrigger>
+            <SelectContent>
+              {stands.map(stand => (
+                <SelectItem key={stand.id} value={stand.id}>{stand.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            className="mt-2"
+            disabled={!selectedStandId}
+            onClick={() => {
+              if (selectedStandId) router.push(`/dashboard/stands/${selectedStandId}/transfer`);
+            }}
+          >
+            Трансфер между щандове
+          </Button>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
