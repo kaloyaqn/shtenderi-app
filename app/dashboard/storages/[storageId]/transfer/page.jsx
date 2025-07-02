@@ -196,7 +196,7 @@ export default function StorageTransferPage({ params }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-6">
+    <div className="">
       {step === 1 && (
         <div className="bg-white rounded mb-4 p-4">
           <div className="mb-2 font-semibold text-base">Изберете дестинация</div>

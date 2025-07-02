@@ -51,6 +51,11 @@ export async function POST(req, { params }) {
     if (!standId || !userId) {
       return NextResponse.json({ error: 'Missing standId or userId' }, { status: 400 });
     }
+    // Check if user exists
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid userId' }, { status: 400 });
+    }
     // Get the original revision
     const original = await prisma.revision.findUnique({
       where: { id: revisionId },

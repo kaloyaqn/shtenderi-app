@@ -39,7 +39,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import LoadingScreen from "@/components/LoadingScreen";
-import { IconTruckReturn } from "@tabler/icons-react";
+import { IconTransferIn, IconTruckReturn } from "@tabler/icons-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 export default function StandDetailPage({ params }) {
@@ -321,14 +321,16 @@ export default function StandDetailPage({ params }) {
           </Link>
 
           <Link href={`/dashboard/stands/${standId}/resupply`}>
-            <Button variant="outline">Презареди от склад</Button>
+            <Button variant="outline"> <IconTransferIn/>  Презареди от склад</Button>
           </Link>
           <div className="h-6 w-px md:block hidden bg-gray-300"></div>
           <Link
             className="md:w-auto w-full"
             href={`/dashboard/stands/${standId}/revision`}
           >
-            <Button>Проверка на щанд</Button>
+            <Button>
+              <Barcode />
+              Проверка на щанд</Button>
           </Link>
         </div>
       </div>
