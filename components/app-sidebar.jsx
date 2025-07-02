@@ -41,25 +41,48 @@ const groupedDocuments = {
   Начало: [
     { name: "Начало", url: "/dashboard", icon: HomeIcon },
   ],
-  Счетоводство: [
+  "Търговска мрежа": [
+    { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
+    { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
+    { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
+    { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
+
+    
+  ],
+  "Справки и счетоводни документи": [
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
-    { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
-    { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
-  ],
-  Склад: [
-    { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
-    { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
-    { name: "Продукти", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
     { name: "Премествания", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
+
+    { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
+        { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
+
+    
   ],
-  Контрагенти: [
-    { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
-    { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
-  ],
-  Потребители: [
+  "Основни": [
     { name: "Потребители", url: "/dashboard/users", icon: User, adminOnly: true },
+    { name: "Номенклатура", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
+
+    
   ],
+  // Счетоводство: [
+  //   { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
+  //   { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
+  //   { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
+  // ],
+  // Склад: [
+  //   { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
+  //   { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
+  //   { name: "Продукти", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
+  //   { name: "Премествания", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
+  // ],
+  // Контрагенти: [
+  //   { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
+  //   { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
+  // ],
+  // Потребители: [
+  //   { name: "Потребители", url: "/dashboard/users", icon: User, adminOnly: true },
+  // ],
 };
 
 
