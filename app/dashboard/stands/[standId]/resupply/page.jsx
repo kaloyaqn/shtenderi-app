@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Barcode } from "lucide-react";
+import { Barcode, CheckCircle, XCircle } from "lucide-react";
 
 export default function StandResupplyPage({ params }) {
   const { standId } = params;
@@ -22,6 +22,8 @@ export default function StandResupplyPage({ params }) {
   const [barcodeInput, setBarcodeInput] = useState("");
   const [loading, setLoading] = useState(false);
   const barcodeInputRef = useRef();
+  const [showCheck, setShowCheck] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   // Fetch storages for select
   useEffect(() => {
@@ -61,6 +63,9 @@ export default function StandResupplyPage({ params }) {
       );
       if (!productInSource) {
         toast.error("Продукт с този баркод не е намерен в склада.");
+        setShowError(true);
+        try { new Audio('/error.mp3').play(); } catch {}
+        setTimeout(() => setShowError(false), 1200);
         setBarcodeInput("");
         return;
       }
@@ -72,17 +77,25 @@ export default function StandResupplyPage({ params }) {
         toast.warning(
           `Достигнато е максималното налично количество за ${productInSource.product.name}.`
         );
+        setShowError(true);
+        try { new Audio('/error.mp3').play(); } catch {}
+        setTimeout(() => setShowError(false), 1200);
       } else {
         handleProductQuantityChange(
           productInSource.product.id,
-          String(currentQuantity + 1)
+          String(currentQuantity + 1),
+          true // moveToTop
         );
+        setShowCheck(true);
+        try { new Audio('/success.mp3').play(); } catch {}
+        setTimeout(() => setShowCheck(false), 1200);
       }
       setBarcodeInput("");
     }
   };
 
-  const handleProductQuantityChange = (productId, newQuantity) => {
+  // Move to top logic
+  const handleProductQuantityChange = (productId, newQuantity, moveToTop = false) => {
     const product = productsInStorage.find((p) => p.product.id === productId);
     if (!product) return;
     const existingIndex = selectedProducts.findIndex((p) => p.productId === productId);
@@ -92,18 +105,17 @@ export default function StandResupplyPage({ params }) {
       return;
     }
     if (existingIndex > -1) {
-      const updated = [...selectedProducts];
+      let updated = [...selectedProducts];
       updated[existingIndex].quantity = qty;
+      if (moveToTop) {
+        const [item] = updated.splice(existingIndex, 1);
+        updated = [item, ...updated];
+      }
       setSelectedProducts(updated);
     } else {
       setSelectedProducts((prev) => [
+        { productId: product.product.id, name: product.product.name, quantity: qty, maxQuantity: product.quantity },
         ...prev,
-        {
-          productId: product.product.id,
-          name: product.product.name,
-          quantity: qty,
-          maxQuantity: product.quantity,
-        },
       ]);
     }
   };
@@ -142,6 +154,13 @@ export default function StandResupplyPage({ params }) {
     }
   };
 
+  // Sort products: selected first, then unselected
+  const selectedIds = selectedProducts.map(sp => sp.productId);
+  const sortedProducts = [
+    ...productsInStorage.filter(p => selectedIds.includes(p.product.id)),
+    ...productsInStorage.filter(p => !selectedIds.includes(p.product.id)),
+  ];
+
   return (
     <div className="">
       <Card className="mb-4">
@@ -166,58 +185,65 @@ export default function StandResupplyPage({ params }) {
         </CardContent>
       </Card>
 
-      {sourceStorageId && (
-        <Card>
-          <CardContent className="pt-4">
-            <CardTitle className="mb-2">Добавете продукти</CardTitle>
-            <div className="relative mb-4">
-              <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Сканирайте баркод..."
-                className="pl-10"
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                onKeyDown={handleBarcodeScanned}
-                disabled={loading}
-                ref={barcodeInputRef}
-              />
-            </div>
-            <div className="space-y-2">
-              {productsInStorage.map((p) => {
-                const selected = selectedProducts.find((sp) => sp.productId === p.product.id);
-                return (
-                  <div
-                    key={p.product.id}
-                    className="flex items-center justify-between border rounded px-3 py-2"
-                  >
-                    <div>
-                      <div className="font-medium text-sm">{p.product.name}</div>
-                      <div className="text-xs text-gray-500">{p.product.barcode}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={p.quantity}
-                        value={selected?.quantity || ""}
-                        onChange={(e) => handleProductQuantityChange(p.product.id, e.target.value)}
-                        className="w-16 text-right"
-                        disabled={loading}
-                      />
-                      <span className="text-xs text-gray-500">/ {p.quantity}</span>
-                    </div>
+      {sourceStorageId && ( 
+        <div className="bg-white rounded mb-4 ">
+          <div className="mb-2 font-semibold text-base">Добавете продукти</div>
+          <div className="relative mb-4">
+            <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Сканирайте баркод..."
+              className="pl-10"
+              value={barcodeInput}
+              onChange={(e) => setBarcodeInput(e.target.value)}
+              onKeyDown={handleBarcodeScanned}
+              disabled={loading}
+              ref={barcodeInputRef}
+            />
+          </div>
+          <div className="space-y-2">
+            {/* Success/Error indicator */}
+            {showCheck && (
+              <div className="flex items-center gap-2 text-green-600 mb-2 animate-pulse">
+                <CheckCircle className="h-5 w-5" /> Успешно добавен продукт
+              </div>
+            )}
+            {showError && (
+              <div className="flex items-center gap-2 text-red-600 mb-2 animate-pulse">
+                <XCircle className="h-5 w-5" /> Грешка при добавяне
+              </div>
+            )}
+            {sortedProducts.map((p) => {
+              const selected = selectedProducts.find((sp) => sp.productId === p.product.id);
+              return (
+                <div
+                  key={p.product.id}
+                  className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${selected ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                >
+                  <div className="font-medium text-sm">{p.product.name}</div>
+                  <div className="text-xs text-gray-500">{p.product.barcode}</div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={p.quantity}
+                      value={selected?.quantity || ""}
+                      onChange={(e) => handleProductQuantityChange(p.product.id, e.target.value, true)}
+                      className="w-16 text-right"
+                      disabled={loading}
+                    />
+                    <span className="text-xs text-gray-500">/ {p.quantity}</span>
                   </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-end mt-4">
-              <Button onClick={handleSubmit} disabled={loading || !selectedProducts.length}>
-                Прехвърли към щанда
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button onClick={handleSubmit} disabled={loading || !selectedProducts.length}>
+              Прехвърли към щанда
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

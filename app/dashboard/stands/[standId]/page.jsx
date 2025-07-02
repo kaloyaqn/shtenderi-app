@@ -322,7 +322,7 @@ export default function StandDetailPage({ params }) {
             </Button>
           </Link>
 
-          <Link href={`/dashboard/stands/${standId}/resupply`}>
+          <Link className="md:w-auto w-full" href={`/dashboard/stands/${standId}/resupply`}>
           <Button
             variant={"outline"}
             
