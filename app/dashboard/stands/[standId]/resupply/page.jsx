@@ -204,9 +204,7 @@ export default function StandResupplyPage({ params }) {
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
               onKeyDown={handleBarcodeScanned}
-              disabled={loading}
               ref={barcodeInputRef}
-              readOnly={isMobile}
             />
           </div>
           <div className="space-y-2">
