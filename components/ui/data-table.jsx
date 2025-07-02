@@ -81,7 +81,7 @@ export function DataTable({
   if (isMobileState) {
     return (
       <div>
-        <Card className="flex flex-col gap-2 w-full mb-2">
+        <Card className="flex flex-col gap-2 w-full mb-2 mt-2">
           <CardContent>
           {searchKey && (
             <Input
@@ -100,7 +100,7 @@ export function DataTable({
               onChange={(event) =>
                 table.getColumn(column.id)?.setFilterValue(event.target.value)
               }
-              className="max-w-sm text-xs"
+              className="max-w-sm text-xs mb-2"
             />
           ))}
           </CardContent>

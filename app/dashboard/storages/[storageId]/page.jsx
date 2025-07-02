@@ -178,7 +178,7 @@ export default function StorageDetailPage({ params }) {
       cell: ({ row }) => {
         const storageProduct = row.original;
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 md:flex-row flex-col md:justify-start justify-center w-full">
             <Button variant="table" onClick={() => {
                 setProductToEdit(storageProduct);
                 setEditDialogOpen(true);

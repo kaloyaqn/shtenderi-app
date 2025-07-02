@@ -164,7 +164,7 @@ export default function StandDetailPage({ params }) {
         const standProduct = row.original;
         const canDelete = standProduct.quantity === 0;
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 md:flex-row flex-col md:justify-start justify-center w-full">
             <Button
               variant="ghost"
               size="icon"
