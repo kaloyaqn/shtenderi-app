@@ -42,7 +42,7 @@ export default function BasicHeader({title, subtitle, onClick, button_text, butt
         )}
 
         {children && (
-            <div className="flex items-center gap-2">{children}</div>
+            <div className="flex md:flex-row flex-col md:w-auto w-full items-center gap-2">{children}</div>
         )}
       </div>
     )

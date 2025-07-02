@@ -278,7 +278,7 @@ export default function StorageDetailPage({ params }) {
               <IconTruckReturn />
               Връщане
             </Button>
-            <div className='w-px h-6 bg-gray-300'></div>
+            <div className='w-px hidden md:block h-6 bg-gray-300'></div>
             <Button
             onClick={() => setResupplyDialogOpen(true)}
             >
