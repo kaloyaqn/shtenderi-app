@@ -8,10 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Barcode, CheckCircle, XCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 export default function StorageTransferPage({ params }) {
   const { storageId } = params;
   const router = useRouter();
+  const { data: session } = useSession();
 
   const [step, setStep] = useState(1);
   const [allStorages, setAllStorages] = useState([]);
@@ -163,6 +165,26 @@ export default function StorageTransferPage({ params }) {
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || "Грешка при прехвърляне.");
+      }
+      if (destinationType === "STAND") {
+        // Create a revision for the destination stand
+        const revisionRes = await fetch("/api/revisions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            standId: destinationId,
+            userId: session?.user?.id,
+            missingProducts: selectedProducts.map(({ productId, quantity }) => ({ productId, missingQuantity: quantity })),
+          }),
+        });
+        if (!revisionRes.ok) {
+          const error = await revisionRes.json();
+          throw new Error(error.error || "Грешка при създаване на ревизия.");
+        }
+        const revision = await revisionRes.json();
+        toast.success("Прехвърлянето и ревизията са успешни!");
+        router.push(`/dashboard/revisions/${revision.id}`);
+        return;
       }
       toast.success("Прехвърлянето е успешно!");
       router.push(`/dashboard/storages/${storageId}`);

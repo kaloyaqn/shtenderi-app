@@ -265,12 +265,12 @@ export default function StorageDetailPage({ params }) {
             </Button>
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
 
-      <Button
+      {/* <Button
       onClick={() => setTransferDialogOpen(true)}
       variant={'outline'}>
               <IconTransfer />
               Преместване
-            </Button>
+            </Button> */}
             <Button
             onClick={() => setRefundDialogOpen(true)}
             variant={'outline'}>
@@ -278,8 +278,8 @@ export default function StorageDetailPage({ params }) {
               Връщане
             </Button>
             <div className='w-px hidden md:block h-6 bg-gray-300'></div>
-            <Link href={`/dashboard/stands/${standId}/resupply?storageId=${storageId}`}>
-              <Button variant="outline">Прехвърли към щанд</Button>
+            <Link href={`${storageId}/transfer`}>
+              <Button variant=""><IconTransfer /> Трансфер</Button>
             </Link>
       </BasicHeader>
       
