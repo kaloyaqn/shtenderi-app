@@ -33,7 +33,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import ResupplyDialog from "@/app/dashboard/components/resupply-dialog";
 import EditQuantityDialog from "./_components/edit-quantity-dialog";
 import { XMLParser } from "fast-xml-parser";
 import { toast } from "sonner";
@@ -55,7 +54,6 @@ export default function StandDetailPage({ params }) {
   const fileInputRef = useRef();
 
   // Dialog states
-  const [resupplyDialogOpen, setResupplyDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productOnStandToEdit, setProductOnStandToEdit] = useState(null);
@@ -322,14 +320,8 @@ export default function StandDetailPage({ params }) {
             </Button>
           </Link>
 
-          <Link className="md:w-auto w-full" href={`/dashboard/stands/${standId}/resupply`}>
-          <Button
-            variant={"outline"}
-            
-          >
-            <PlusIcon />
-            Добави продукт
-          </Button>
+          <Link href={`/dashboard/stands/${standId}/resupply`}>
+            <Button variant="outline">Презареди от склад</Button>
           </Link>
           <div className="h-6 w-px md:block hidden bg-gray-300"></div>
           <Link
@@ -385,13 +377,6 @@ export default function StandDetailPage({ params }) {
           filterableColumns={[]}
         />
       </div>
-
-      <ResupplyDialog
-        open={resupplyDialogOpen}
-        onOpenChange={setResupplyDialogOpen}
-        standId={standId}
-        onResupplySuccess={fetchData}
-      />
 
       <EditQuantityDialog
         open={editDialogOpen}

@@ -19,11 +19,11 @@ import { toast } from 'sonner';
 import { XMLParser } from 'fast-xml-parser';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 // These components will be created later if they don't exist
 // import AddProductToStorageDialog from './_components/add-product-dialog';
 import EditStorageQuantityDialog from './_components/edit-quantity-dialog';
-import ResupplyDialog from '@/app/dashboard/components/resupply-dialog';
 import StorageTransferDialog from '@/app/dashboard/components/storage-transfer-dialog';
 import LoadingScreen from '@/components/LoadingScreen';
 import BasicHeader from '@/components/BasicHeader';
@@ -45,7 +45,6 @@ export default function StorageDetailPage({ params }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
-  const [resupplyDialogOpen, setResupplyDialogOpen] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
   const [refundProducts, setRefundProducts] = useState([]); // [{product, quantity}]
@@ -279,12 +278,9 @@ export default function StorageDetailPage({ params }) {
               Връщане
             </Button>
             <div className='w-px hidden md:block h-6 bg-gray-300'></div>
-            <Button
-            onClick={() => setResupplyDialogOpen(true)}
-            >
-              <IconPackageImport />
-              Зареди щендер
-            </Button>
+            <Link href={`/dashboard/stands/${standId}/resupply?storageId=${storageId}`}>
+              <Button variant="outline">Прехвърли към щанд</Button>
+            </Link>
       </BasicHeader>
       
       <DataTable
@@ -310,13 +306,6 @@ export default function StorageDetailPage({ params }) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <ResupplyDialog
-        open={resupplyDialogOpen}
-        onOpenChange={setResupplyDialogOpen}
-        storageId={storageId}
-        onResupplySuccess={fetchData}
-      />
-
       <StorageTransferDialog
         open={transferDialogOpen}
         onOpenChange={setTransferDialogOpen}
@@ -330,9 +319,6 @@ export default function StorageDetailPage({ params }) {
             <DialogTitle>Какво желаете да направите?</DialogTitle>
           </DialogHeader>
           <div className="py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button variant="outline" className="h-20" onClick={() => { setDecisionDialogOpen(false); setResupplyDialogOpen(true); }}>
-              Прехвърляне към Щанд
-            </Button>
             <Button variant="outline" className="h-20" onClick={() => { setDecisionDialogOpen(false); setTransferDialogOpen(true); }}>
               Прехвърляне към Склад
             </Button>

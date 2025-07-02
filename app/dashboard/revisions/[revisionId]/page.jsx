@@ -22,6 +22,7 @@ import { Edit, Edit2, Edit3, EditIcon, Printer, Send } from 'lucide-react';
 import { IconInvoice } from '@tabler/icons-react';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -324,7 +325,9 @@ export default function RevisionDetailPage() {
           </Button>
           <div className="h-6 w-px bg-gray-300"></div>
 
-          <Button onClick={() => setResupplyDialogOpen(true)} variant="default">Зареди от склад</Button>
+          <Link href={`/dashboard/stands/${revision.stand?.id}/resupply`}>
+            <Button variant="default">Зареди от склад</Button>
+          </Link>
 
 
         </div>
@@ -406,47 +409,6 @@ export default function RevisionDetailPage() {
       </div>
 
 
-      {/* Resupply Dialog */}
-      <Dialog open={resupplyDialogOpen} onOpenChange={(open) => { setResupplyDialogOpen(open); if (!open) setResupplyErrors([]); }}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Зареждане на щанд от склад</DialogTitle>
-                <DialogDescription>
-                    Изберете от кой склад да заредите продадените количества.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                <Select onValueChange={setSelectedStorage} value={selectedStorage}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Избери склад..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {storages.map(storage => (
-                            <SelectItem key={storage.id} value={storage.id}>
-                                {storage.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            {resupplyErrors.length > 0 && (
-              <div className="bg-red-100 border border-red-400 text-red-800 rounded p-4 mb-4">
-                <div className="font-semibold mb-2">Недостатъчна наличност за следните продукти:</div>
-                <ul className="list-disc pl-5">
-                  {resupplyErrors.map((err, idx) => (
-                    <li key={idx}>
-                      {err.name} ({err.barcode}) — Изискват се: {err.required}, налични: {err.available}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setResupplyDialogOpen(false)}>Отказ</Button>
-                <Button onClick={handleResupply}>Зареди</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
       {/* Add Product Dialog */}
       <Dialog open={addProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
