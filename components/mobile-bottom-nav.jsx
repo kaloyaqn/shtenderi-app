@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bus, Home, ListChecks, Store, Users, PersonStanding } from "lucide-react";
+import { Bus, Home, ListChecks, Store, Users, PersonStanding, BoxIcon } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Начало", icon: Home },
-  // { href: "/dashboard/stands", label: "Щендери", icon: ListChecks },
+  { href: "/dashboard/stands", label: "Щендери", icon: ListChecks },
+  { href: "/dashboard/storages", label: "Складове", icon: BoxIcon },
   // { href: "/dashboard/products", label: "БУС", icon: Bus },
   // { href: "/dashboard/stores", label: "Магазини", icon: Store },
   // { href: "/dashboard/partners", label: "Партньори", icon: PersonStanding },

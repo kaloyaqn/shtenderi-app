@@ -20,8 +20,9 @@ import { toast } from 'sonner';
 import BasicHeader from '@/components/BasicHeader';
 import TableLink from '@/components/ui/table-link';
 import LoadingScreen from '@/components/LoadingScreen';
-import {Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import CreateStorageForm from '@/components/forms/storage/create';
+import { Input } from '@/components/ui/input';
 
 export default function StoragesPage() {
   const router = useRouter();
@@ -31,6 +32,10 @@ export default function StoragesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [storageToDelete, setStorageToDelete] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [storageToEdit, setStorageToEdit] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
 
   const fetchStorages = async () => {
     setLoading(true);
@@ -86,6 +91,37 @@ export default function StoragesPage() {
     setStorageToDelete(null);
   };
 
+  const openEditDialog = (storage) => {
+    setStorageToEdit(storage);
+    setEditName(storage.name);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editName.trim()) {
+      toast.error('Моля, въведете име на склад.');
+      return;
+    }
+    setEditLoading(true);
+    try {
+      const res = await fetch(`/api/storages/${storageToEdit.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      if (!res.ok) throw new Error('Грешка при редакция на склад.');
+      toast.success('Складът е обновен успешно!');
+      setEditDialogOpen(false);
+      setStorageToEdit(null);
+      setEditName('');
+      await fetchStorages();
+    } catch (err) {
+      toast.error(err.message || 'Грешка при редакция на склад.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const columns = [
     {
       accessorKey: 'name',
@@ -112,6 +148,7 @@ export default function StoragesPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="table"
+              onClick={() => openEditDialog(storage)}
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -200,6 +237,28 @@ export default function StoragesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактирай склад</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              placeholder="Име на склад"
+              disabled={editLoading}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editLoading}>Отказ</Button>
+            <Button onClick={handleEditSave} disabled={editLoading || !editName.trim()}>
+              {editLoading ? 'Запазване...' : 'Запази'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

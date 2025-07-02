@@ -152,7 +152,7 @@ export default function Stands() {
     return (
         <div className="">
 
-    <div className="flex justify-between items-center pb-4 border-b mb-4">
+    <div className="flex md:flex-row flex-col justify-between items-center pb-4 border-b mb-4">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Щендери</h1>
           <p className="text-base text-gray-600">
