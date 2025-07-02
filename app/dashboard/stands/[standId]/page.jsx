@@ -322,13 +322,15 @@ export default function StandDetailPage({ params }) {
             </Button>
           </Link>
 
+          <Link href={`/dashboard/stands/${standId}/resupply`}>
           <Button
             variant={"outline"}
-            onClick={() => setResupplyDialogOpen(true)}
+            
           >
             <PlusIcon />
             Добави продукт
           </Button>
+          </Link>
           <div className="h-6 w-px md:block hidden bg-gray-300"></div>
           <Link
             className="md:w-auto w-full"
