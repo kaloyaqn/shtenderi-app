@@ -24,6 +24,7 @@ export default function StandResupplyPage({ params }) {
   const barcodeInputRef = useRef();
   const [showCheck, setShowCheck] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Fetch storages for select
   useEffect(() => {
@@ -53,6 +54,12 @@ export default function StandResupplyPage({ params }) {
       .catch(() => toast.error("Грешка при зареждане на продукти"))
       .finally(() => setLoading(false));
   }, [sourceStorageId]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMobile(window.innerWidth <= 768);
+    }
+  }, []);
 
   // Handle barcode scan
   const handleBarcodeScanned = (e) => {
@@ -199,6 +206,7 @@ export default function StandResupplyPage({ params }) {
               onKeyDown={handleBarcodeScanned}
               disabled={loading}
               ref={barcodeInputRef}
+              readOnly={isMobile}
             />
           </div>
           <div className="space-y-2">
