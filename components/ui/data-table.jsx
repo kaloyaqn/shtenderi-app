@@ -83,85 +83,94 @@ export function DataTable({
       <div>
         <Card className="flex flex-col gap-2 w-full mb-2 mt-2">
           <CardContent>
-          {searchKey && (
-            <Input
-              placeholder="Потърси..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="max-w-sm text-xs w-full"
-              
-            />
-          )}
-          {filterableColumns.map((column) => (
-            <Input
-              key={column.id}
-              placeholder={`Филтрирай по ${column.title.toLowerCase()}...`}
-              value={(table.getColumn(column.id)?.getFilterValue()) ?? ""}
-              onChange={(event) =>
-                table.getColumn(column.id)?.setFilterValue(event.target.value)
-              }
-              className="max-w-sm text-xs mb-2"
-            />
-          ))}
+            {searchKey && (
+              <Input
+                placeholder="Потърси..."
+                value={globalFilter ?? ""}
+                onChange={(event) => setGlobalFilter(event.target.value)}
+                className="max-w-sm text-xs w-full"
+              />
+            )}
+            {filterableColumns.map((column) => (
+              <Input
+                key={column.id}
+                placeholder={`Филтрирай по ${column.title.toLowerCase()}...`}
+                value={(table.getColumn(column.id)?.getFilterValue()) ?? ""}
+                onChange={(event) =>
+                  table.getColumn(column.id)?.setFilterValue(event.target.value)
+                }
+                className="max-w-sm text-xs mb-2"
+              />
+            ))}
           </CardContent>
         </Card>
         <div className="flex flex-col gap-2">
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
-              <div key={row.id} className={`rounded border bg-white p-2 text-xs shadow-sm ${rowClassName ? rowClassName(row) : ''}`.trim()}>
-                {columns.map((col, idx) => {
-                  if (col?.meta?.hidden) return null;
-                  const header = typeof col.header === 'string'
-                    ? col.header
-                    : flexRender(col.header, { column: col, table });
-                  let value = null;
-                  if (col.cell) {
-                    value = flexRender(col.cell, { row });
-                  } else if (col.accessorKey) {
-                    value = getNestedValue(row.original, col.accessorKey);
-                  }
-                  if (col.id !== 'actions' && (value === undefined || value === null || value === '')) return null;
-                  return (
-                    <div key={col.id || col.accessorKey || idx} className="flex justify-between items-baseline border-b last:border-b-0 py-1">
-                      <span className="font-semibold text-gray-700 mr-2">{header}</span>
-                      <span className="text-gray-900 text-right break-all">{value}</span>
+              <Card key={row.id} className={`border border-gray-200 shadow-sm ${rowClassName ? rowClassName(row) : ''}`.trim()}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      {columns.filter(col => col.id !== 'actions' && !col?.meta?.hidden).map((col, idx) => {
+                        const header = typeof col.header === 'string'
+                          ? col.header
+                          : flexRender(col.header, { column: col, table });
+                        let value = null;
+                        if (col.cell) {
+                          value = flexRender(col.cell, { row });
+                        } else if (col.accessorKey) {
+                          value = getNestedValue(row.original, col.accessorKey);
+                        }
+                        if (value === undefined || value === null || value === '') return null;
+                        return (
+                          <div key={col.id || col.accessorKey || idx} className="flex justify-between items-baseline border-b last:border-b-0 py-1">
+                            <span className="font-semibold text-gray-700 mr-2">{header}</span>
+                            <span className="text-gray-900 text-right break-all">{value}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                    {columns.find(col => col.id === 'actions') && (
+                      <div className="flex flex-col items-end space-y-2 ml-3">
+                        {flexRender(columns.find(col => col.id === 'actions').cell, { row })}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             ))
           ) : (
             <div className="text-center text-gray-500 py-8 text-xs">Няма намерени резултати.</div>
           )}
         </div>
         <div className="flex flex-col gap-4 w-full py-4 sm:flex-row sm:items-center sm:justify-between">
-  <div className="text-sm text-muted-foreground text-center sm:text-left sm:ml-2">
-    Страница {table.getState().pagination.pageIndex + 1} от{" "}
-    {table.getPageCount()}
-  </div>
-  <div className="flex flex-col gap-2 items-center sm:flex-row sm:space-x-2 sm:gap-0">
-    <Button
-      variant="outline"
-      className="w-full sm:w-auto"
-      size="sm"
-      onClick={() => table.previousPage()}
-      disabled={!table.getCanPreviousPage()}
-    >
-      {"<-"} Предишна
-    </Button>
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => table.nextPage()}
-      disabled={!table.getCanNextPage()}
-      className="w-full sm:w-auto"
-    >
-      Следваща {"->"}
-    </Button>
-  </div>
-</div>
+          <div className="text-sm text-muted-foreground text-center sm:text-left sm:ml-2">
+            Страница {table.getState().pagination.pageIndex + 1} от{" "}
+            {table.getPageCount()}
+          </div>
+          <div className="flex flex-col gap-2 items-center sm:flex-row sm:space-x-2 sm:gap-0">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              {"<-"} Предишна
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="w-full sm:w-auto"
+            >
+              Следваща {"->"}
+            </Button>
+          </div>
+        </div>
       </div>
-    )
+    );
   }
 
   return (
