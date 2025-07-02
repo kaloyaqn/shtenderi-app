@@ -250,7 +250,7 @@ export default function GeneralResupplyPage() {
                   <CardTitle className="text-lg">Изберете източник и дестинация</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between">
                     {/* Source Selection */}
                     <div className="">
                       <label className="text-sm font-medium text-gray-700">
