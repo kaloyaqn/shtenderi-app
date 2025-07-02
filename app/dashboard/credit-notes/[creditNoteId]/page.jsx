@@ -165,7 +165,7 @@ export default function CreditNotePage() {
         <tfoot>
           <tr className="font-bold bg-gray-50">
             <td colSpan="2" className="p-2 border text-right">
-              Общо:
+              Общо (без ДДС):
             </td>
             <td className="p-2 border text-center">{totalQuantity}</td>
             <td className="p-2 border"></td>
@@ -198,7 +198,7 @@ export default function CreditNotePage() {
             <span>{creditNote.vatAmount.toFixed(2)} лв.</span>
           </div>
           <div className="flex justify-between font-bold mt-2 border-t pt-2">
-            <span>Сума за плащане</span>
+            <span>Обща стойност</span>
             <span>{creditNote.totalValue.toFixed(2)} лв.</span>
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function CreditNotePage() {
 
       <div className="mt-8 pt-8 border-t">
         <div className="mb-4">
-          <span className="font-semibold">Съставил:</span>{" "}
+          <span className="font-semibold">Изготвил:</span>{" "}
           {creditNote.preparedBy}
         </div>
         <div className="text-xs text-gray-500 text-left">

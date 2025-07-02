@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Edit, Edit2, Edit3, EditIcon, Printer, Send } from 'lucide-react';
 import { IconInvoice } from '@tabler/icons-react';
 import LoadingScreen from '@/components/LoadingScreen';
+import { useSession } from 'next-auth/react';
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -42,6 +43,11 @@ export default function RevisionDetailPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [invoice, setInvoice] = useState(null);
   const router = useRouter();
+  const { data: session } = useSession();
+  const [repeatDialogOpen, setRepeatDialogOpen] = useState(false);
+  const [stands, setStands] = useState([]);
+  const [selectedRepeatStand, setSelectedRepeatStand] = useState('');
+  const [repeatLoading, setRepeatLoading] = useState(false);
 
   const contentRef = useRef(null);
   const reactToPrintFn = useReactToPrint({ contentRef });
@@ -98,6 +104,16 @@ export default function RevisionDetailPage() {
         .catch(() => setInvoice(null));
     }
   }, [revision?.number]);
+
+  // Fetch stands for repeat dialog
+  useEffect(() => {
+    if (repeatDialogOpen) {
+      fetch('/api/stands')
+        .then(res => res.json())
+        .then(setStands)
+        .catch(() => toast.error('Грешка при зареждане на щандове.'));
+    }
+  }, [repeatDialogOpen]);
 
   const handleResupply = async () => {
     if (!selectedStorage) {
@@ -223,6 +239,30 @@ export default function RevisionDetailPage() {
     }
   };
 
+  const handleRepeatSale = async () => {
+    if (!selectedRepeatStand || !session?.user?.id) {
+      toast.error('Моля, изберете щанд.');
+      return;
+    }
+    setRepeatLoading(true);
+    try {
+      const res = await fetch(`/api/revisions/${revisionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ standId: selectedRepeatStand, userId: session.user.id }),
+      });
+      if (!res.ok) throw new Error('Грешка при създаване на нова продажба.');
+      const data = await res.json();
+      toast.success('Продажбата е повторена успешно!');
+      setRepeatDialogOpen(false);
+      router.push(`/dashboard/revisions/${data.id}`);
+    } catch (err) {
+      toast.error(err.message || 'Грешка при повторение на продажбата.');
+    } finally {
+      setRepeatLoading(false);
+    }
+  };
+
   if (loading) return <LoadingScreen />;
   if (!revision) return <div>Ревизията не е намерена.</div>;
 
@@ -282,6 +322,9 @@ export default function RevisionDetailPage() {
           <div className="h-6 w-px bg-gray-300"></div>
 
           <Button onClick={() => setResupplyDialogOpen(true)} variant="default">Зареди от склад</Button>
+          <Button variant="outline" onClick={() => setRepeatDialogOpen(true)}>
+            Повтори продажба
+          </Button>
 
         </div>
       </div>
@@ -540,6 +583,37 @@ export default function RevisionDetailPage() {
         <div className="mb-2">Стойност с ДДС: <b>{totalValue.toFixed(2)} лв.</b></div>
         <div className="mt-6">Изготвил: <b>{adminName}</b></div>
       </div>
+      {/* Repeat Sale Dialog */}
+      <Dialog open={repeatDialogOpen} onOpenChange={setRepeatDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Повтори продажба</DialogTitle>
+            <DialogDescription>
+              Изберете щанд, от който да повторите продажбата. Ще се създаде нова продажба с нов номер.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Select onValueChange={setSelectedRepeatStand} value={selectedRepeatStand}>
+              <SelectTrigger>
+                <SelectValue placeholder="Избери щанд..." />
+              </SelectTrigger>
+              <SelectContent>
+                {stands.map(stand => (
+                  <SelectItem key={stand.id} value={stand.id}>
+                    {stand.name} {stand.store?.name ? `(${stand.store.name})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRepeatDialogOpen(false)} disabled={repeatLoading}>Отказ</Button>
+            <Button onClick={handleRepeatSale} disabled={!selectedRepeatStand || repeatLoading}>
+              {repeatLoading ? 'Създаване...' : 'Повтори'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

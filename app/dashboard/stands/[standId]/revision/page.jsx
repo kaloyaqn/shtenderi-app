@@ -4,12 +4,13 @@ import { useEffect, useState, useRef, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
-import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon, PlusIcon, Link } from 'lucide-react';
+import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon, PlusIcon, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
@@ -387,9 +388,32 @@ export default function StandRevisionPage({ params }) {
       </CardContent>
   </Card>
 
-  <Button  size="lg" className='w-full! h-15 mt-3'>
-  <CheckCircle />  Приключи чекиране
-  </Button>
+  {!revisionId && (
+      <Button  
+      onClick={handleFinish}
+      disabled={products.length === 0}
+size="lg" className='w-full! h-15 mt-3'>
+<CheckCircle />  Приключи чекиране
+</Button>
+  )}
+
+  {revisionId && (
+            <div className="flex w-full justify-center">
+            <Link
+            className='w-full'
+                href={`/dashboard/revisions/${revisionId}`}
+            
+            >
+            <Button
+                className="w-full! h-15 mt-3 bg-blue-600 hover:bg-blue-700"
+              >
+
+                <Eye />
+                Виж продажбата
+              </Button>
+            </Link>
+            </div>
+          )}
 </div>
 </div>
 
