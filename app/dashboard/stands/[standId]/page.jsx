@@ -320,7 +320,7 @@ export default function StandDetailPage({ params }) {
             </Button>
           </Link>
 
-          <Link href={`/dashboard/stands/${standId}/resupply`}>
+          <Link href={`/dashboard/resupply?source=stand`}>
             <Button variant="outline"> <IconTransferIn/>  Презареди от склад</Button>
           </Link>
           <div className="h-6 w-px md:block hidden bg-gray-300"></div>
