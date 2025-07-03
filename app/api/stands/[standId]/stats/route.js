@@ -54,8 +54,8 @@ export async function GET(req, { params }) {
   const salesCountLast30Days = last30DaysRevisions.length;
 
   return NextResponse.json({
-    totalSalesValue,
-    salesLast30Days,
+    totalSalesValue: parseFloat(totalSalesValue.toFixed(2)),
+    salesLast30Days: parseFloat(salesLast30Days.toFixed(2)),
     salesCountLast30Days,
     itemsSoldLast30Days
   });

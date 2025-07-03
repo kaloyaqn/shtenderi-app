@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -43,10 +43,14 @@ export default function GeneralResupplyPage() {
   const [isMobile, setIsMobile] = useState(false)
   const [step, setStep] = useState(1)
 
+  const searchParams = useSearchParams()
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsMobile(window.innerWidth <= 768)
     }
+
+    handleMode();
   }, [])
 
   // Fetch all stands and storages on mount
@@ -85,6 +89,16 @@ export default function GeneralResupplyPage() {
       .catch(() => toast.error("Грешка при зареждане на продукти"))
       .finally(() => setLoading(false))
   }, [sourceId, mode])
+
+
+  const handleMode = () => {
+    let source = searchParams.get('source');
+
+    if (source === 'stand') {
+        setMode('stand-to-stand')
+    }
+
+  }
 
   // Handle barcode scan
   const handleBarcodeScanned = (e) => {
@@ -277,7 +291,7 @@ export default function GeneralResupplyPage() {
       <BasicHeader title={"Трансфер на продукти"} subtitle="Прехвърляне на продукти между щендери и складове" /> 
 
       {/* Main Content */}
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="">
         <div className="space-y-6">
           {/* Step 1: Transfer Type Selection */}
           <Card>
@@ -315,15 +329,15 @@ export default function GeneralResupplyPage() {
                   <CardTitle className="text-lg">Изберете източник и дестинация</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex md:flex-row flex-col items-end justify-between w-full gap-4">
                     {/* Source Selection */}
-                    <div className="">
+                    <div className="w-full">
                       <label className="text-sm font-medium text-gray-700">
                         {mode === "stand-to-stand" ? "Изходен щанд" : "Изходен склад"}
                       </label>
                       {mode === "stand-to-stand" && (
-                        <Select value={sourceId} onValueChange={setSourceId}>
-                          <SelectTrigger>
+                        <Select value={sourceId} onValueChange={setSourceId} className="w-full">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете изходен щанд..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -336,8 +350,8 @@ export default function GeneralResupplyPage() {
                         </Select>
                       )}
                       {(mode === "storage-to-storage" || mode === "storage-to-stand") && (
-                        <Select value={sourceId} onValueChange={setSourceId}>
-                          <SelectTrigger>
+                        <Select value={sourceId} onValueChange={setSourceId} className="w-full">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете изходен склад..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -352,18 +366,18 @@ export default function GeneralResupplyPage() {
                     </div>
 
                     {/* Arrow */}
-                    <div className="hidden md:flex items-center justify-center">
+                    <div className="hidden mb-1.5 md:flex items-center justify-center">
                       <ArrowRight className="h-6 w-6 text-gray-400" />
                     </div>
 
                     {/* Destination Selection */}
-                    <div className="space-y-2">
+                    <div className="w-full space-y-2">
                       <label className="text-sm font-medium text-gray-700">
                         {mode === "storage-to-storage" ? "Дестинация склад" : "Дестинация щанд"}
                       </label>
                       {mode === "stand-to-stand" && (
-                        <Select value={destinationId} onValueChange={setDestinationId}>
-                          <SelectTrigger>
+                        <Select value={destinationId} onValueChange={setDestinationId} className="w-full">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете дестинация щанд..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -378,8 +392,8 @@ export default function GeneralResupplyPage() {
                         </Select>
                       )}
                       {mode === "storage-to-storage" && (
-                        <Select value={destinationId} onValueChange={setDestinationId}>
-                          <SelectTrigger>
+                        <Select value={destinationId} onValueChange={setDestinationId} className="w-full">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете дестинация склад..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -394,8 +408,8 @@ export default function GeneralResupplyPage() {
                         </Select>
                       )}
                       {mode === "storage-to-stand" && (
-                        <Select value={destinationId} onValueChange={setDestinationId}>
-                          <SelectTrigger>
+                        <Select value={destinationId} onValueChange={setDestinationId} className="w-full">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете дестинация щанд..." />
                           </SelectTrigger>
                           <SelectContent>

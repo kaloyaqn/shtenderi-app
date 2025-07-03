@@ -18,13 +18,13 @@ export async function POST(req) {
     try {
         const result = await prisma.$transaction(async (tx) => {
             // 1. Fetch stands and verify they belong to the same partner
-            const sourceStand = await tx.stand.findUnique({ where: { id: sourceStandId } });
-            const destinationStand = await tx.stand.findUnique({ where: { id: destinationStandId } });
+            const sourceStand = await tx.stand.findUnique({ where: { id: sourceStandId }, include: { store: true } });
+            const destinationStand = await tx.stand.findUnique({ where: { id: destinationStandId }, include: { store: true } });
 
             if (!sourceStand || !destinationStand) {
                 throw new Error('Source or destination stand not found.');
             }
-            if (sourceStand.partnerId !== destinationStand.partnerId) {
+            if (sourceStand.store.partnerId !== destinationStand.store.partnerId) {
                 throw new Error('Stands do not belong to the same partner.');
             }
             if (sourceStand.id === destinationStand.id) {
@@ -67,10 +67,6 @@ export async function POST(req) {
             }
 
             // 4. Create a revision (sale) for the destination stand
-            const destinationStand = await tx.stand.findUnique({
-                where: { id: destinationStandId },
-                include: { store: true },
-            });
             if (!destinationStand) throw new Error('Destination stand not found.');
             const lastRevision = await tx.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
             const nextNumber = (lastRevision?.number || 0) + 1;
