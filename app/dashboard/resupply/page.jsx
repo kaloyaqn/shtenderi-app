@@ -20,6 +20,7 @@ import {
   Store,
   Scan,
   ArrowLeftRight,
+  Loader2,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import BasicHeader from "@/components/BasicHeader"
@@ -204,6 +205,70 @@ export default function GeneralResupplyPage() {
     }
     return ""
   }
+
+  const handleSubmit = async () => {
+    if (!sourceId || !destinationId) {
+      toast.error("Моля, изберете източник и дестинация.");
+      return;
+    }
+    if (selectedProducts.length === 0) {
+      toast.error("Моля, изберете продукти.");
+      return;
+    }
+    setLoading(true);
+    try {
+      let payload, url, method = "POST";
+      if (mode === "storage-to-stand") {
+        payload = {
+          sourceStorageId: sourceId,
+          destinationStandId: destinationId,
+          products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+        };
+        url = "/api/resupply";
+      } else if (mode === "stand-to-stand") {
+        payload = {
+          sourceStandId: sourceId,
+          destinationStandId: destinationId,
+          products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+        };
+        url = "/api/stands/transfer";
+      } else if (mode === "storage-to-storage") {
+        payload = {
+          sourceStorageId: sourceId,
+          destinationId: destinationId,
+          destinationType: "STORAGE",
+          products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+        };
+        url = "/api/storages/transfer";
+      } else {
+        toast.error("Невалиден тип трансфер.");
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Грешка при трансфер.");
+      }
+      toast.success("Трансферът е успешен!");
+      // Optionally redirect or reset state
+      setMode("");
+      setSourceId("");
+      setDestinationId("");
+      setProductsInSource([]);
+      setSelectedProducts([]);
+      setBarcodeInput("");
+      setStep(1);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="">
@@ -477,9 +542,17 @@ export default function GeneralResupplyPage() {
                             </span>
                           )}
                         </div>
-                        <Button disabled className="bg-gray-900 hover:bg-gray-800 text-white" size="lg">
-                          <ArrowLeftRight className="h-4 w-4 mr-2" />
-                          Прехвърли (WIP)
+                        <Button
+                          size="lg"
+                          onClick={handleSubmit}
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <Loader2 className="animate-spin" />
+                          ) : (
+                            <ArrowLeftRight className="" />
+                          )}
+                          {loading ? "Прехвърляне..." : "Прехвърли"}
                         </Button>
                       </div>
                     </div>

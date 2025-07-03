@@ -133,10 +133,12 @@ model Store {
 model Revision {
   id         String   @id @default(uuid())
   number     Int      @unique // Global sequential sale number
-  stand      Stand    @relation(fields: [standId], references: [id])
-  standId    String
-  partner    Partner  @relation(fields: [partnerId], references: [id])
-  partnerId  String
+  stand      Stand?   @relation(fields: [standId], references: [id])
+  standId    String?
+  storage    Storage? @relation(fields: [storageId], references: [id])
+  storageId  String?
+  partner    Partner? @relation(fields: [partnerId], references: [id])
+  partnerId  String?
   user       User     @relation(fields: [userId], references: [id])
   userId     String
   createdAt  DateTime @default(now())
@@ -160,6 +162,7 @@ model Storage {
 
   storageProducts StorageProduct[]
   userStorages    UserStorage[]
+  revisions       Revision[]
 }
 
 model StorageProduct {

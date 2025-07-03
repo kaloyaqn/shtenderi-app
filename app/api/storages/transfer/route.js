@@ -66,6 +66,8 @@ async function handleStorageToStorageTransfer(sourceStorageId, destinationStorag
                 },
             },
         });
+
+        // No revision is created for storage-to-storage transfers
         return { message: "Transfer initiated successfully and is pending confirmation.", transferId: transfer.id };
     });
 }
@@ -93,9 +95,14 @@ async function handleStorageToStandTransfer(sourceStorageId, standId, products, 
             });
         }
 
-        // 4. Create a Revision (as a sale document)
+        // 4. Get next revision number
+        const lastRevision = await tx.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
+        const nextNumber = (lastRevision?.number || 0) + 1;
+
+        // 5. Create a Revision (as a sale document)
         const revision = await tx.revision.create({
             data: {
+                number: nextNumber,
                 standId: standId,
                 partnerId: stand.store.partner.id,
                 userId: userId,

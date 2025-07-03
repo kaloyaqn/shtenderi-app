@@ -66,7 +66,30 @@ export async function POST(req) {
                 });
             }
 
-            return { success: true, message: 'Transfer completed successfully.' };
+            // 4. Create a revision (sale) for the destination stand
+            const destinationStand = await tx.stand.findUnique({
+                where: { id: destinationStandId },
+                include: { store: true },
+            });
+            if (!destinationStand) throw new Error('Destination stand not found.');
+            const lastRevision = await tx.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
+            const nextNumber = (lastRevision?.number || 0) + 1;
+            const revision = await tx.revision.create({
+                data: {
+                    number: nextNumber,
+                    standId: destinationStandId,
+                    partnerId: destinationStand.store.partnerId,
+                    userId: session.user.id,
+                    missingProducts: {
+                        create: products.map(p => ({
+                            productId: p.productId,
+                            missingQuantity: p.quantity,
+                        }))
+                    }
+                },
+            });
+
+            return { success: true, message: 'Transfer completed successfully.', revisionId: revision.id };
         });
 
         return NextResponse.json(result);
