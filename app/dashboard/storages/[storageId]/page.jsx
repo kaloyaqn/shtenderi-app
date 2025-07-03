@@ -278,7 +278,7 @@ export default function StorageDetailPage({ params }) {
               Връщане
             </Button>
             <div className='w-px hidden md:block h-6 bg-gray-300'></div>
-            <Link href={`${storageId}/transfer`}>
+            <Link href={`/dashboard/resupply?source=storage`}>
               <Button variant=""><IconTransfer /> Трансфер</Button>
             </Link>
       </BasicHeader>

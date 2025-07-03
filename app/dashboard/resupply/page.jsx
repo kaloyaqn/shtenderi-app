@@ -96,6 +96,8 @@ export default function GeneralResupplyPage() {
 
     if (source === 'stand') {
         setMode('stand-to-stand')
+    } else if (source === 'storage') {
+        setMode("storage-to-stand")
     }
 
   }
