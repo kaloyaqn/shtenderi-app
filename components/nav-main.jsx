@@ -25,7 +25,7 @@ export function NavMain({
               tooltip="Направи трансфер"
               className="bg-green-600 active:bg-green-600 active:text-white cursor-pointer text-white hover:bg-green-700 hover:text-primary-foreground min-w-8 duration-200 ease-linear">
                   <IconTransfer />
-              <span>Направи трансфер</span>
+              <span className="text-sm">Направи трансфер</span>
             </SidebarMenuButton></Link>
           </SidebarMenuItem>
         </SidebarMenu>

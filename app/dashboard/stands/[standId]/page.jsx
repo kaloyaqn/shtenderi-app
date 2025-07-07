@@ -313,6 +313,13 @@ export default function StandDetailPage({ params }) {
             <ImportIcon />
             Импорт
           </Button>
+          <input
+                            type="file"
+                            accept=".xml"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            style={{ display: 'none' }}
+                        />
           <Link className="w-full" href={`/dashboard/stands/${standId}/refund`}>
             <Button variant={"outline"}>
               <IconTruckReturn />
