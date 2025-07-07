@@ -4,6 +4,11 @@ import { useRef, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import PaymentForm from '@/components/payment/PaymentForm';
+import PaymentSummary from '@/components/ui/PaymentSummary';
 
 export default function InvoicePage() {
   const originalRef = useRef(null);
@@ -15,6 +20,14 @@ export default function InvoicePage() {
   const [loading, setLoading] = useState(true);
   const [isCreatingCreditNote, setIsCreatingCreditNote] = useState(false);
   const router = useRouter();
+  const [payments, setPayments] = useState([]);
+  const [cashRegisters, setCashRegisters] = useState([]);
+  const [method, setMethod] = useState('CASH');
+  const [cashRegisterId, setCashRegisterId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [partnerObligation, setPartnerObligation] = useState(null);
+  const [standObligation, setStandObligation] = useState(null);
 
   const printOriginal = useReactToPrint({ 
     contentRef: originalRef,
@@ -34,6 +47,12 @@ export default function InvoicePage() {
       .then((data) => setInvoice(data))
       .catch(() => toast.error("Failed to load invoice data."))
       .finally(() => setLoading(false));
+    fetch(`/api/payments?invoiceId=${invoiceId}`)
+      .then(res => res.json())
+      .then(setPayments);
+    fetch('/api/cash-registers')
+      .then(res => res.json())
+      .then(setCashRegisters);
   }, [invoiceId]);
 
   const handleCreateCreditNote = async () => {
@@ -70,6 +89,36 @@ export default function InvoicePage() {
       printOriginal();
     } else if (type === 'copy') {
       printCopy();
+    }
+  };
+
+  const handlePayment = async (e) => {
+    e.preventDefault();
+    setPaying(true);
+    try {
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId,
+          amount: parseFloat(amount),
+          method,
+          cashRegisterId: method === 'CASH' ? cashRegisterId : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Грешка при плащане');
+      toast.success('Плащането е успешно!');
+      setPayments(prev => [data.payment, ...prev]);
+      setPartnerObligation(data.partnerObligation);
+      setStandObligation(data.standObligation);
+      setAmount('');
+      setCashRegisterId('');
+      // Optionally refetch invoice
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -292,6 +341,38 @@ export default function InvoicePage() {
 
       {/* COPY INVOICE */}
       <InvoiceContent type="copy" ref={copyRef} />
+
+      {/* Payment Form & List */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Плащане по фактура</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* New Payment Form */}
+          <PaymentForm
+            invoiceId={invoiceId}
+            totalAmount={invoice.totalValue}
+            defaultMethod={method === 'CASH' ? 'cash' : 'bank'}
+            onChange={({ addPayment, method, amount, cashRegisterId }) => {
+              setMethod(method === 'cash' ? 'CASH' : 'BANK');
+              setAmount(amount);
+              setCashRegisterId(cashRegisterId || '');
+            }}
+          />
+          <form onSubmit={handlePayment} className="hidden"></form> {/* Hide old form, logic now in PaymentForm */}
+          <div className="mt-4">
+            <PaymentSummary
+              total={invoice.totalValue}
+              paid={payments.reduce((sum, p) => sum + p.amount, 0)}
+              payments={payments.map(p => ({
+                ...p,
+                method: p.method === 'CASH' ? 'cash' : 'bank',
+                cashRegisterName: p.cashRegister?.name || '',
+              }))}
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

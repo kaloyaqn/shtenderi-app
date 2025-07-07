@@ -17,6 +17,7 @@ model Stand {
   columns   Int?
   createdAt DateTime @default(now())
   email     String?
+  obligation Float @default(0)
 
   standProducts StandProduct[]
   checks        Check[]
@@ -93,6 +94,7 @@ model User {
   userPartners   UserPartner[]
   userStands     UserStand[]
   userStorages   UserStorage[]
+  payments       Payment[]
   @@map("users")
 }
 
@@ -109,6 +111,7 @@ model Partner {
   phone          String?                    // Телефон
   address        String?                    // Седалище на фирмата
   mol            String?                    // МОЛ - Материално отговорно лице
+  obligation     Float @default(0)
 
   stores         Store[]                    // Връзка към магазини
   revisions     Revision[]
@@ -163,6 +166,7 @@ model Storage {
   storageProducts StorageProduct[]
   userStorages    UserStorage[]
   revisions       Revision[]
+  cashRegisters   CashRegister[]
 }
 
 model StorageProduct {
@@ -198,6 +202,7 @@ model Invoice {
   revisionNumber Int?
 
   creditNotes    CreditNote[] // An invoice can have many credit notes
+  payments       Payment[]
 }
 
 model CreditNote {
@@ -225,7 +230,28 @@ model CreditNote {
 
 enum PaymentMethod {
   CASH
-  CARD
+  BANK
+}
+
+model CashRegister {
+  id           String   @id @default(uuid())
+  name         String
+  storage      Storage  @relation(fields: [storageId], references: [id])
+  storageId    String
+  payments     Payment[]
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId      String
+  amount         Float
+  method         PaymentMethod
+  cashRegister   CashRegister? @relation(fields: [cashRegisterId], references: [id])
+  cashRegisterId String?
+  createdAt      DateTime @default(now())
+  createdBy      User     @relation(fields: [createdById], references: [id])
+  createdById    String
 }
 
 model Refund {

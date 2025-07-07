@@ -1,3 +1,5 @@
+'use client'
+
 import { RefreshCcw } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";

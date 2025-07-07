@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import BasicHeader from "@/components/BasicHeader"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip } from '@/components/ui/tooltip';
 
 export default function PartnerViewPage({ params }) {
   const router = useRouter()
@@ -207,6 +208,60 @@ export default function PartnerViewPage({ params }) {
                 )}
               </CardContent>
             </Card>
+
+            {/* Invoices Table */}
+            {Array.isArray(partner.invoices) && partner.invoices.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Фактури</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm border">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="p-2 border">№</th>
+                          <th className="p-2 border">Дата</th>
+                          <th className="p-2 border">Стойност</th>
+                          <th className="p-2 border">Разплатена сума</th>
+                          <th className="p-2 border">Остатък</th>
+                          <th className="p-2 border">Кредит</th>
+                          <th className="p-2 border"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {partner.invoices.map(inv => {
+                          const paid = Array.isArray(inv.payments) ? inv.payments.reduce((sum, p) => sum + p.amount, 0) : 0;
+                          const remaining = inv.totalValue - paid;
+                          const overpaid = paid > inv.totalValue;
+                          return (
+                            <tr key={inv.id}>
+                              <td className="p-2 border font-mono">{inv.invoiceNumber}</td>
+                              <td className="p-2 border">{new Date(inv.issuedAt).toLocaleDateString('bg-BG')}</td>
+                              <td className="p-2 border">{inv.totalValue.toFixed(2)} лв.</td>
+                              <td className="p-2 border">{paid.toFixed(2)} лв.</td>
+                              <td className="p-2 border">{remaining > 0 ? remaining.toFixed(2) + ' лв.' : '0.00 лв.'}</td>
+                              <td className="p-2 border text-center">
+                                {overpaid && (
+                                  <Tooltip content="Има надплащане/кредит">
+                                    <span className="text-green-600 font-bold">+{(paid - inv.totalValue).toFixed(2)} лв.</span>
+                                  </Tooltip>
+                                )}
+                              </td>
+                              <td className="p-2 border">
+                                <Button size="sm" variant="link" onClick={() => router.push(`/dashboard/invoices/${inv.id}`)}>
+                                  Виж
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Recent Activity (placeholder) */}
             <Card>
