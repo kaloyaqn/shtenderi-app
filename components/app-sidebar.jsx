@@ -9,7 +9,9 @@ import {
   IconHelp,
   IconSearch,
   IconInnerShadowTop,
-  IconTransfer
+  IconTransfer,
+  IconCashRegister,
+  IconCash
 } from "@tabler/icons-react"
 import {
     BoxIcon,
@@ -62,9 +64,11 @@ const groupedDocuments = {
   "Основни": [
     { name: "Потребители", url: "/dashboard/users", icon: User, adminOnly: true },
     { name: "Номенклатура", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
-
-    
   ],
+  // "Нови": [
+  //   { name: "Каси", url: "/dashboard/cash-registers", icon: IconCashRegister, adminOnly: true },
+  //   { name: "Плащания", url: "/dashboard/payments", icon: IconCash, adminOnly: true },
+  // ],
   // Счетоводство: [
   //   { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
   //   { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
