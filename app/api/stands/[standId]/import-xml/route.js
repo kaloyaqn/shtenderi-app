@@ -108,12 +108,22 @@ export async function POST(req, context) {
       // Get next revision number
       const lastRevision = await prisma.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
       const nextNumber = (lastRevision?.number || 0) + 1;
+      // Fetch the stand to get its partnerId
+      const stand = await prisma.stand.findUnique({
+        where: { id: standId },
+        include: { store: { include: { partner: true } } },
+      });
+      let partnerId = null;
+      if (stand?.store?.partnerId) {
+        partnerId = stand.store.partnerId;
+      }
       await prisma.revision.create({
         data: {
           number: nextNumber,
           standId,
           userId: session.user.id,
           type: 'import',
+          partnerId: partnerId,
           missingProducts: {
             create: importedProductIds.map(p => ({ productId: p.productId, missingQuantity: p.quantity })),
           },
