@@ -38,6 +38,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Button } from "./ui/button";
 
 const groupedDocuments = {
   Начало: [
@@ -138,6 +139,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <NavMain items={groupedDocuments["Начало"]}/>
         <NavDocuments navGroups={visibleNavGroups} />
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>

@@ -93,12 +93,19 @@ export default function GeneralResupplyPage() {
 
   const handleMode = () => {
     let source = searchParams.get('source');
+    let storage_from = searchParams.get('storage_from_id');
 
     if (source === 'stand') {
         setMode('stand-to-stand')
     } else if (source === 'storage') {
         setMode("storage-to-stand")
+
+        if (storage_from) {
+            setSourceId(storage_from)
+        }
     }
+
+
 
   }
 

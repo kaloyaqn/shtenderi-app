@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Button } from "./ui/button"
 
 export function NavDocuments({ navGroups, className, ...props }) {
   const pathname = usePathname()
@@ -23,6 +24,7 @@ export function NavDocuments({ navGroups, className, ...props }) {
       className={cn("flex flex-col", className)}
       {...props}
     >
+
       {navGroups.map((group, index) => (
         <div key={index} className="mb-2">
           {group.title && (
@@ -30,6 +32,7 @@ export function NavDocuments({ navGroups, className, ...props }) {
               {group.title}
             </h4>
           )}
+
           <SidebarMenu>
             {group.items.map((item) => {
               const Icon = item.icon

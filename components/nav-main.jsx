@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link";
-import { IconCirclePlusFilled, IconMail } from "@tabler/icons-react";
+import { IconCirclePlusFilled, IconMail, IconTransfer } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button"
 import {
@@ -20,22 +20,16 @@ export function NavMain({
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton
-              tooltip="Quick Create"
-              className="bg-lime-600 text-white hover:bg-lime-700 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear">
-              <IconCirclePlusFilled />
-              <span>Quick Create</span>
-            </SidebarMenuButton>
-            <Button
-              size="icon"
-              className="size-8 group-data-[collapsible=icon]:opacity-0"
-              variant="outline">
-              <IconMail />
-              <span className="sr-only">Inbox</span>
-            </Button>
+      <Link className="w-full" href="/dashboard/resupply">
+      <SidebarMenuButton
+              tooltip="Направи трансфер"
+              className="bg-green-600 active:bg-green-600 active:text-white cursor-pointer text-white hover:bg-green-700 hover:text-primary-foreground min-w-8 duration-200 ease-linear">
+                  <IconTransfer />
+              <span>Направи трансфер</span>
+            </SidebarMenuButton></Link>
           </SidebarMenuItem>
         </SidebarMenu>
-        <SidebarMenu>
+        {/* <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               {item.href ? (
@@ -57,7 +51,7 @@ export function NavMain({
               )}
             </SidebarMenuItem>
           ))}
-        </SidebarMenu>
+        </SidebarMenu> */}
       </SidebarGroupContent>
     </SidebarGroup>
   );
