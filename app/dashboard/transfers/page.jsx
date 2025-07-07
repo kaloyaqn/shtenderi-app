@@ -59,7 +59,7 @@ export default function TransfersPage() {
             cell: ({ row }) => {
                 const status = row.original.status;
                 return (
-                    <Badge variant={status === 'COMPLETED' ? 'success' : 'destructive'}>
+                    <Badge variant={status === 'COMPLETED' ? 'success' : 'secondary'}>
                         {status === 'COMPLETED' ? 'Завършен' : 'Чакащ'}
                     </Badge>
                 )

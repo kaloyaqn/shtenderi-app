@@ -9,44 +9,6 @@ import { PrintableTransfer } from '../_components/printable-transfer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import LoadingScreen from '@/components/LoadingScreen';
-import BasicHeader from '@/components/BasicHeader';
-
-function ConfirmationCard({ password, setPassword, handleConfirm, confirming }) {
-    return (
-        <Card className="mb-6 bg-blue-50 border-blue-500">
-            <CardHeader>
-                <CardTitle>Потвърждение на трансфер</CardTitle>
-                <CardDescription>
-                    Моля, въведете паролата си, за да потвърдите получаването на стоките.
-                    Това ще актуализира наличностите в двата склада.
-                </CardDescription>
-            </CardHeader>
-            <form
-                onSubmit={e => {
-                    e.preventDefault();
-                    handleConfirm();
-                }}
-            >
-                <CardContent className="flex items-end gap-4">
-                    <div className="flex-grow">
-                        <Label className={'mb-2'} htmlFor="password ">Парола</Label>
-                        <Input 
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Твоята парола"
-                        />
-                    </div>
-                    <Button type="submit" disabled={confirming || !password}>
-                        {confirming ? 'Потвърждаване...' : 'Потвърди'}
-                    </Button>
-                </CardContent>
-            </form>
-        </Card>
-    );
-}
 
 export default function TransferDetailPage() {
     const { transferId } = useParams();
@@ -112,12 +74,39 @@ export default function TransferDetailPage() {
         }
     };
 
-    if (loading) return <LoadingScreen />;
+    if (loading) return <div>Зареждане...</div>;
     if (!transfer) return <div>Трансферът не е намерен.</div>;
 
+    const ConfirmationCard = () => (
+        <Card className="mb-6 bg-yellow-50 border-yellow-200">
+            <CardHeader>
+                <CardTitle>Потвърждение на трансфер</CardTitle>
+                <CardDescription>
+                    Моля, въведете паролата си, за да потвърдите получаването на стоките.
+                    Това ще актуализира наличностите в двата склада.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-end gap-4">
+                <div className="flex-grow">
+                    <Label htmlFor="password">Парола</Label>
+                    <Input 
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                    />
+                </div>
+                <Button onClick={handleConfirm} disabled={confirming || !password}>
+                    {confirming ? 'Потвърждаване...' : 'Потвърди'}
+                </Button>
+            </CardContent>
+        </Card>
+    );
+
     return (
-        <div className="container">
-            {/* <div className="flex justify-between items-center mb-6">
+        <div className="container mx-auto py-10">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold">
                     Преместване № {transfer.id.substring(0, 8).toUpperCase()}
                 </h1>
@@ -127,20 +116,9 @@ export default function TransferDetailPage() {
                         Назад
                     </Button>
                 </div>
-            </div> */}
+            </div>
 
-            <BasicHeader hasBackButton title={`Преместване № {${transfer.id.substring(0,8).toUpperCase()}}`}
-            subtitle={'Виж всичко за твоето преместване'}
-            />
-
-            {transfer.status === 'PENDING' && (
-                <ConfirmationCard
-                    password={password}
-                    setPassword={setPassword}
-                    handleConfirm={handleConfirm}
-                    confirming={confirming}
-                />
-            )}
+            {transfer.status === 'PENDING' && <ConfirmationCard />}
 
             <div className="border rounded-lg shadow-sm">
                 <PrintableTransfer ref={printRef} transfer={transfer} />
