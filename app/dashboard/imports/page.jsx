@@ -1,8 +1,14 @@
 'use client'
 
 import BasicHeader from "@/components/BasicHeader";
+import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
+import { useRouter } from "next/navigation";
+
+import TableLink from "@/components/ui/table-link";
+import { IconEye } from "@tabler/icons-react";
 import { useSession } from "next-auth/react";
+import { accessedDynamicData } from "next/dist/server/app-render/dynamic-rendering";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,6 +16,8 @@ export default function ImportPage() {
     const [imports, setImports] = useState([]);
     const [loading, setLoading] = useState(true);
     const {data: session} = useSession();
+  const router = useRouter();
+
     const userIsAdmin = session?.user?.role === "ADMIN";
 
     const fetchImports = async () => {
@@ -44,7 +52,58 @@ export default function ImportPage() {
         {
             accessorKey: 'fileName',
             header: "Файл"
-        }
+        },
+        {
+            accessorKey: 'user.name',
+            header: "Потребител"
+        },
+        {
+            accessorKey: 'storage',
+            header: "Склад",
+            cell: ({ row }) => {
+                const storage = row.original.storage;
+                if (!storage || !storage.name) return null;
+                return (
+                    <TableLink href={`/dashboard/stands/${storage.id}`}>
+                        {storage.name}
+                    </TableLink>
+                )
+            }
+        },
+        {
+            accessorKey: 'stand',
+            header: "Щанд",
+            cell: ({ row }) => {
+                const stand = row.original.stand;
+                if (!stand || !stand.name) return null;
+                return (
+                    <TableLink href={`/dashboard/stands/${stand.id}`}>
+                        {stand.name}
+                    </TableLink>
+                )
+            }
+        },
+        {
+            accessorKey: 'createdAt',
+            header: "Дата",
+            cell: ({ row }) => {
+                const date = row.original.createdAt;
+                if (!date) return "-";
+                return new Date(date).toLocaleString();
+            }
+        },
+        {
+            id: "actions",
+            cell: ({ row }) => (
+              <Button
+                size="sm"
+                variant="table"
+                onClick={() => router.push(`/dashboard/imports/${row.original.id}`)}
+              >
+                <IconEye /> Виж
+              </Button>
+            ),
+          },
     ]
     
 

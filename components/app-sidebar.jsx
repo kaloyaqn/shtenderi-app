@@ -18,6 +18,7 @@ import {
     CircleDollarSignIcon,
     FileMinus,
     HomeIcon,
+    ImportIcon,
     PackageOpenIcon,
     PersonStanding,
     Store,
@@ -45,6 +46,7 @@ const groupedDocuments = {
     { name: "Начало", url: "/dashboard", icon: HomeIcon },
   ],
   "Търговска мрежа": [
+    { name: "Импорти", url: "/dashboard/imports", icon: ImportIcon },
     { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
     { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
     { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
