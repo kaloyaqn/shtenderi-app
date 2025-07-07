@@ -23,6 +23,7 @@ import { IconInvoice } from '@tabler/icons-react';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import BasicHeader from '@/components/BasicHeader';
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -301,12 +302,20 @@ export default function RevisionDetailPage() {
 
   return (
     <div className="container mx-auto">
-      <div className="flex justify-between items-center mb-8">
+      {/* <div className="flex justify-between items-center mb-8">
       <div className='flex items-center gap-2'>
       <Button variant="ghost" size='sm' className='text-xs' onClick={() => router.push('/dashboard/revisions')}> {"<-"} Назад</Button>
       <h1 className={`text-2xl text-gray-900 font-bold`}>Продажба #{revision.number}</h1>
       </div>
-        <div className="flex items-center gap-2">
+
+      </div> */}
+
+      <BasicHeader
+      hasBackButton
+      title={`Продажба #${revision.number}`}
+      subtitle="Всички данни за твоята продажба"
+      >
+
           <Button variant={'outline'} onClick={handlePrintStock}><Printer/> Принтирай</Button>
           <Button onClick={handleSendToClient} variant="outline"> <Send /> Изпрати</Button>
           {invoice ? (
@@ -330,8 +339,7 @@ export default function RevisionDetailPage() {
   </Button>
 
 
-        </div>
-      </div>
+      </BasicHeader>
 
 
 
