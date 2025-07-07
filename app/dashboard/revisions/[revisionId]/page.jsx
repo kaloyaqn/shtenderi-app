@@ -373,6 +373,10 @@ export default function RevisionDetailPage() {
                     <label className="text-sm font-medium text-gray-500">Магазин</label>
                     <p className="text-base">{revision.store?.name || "N/A"} </p>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Тип</label>
+                    <p className="text-base">{revision.type || "N/A"} </p>
+                  </div>
                 </div>
 
                 <div>

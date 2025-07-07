@@ -141,12 +141,18 @@ export default function StorageDetailPage({ params }) {
         const response = await fetch(`/api/storages/${storageId}/import-xml`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ products })
+            body: JSON.stringify({ products, fileName: file.name })
         });
 
         if (!response.ok) {
             const err = await response.json();
-            throw new Error(err.error || 'Import failed');
+            // Check for duplicate file name error
+            if (err && err.includes && err.includes('file with this name')) {
+                toast.error('Файл с това име е импортиран наскоро. Моля, преименувайте файла и опитайте отново.', { id: toastId });
+            } else {
+                throw new Error(err.error || 'Import failed');
+            }
+            return;
         }
 
         toast.success('Продуктите са импортирани успешно!', { id: toastId });

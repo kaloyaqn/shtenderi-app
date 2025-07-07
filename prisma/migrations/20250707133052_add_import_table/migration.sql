@@ -2,7 +2,7 @@
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'USER');
 
 -- CreateEnum
-CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'BANK');
+CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CARD');
 
 -- CreateEnum
 CREATE TYPE "RefundSourceType" AS ENUM ('STAND', 'STORAGE');
@@ -118,6 +118,7 @@ CREATE TABLE "Revision" (
     "partnerId" TEXT,
     "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "type" TEXT NOT NULL DEFAULT 'manual',
 
     CONSTRAINT "Revision_pkey" PRIMARY KEY ("id")
 );
@@ -192,28 +193,6 @@ CREATE TABLE "CreditNote" (
 );
 
 -- CreateTable
-CREATE TABLE "CashRegister" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "warehouseId" TEXT NOT NULL,
-
-    CONSTRAINT "CashRegister_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Payment" (
-    "id" TEXT NOT NULL,
-    "invoiceId" TEXT NOT NULL,
-    "amount" DOUBLE PRECISION NOT NULL,
-    "method" "PaymentMethod" NOT NULL,
-    "cashRegisterId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdById" TEXT NOT NULL,
-
-    CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "Refund" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -285,6 +264,18 @@ CREATE TABLE "TransferProduct" (
     "quantity" INTEGER NOT NULL,
 
     CONSTRAINT "TransferProduct_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Import" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "standId" TEXT,
+    "storageId" TEXT,
+    "fileName" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Import_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -384,18 +375,6 @@ ALTER TABLE "StorageProduct" ADD CONSTRAINT "StorageProduct_productId_fkey" FORE
 ALTER TABLE "CreditNote" ADD CONSTRAINT "CreditNote_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CashRegister" ADD CONSTRAINT "CashRegister_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Storage"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Payment" ADD CONSTRAINT "Payment_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Payment" ADD CONSTRAINT "Payment_cashRegisterId_fkey" FOREIGN KEY ("cashRegisterId") REFERENCES "CashRegister"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Payment" ADD CONSTRAINT "Payment_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Refund" ADD CONSTRAINT "Refund_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -430,3 +409,12 @@ ALTER TABLE "TransferProduct" ADD CONSTRAINT "TransferProduct_transferId_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "TransferProduct" ADD CONSTRAINT "TransferProduct_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Import" ADD CONSTRAINT "Import_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Import" ADD CONSTRAINT "Import_standId_fkey" FOREIGN KEY ("standId") REFERENCES "Stand"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Import" ADD CONSTRAINT "Import_storageId_fkey" FOREIGN KEY ("storageId") REFERENCES "Storage"("id") ON DELETE SET NULL ON UPDATE CASCADE;

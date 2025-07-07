@@ -244,7 +244,7 @@ export default function StandDetailPage({ params }) {
         });
       } else {
         // No inactive products, proceed directly
-        await proceedWithImport(productsToImport);
+        await proceedWithImport(productsToImport, false, file.name);
       }
     } catch (err) {
       console.error("File change or check error:", err);
@@ -255,7 +255,7 @@ export default function StandDetailPage({ params }) {
     }
   };
 
-  const proceedWithImport = async (products, activate = false) => {
+  const proceedWithImport = async (products, activate = false, fileName = undefined) => {
     let productsToSend = products;
     if (activate) {
       const inactiveBarcodes = new Set(
@@ -271,11 +271,14 @@ export default function StandDetailPage({ params }) {
         const response = await fetch(`/api/stands/${standId}/import-xml`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ products: productsToSend }),
+          body: JSON.stringify({ products: productsToSend, fileName }),
         });
 
         if (!response.ok) {
           const err = await response.json();
+          if (err && err.error && err.error.includes('file with this name')) {
+            throw new Error('Файл с това име е импортиран наскоро. Моля, преименувайте файла и опитайте отново.');
+          }
           throw new Error(err.error || "Import failed");
         }
         await fetchData();

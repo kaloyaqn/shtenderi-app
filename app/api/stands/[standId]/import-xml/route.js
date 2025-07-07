@@ -1,15 +1,35 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(req, context) {
   try {
     const { standId } = await context.params;
-    const { products } = await req.json();
+    const { products, fileName } = await req.json();
     console.log('IMPORT XML: standId:', standId, 'products:', products);
     if (!Array.isArray(products) || !standId) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
+    // Check for duplicate file name in last 100 imports for this stand
+    if (fileName) {
+      const recentImports = await prisma.import.findMany({
+        where: { standId, fileName: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      });
+      if (recentImports.some(imp => imp.fileName === fileName)) {
+        return NextResponse.json({ error: 'A file with this name was recently imported. Please rename the file and try again.' }, { status: 400 });
+      }
+    }
+
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const importedProductIds = [];
     for (const product of products) {
       if (!product.barcode || typeof product.quantity !== 'number') continue;
 
@@ -41,6 +61,8 @@ export async function POST(req, context) {
         });
       }
 
+      importedProductIds.push({ productId: dbProduct.id, quantity: product.quantity });
+
       await prisma.standProduct.upsert({
         where: {
           standId_productId: {
@@ -57,6 +79,44 @@ export async function POST(req, context) {
           standId,
           productId: dbProduct.id,
           quantity: product.quantity,
+        },
+      });
+    }
+
+    // Create Import record first
+    const importRecord = await prisma.import.create({
+      data: {
+        userId: session.user.id,
+        standId,
+        fileName: fileName || null,
+      },
+    });
+
+    // Create ImportProduct records
+    if (importedProductIds.length > 0) {
+      await prisma.importProduct.createMany({
+        data: importedProductIds.map(p => ({
+          importId: importRecord.id,
+          productId: p.productId,
+          quantity: p.quantity,
+        })),
+      });
+    }
+
+    // Create Revision (type: 'import')
+    if (importedProductIds.length > 0) {
+      // Get next revision number
+      const lastRevision = await prisma.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
+      const nextNumber = (lastRevision?.number || 0) + 1;
+      await prisma.revision.create({
+        data: {
+          number: nextNumber,
+          standId,
+          userId: session.user.id,
+          type: 'import',
+          missingProducts: {
+            create: importedProductIds.map(p => ({ productId: p.productId, missingQuantity: p.quantity })),
+          },
         },
       });
     }
