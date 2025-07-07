@@ -8,6 +8,8 @@ import SessionLayout from "./SessionLayout";
 import MobileNavWrapper from "./MobileNavWrapper";
 import { ErrorBoundary } from "@/components/error-boundary";
 import AnnouncementModal from "@/components/announcements/NewDesign";
+import VersionBanner from "@/components/version-banner";
+
 
 export default async function DashboardLayout({ children }) {
   const session = await getServerSession(authOptions);
@@ -32,6 +34,10 @@ export default async function DashboardLayout({ children }) {
           <ErrorBoundary>{children}</ErrorBoundary>
         </SidebarInset>
         <MobileNavWrapper />
+
+        
+        <VersionBanner /> 
+
       </SidebarProvider>
     </SessionLayout>
   );

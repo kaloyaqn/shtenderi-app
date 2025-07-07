@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && echo $(git rev-parse --short HEAD) > public/version.txt"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
