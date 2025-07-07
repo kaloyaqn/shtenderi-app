@@ -320,9 +320,9 @@ export default function RevisionDetailPage() {
             </Button>
           )}
           <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}><EditIcon /> Редактирай</Button>
-          <Button variant="outline" onClick={() => setRepeatDialogOpen(true)}>
+          {/* <Button variant="outline" onClick={() => setRepeatDialogOpen(true)}>
           <Repeat />  Повтори продажба
-          </Button>
+          </Button> */}
           <div className="h-6 w-px bg-gray-300"></div>
 
           <Button variant="default" onClick={() => setResupplyDialogOpen(true)}>
