@@ -4,7 +4,7 @@ import { useState, useEffect, use, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { Plus, Pencil, Trash2, Upload, Barcode, ImportIcon, LucideUpload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Barcode, ImportIcon, LucideUpload, Warehouse, BoxIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // These components will be created later if they don't exist
 // import AddProductToStorageDialog from './_components/add-product-dialog';
@@ -32,6 +33,8 @@ import { IconPackageImport, IconTransfer, IconTruckReturn } from '@tabler/icons-
 export default function StorageDetailPage({ params }) {
   const { storageId } = use(params);
   const { data: session } = useSession();
+  const isMobile = useIsMobile();
+  const userIsAdmin = session?.user?.role === 'ADMIN';
   const [storage, setStorage] = useState(null);
   const [productsInStorage, setProductsInStorage] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,6 +168,7 @@ export default function StorageDetailPage({ params }) {
     }
   };
   
+  // In the desktop/tablet DataTable columns/actions, also check userIsAdmin before showing edit/delete buttons.
   const columns = [
     {
       accessorKey: 'product.name',
@@ -182,6 +186,7 @@ export default function StorageDetailPage({ params }) {
       id: 'actions',
       cell: ({ row }) => {
         const storageProduct = row.original;
+        if (!userIsAdmin) return null;
         return (
           <div className="flex items-center gap-2 md:flex-row flex-col md:justify-start justify-center w-full">
             <Button variant="table" onClick={() => {
@@ -261,6 +266,124 @@ export default function StorageDetailPage({ params }) {
   if (error) return <div>Error: {error}</div>;
   if (!storage) return <div>Складът не е намерен.</div>;
 
+  if (isMobile) {
+    return (
+      <div className="p-2">
+        <BasicHeader
+          title={storage ? `Склад: ${storage.name}` : 'Зареждане...'}
+          subtitle={"Упраялавай стоката в склада"}
+        />
+        <div className="flex flex-col gap-2 mt-4">
+          {productsInStorage.map((item) => (
+            <div key={item.id} className="border rounded-lg p-3 flex flex-col gap-1 bg-white shadow-sm">
+              <div className="flex gap-2 items-center">
+                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <BoxIcon className="h-5 w-5 text-gray-600" />
+                </div>
+                <div>
+                  <div className="font-semibold text-base">{item.product?.name}</div>
+                  <div className="text-xs text-gray-500">Баркод: {item.product?.barcode}</div>
+                  <div className="text-xs text-gray-500">Количество: {item.quantity}</div>
+                </div>
+              </div>
+              {userIsAdmin && (
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setProductToEdit(item);
+                    setEditDialogOpen(true);
+                  }}>
+                    <Pencil className="h-4 w-4" /> Редакция
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setProductToDelete(item);
+                    setDeleteDialogOpen(true);
+                  }}>
+                    <Trash2 className="h-4 w-4" /> Премахни
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        {userIsAdmin && (
+          <Button className="fixed bottom-6 right-6 rounded-full shadow-lg" size="icon" onClick={handleImportClick}>
+            <ImportIcon />
+          </Button>
+        )}
+        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
+        {/* Dialogs for edit, delete, refund, etc. remain functional */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Премахване на продукт</AlertDialogTitle>
+              <AlertDialogDescription>
+                Сигурни ли сте, че искате да премахнете този продукт от склада? Това действие не може да бъде отменено.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отказ</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} disabled={!userIsAdmin}>Изтрий</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <EditStorageQuantityDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          storageProduct={productToEdit}
+          onQuantityUpdated={fetchData}
+          disabled={!userIsAdmin}
+        />
+        <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Върни продукти от склада</DialogTitle>
+            </DialogHeader>
+            <div className="mb-2">
+              <Input
+                ref={barcodeInputRef}
+                placeholder="Сканирай или въведи баркод..."
+                value={barcodeInput}
+                onChange={e => setBarcodeInput(e.target.value)}
+                onKeyDown={handleBarcodeEnter}
+                autoFocus
+                disabled={!userIsAdmin}
+              />
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {refundProducts.length === 0 && <div className="text-gray-500">Няма избрани продукти.</div>}
+              {refundProducts.map(rp => (
+                <div key={rp.product.id} className="flex items-center gap-2 mb-2">
+                  <div className="flex-1">{rp.product.name} <span className="text-xs text-gray-500">({rp.product.barcode})</span></div>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={rp.max}
+                    value={rp.quantity}
+                    onChange={e => setRefundQuantity(rp.product.id, Math.max(1, Math.min(rp.max, Number(e.target.value))))}
+                    className="w-20"
+                    disabled={!userIsAdmin}
+                  />
+                  <span className="text-xs text-gray-400">/ {rp.max}</span>
+                  {userIsAdmin && (
+                    <Button variant="ghost" size="icon" onClick={() => removeRefundProduct(rp.product.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRefundDialogOpen(false)}>Отказ</Button>
+              <Button onClick={handleRefund} disabled={refundProducts.length === 0 || refundLoading || !userIsAdmin}>
+                {refundLoading ? 'Връщане...' : 'Върни избраните продукти'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
   return (
     <div className="">
       <BasicHeader subtitle={"Упраялавай стоката в склада"} title={storage ? `Склад: ${storage.name}` : "Зареждане..."}>
@@ -307,7 +430,7 @@ export default function StorageDetailPage({ params }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отказ</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Изтрий</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} disabled={!userIsAdmin}>Изтрий</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -337,6 +460,7 @@ export default function StorageDetailPage({ params }) {
         onOpenChange={setEditDialogOpen}
         storageProduct={productToEdit}
         onQuantityUpdated={fetchData}
+        disabled={!userIsAdmin}
       />
 
       <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
@@ -352,6 +476,7 @@ export default function StorageDetailPage({ params }) {
               onChange={e => setBarcodeInput(e.target.value)}
               onKeyDown={handleBarcodeEnter}
               autoFocus
+              disabled={!userIsAdmin}
             />
           </div>
           <div className="max-h-60 overflow-y-auto">
@@ -366,6 +491,7 @@ export default function StorageDetailPage({ params }) {
                   value={rp.quantity}
                   onChange={e => setRefundQuantity(rp.product.id, Math.max(1, Math.min(rp.max, Number(e.target.value))))}
                   className="w-20"
+                  disabled={!userIsAdmin}
                 />
                 <span className="text-xs text-gray-400">/ {rp.max}</span>
                 <Button variant="ghost" size="icon" onClick={() => removeRefundProduct(rp.product.id)}>
@@ -376,7 +502,7 @@ export default function StorageDetailPage({ params }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRefundDialogOpen(false)}>Отказ</Button>
-            <Button onClick={handleRefund} disabled={refundProducts.length === 0 || refundLoading}>
+            <Button onClick={handleRefund} disabled={refundProducts.length === 0 || refundLoading || !userIsAdmin}>
               {refundLoading ? 'Връщане...' : 'Върни избраните продукти'}
             </Button>
           </DialogFooter>
