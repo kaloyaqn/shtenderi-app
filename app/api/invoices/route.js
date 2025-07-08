@@ -38,6 +38,7 @@ export async function POST(req) {
 
     // Prepare products snapshot
     const products = revision.missingProducts.map(mp => ({
+      productId: mp.product?.id,
       name: mp.product?.name || '-',
       barcode: mp.product?.barcode || '-',
       quantity: mp.missingQuantity,

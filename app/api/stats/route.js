@@ -46,9 +46,14 @@ export async function GET() {
   }
   const salesCountLast30Days = last30DaysRevisions.length;
 
+  // Format numbers as money (xx.xx)
+  function formatMoney(value) {
+    return Number(value).toFixed(2);
+  }
+
   return NextResponse.json({
-    totalSalesValue,
-    salesLast30Days,
+    totalSalesValue: formatMoney(totalSalesValue),
+    salesLast30Days: formatMoney(salesLast30Days),
     salesCountLast30Days,
     itemsSoldLast30Days
   });

@@ -46,7 +46,6 @@ const groupedDocuments = {
     { name: "Начало", url: "/dashboard", icon: HomeIcon },
   ],
   "Търговска мрежа": [
-    { name: "Импорти", url: "/dashboard/imports", icon: ImportIcon },
     { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
     { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
     { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
@@ -55,6 +54,8 @@ const groupedDocuments = {
     
   ],
   "Справки и счетоводни документи": [
+    { name: "Импорти", url: "/dashboard/imports", icon: ImportIcon },
+
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
     { name: "Премествания", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },

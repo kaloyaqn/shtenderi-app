@@ -176,8 +176,10 @@ export default function RefundDetailPage() {
   // Step 3: Select invoice and enter quantity
   function handleSelectInvoice(inv) {
     setSelectedInvoice(inv);
-    // Find product in invoice
-    const invProduct = (Array.isArray(inv.products) ? inv.products : []).find(p => p.productId === selectedProduct.productId);
+    // Find product in invoice by barcode
+    const invProduct = (Array.isArray(inv.products) ? inv.products : []).find(
+      p => p.barcode === selectedProduct.barcode
+    );
     setCreditQuantity(1);
     setCreditNoteStep(3);
   }
@@ -188,8 +190,14 @@ export default function RefundDetailPage() {
       setCreditNoteError("Моля, изберете фактура и продукт.");
       return;
     }
-    // Find product in invoice
-    const invProduct = (Array.isArray(selectedInvoice.products) ? selectedInvoice.products : []).find(p => p.productId === selectedProduct.id);
+    // Debug info
+    console.log('DEBUG selectedProduct:', selectedProduct);
+    console.log('DEBUG selectedInvoice.products:', selectedInvoice.products);
+    // Find product in invoice by barcode
+    const invProduct = (Array.isArray(selectedInvoice.products) ? selectedInvoice.products : []).find(
+      p => p.barcode === selectedProduct.barcode
+    );
+    console.log('DEBUG invProduct found:', invProduct);
     if (!invProduct) {
       setCreditNoteError("Този продукт не фигурира в избраната фактура или е бил вече кредитиран");
       return;
