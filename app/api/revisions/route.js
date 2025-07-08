@@ -84,6 +84,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       include: {
         stand: true,
+        storage: true, // include storage
         partner: true,
         user: true,
         missingProducts: true,

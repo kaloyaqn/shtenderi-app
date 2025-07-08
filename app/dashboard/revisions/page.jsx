@@ -78,13 +78,32 @@ export default function RevisionsListPage() {
       cell: ({ row }) => row.original.number,
     },
     {
-      accessorKey: "standName",
-      header: "Щанд",
-      cell: ({ row }) => (
-        <TableLink href={`/dashboard/stands/${row.original.stand?.id}`}>
-          {row.original.standName}
-        </TableLink>
-      ),
+      accessorKey: "source",
+      header: "Източник",
+      cell: ({ row }) => {
+        const stand = row.original.stand;
+        const storage = row.original.storage;
+        if (storage) {
+          return <TableLink href={`/dashboard/storages/${storage.id}`}>{storage.name}</TableLink>;
+        } else if (stand) {
+          return <TableLink href={`/dashboard/stands/${stand.id}`}>{stand.name}</TableLink>;
+        } else {
+          return <span className="text-gray-400">-</span>;
+        }
+      },
+    },
+    {
+      accessorKey: "type",
+      header: "Тип",
+      cell: ({ row }) => {
+        const type = row.original.type;
+        if (!type) return null;
+        return (
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 border ${type === 'import' ? 'border-blue-400 text-blue-700' : 'border-gray-300 text-gray-600'}`}>
+            {type === 'import' ? 'Импорт' : 'Ръчно'}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "partnerName",
@@ -174,9 +193,9 @@ export default function RevisionsListPage() {
       <DataTable
         columns={columns}
         data={revisions}
-        searchKey="standName"
+        searchKey="source"
         filterableColumns={[
-          { id: "standName", title: "Щанд" },
+          { id: "source", title: "Източник" },
           { id: "partnerName", title: "Партньор" },
           { id: "userName", title: "Потребител" },
         ]}
