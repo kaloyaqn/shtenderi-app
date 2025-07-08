@@ -8,7 +8,7 @@ export default function BasicHeader({title, subtitle, onClick, button_text, butt
   const router = useRouter();
 
     return (
-        <div className="flex md:flex-row flex-col  justify-between items-center md:pb-4 border-b md:p-0 p-1 py-4 md:mb-4">
+        <div className="flex md:flex-row flex-col  justify-between md:items-center items-start mb-4 md:pb-4 border-b md:p-0 p-1 py-4 md:mb-4">
         <div className="flex items-center gap-3">
             {hasBackButton && (
                             <Button

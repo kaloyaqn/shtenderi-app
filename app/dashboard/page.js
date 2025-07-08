@@ -6,13 +6,20 @@ import { getAllProducts } from '@/lib/products/product';
 import { getAllStores } from '@/lib/stores/store';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import DashboardStatsChart from '@/components/dashboard-stats-chart';
-import { getSession } from "next-auth/react";
+import BasicHeader from "@/components/BasicHeader";
+import { useSession } from "next-auth/react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function DashboardHome() {
     const stands = await getAllStands();
     const partners = await getAllPartners();
     const products = await getAllProducts();
     const stores = await getAllStores();
+
+    const session = await getServerSession(authOptions);
+    
+
 
 
 
@@ -26,8 +33,14 @@ export default async function DashboardHome() {
         { name: 'Магазини', value: stores.length },
     ];
     return (
-        <div className="">
-            <h1 className="text-2xl font-bold mb-8 text-left">Добре дошли в административното табло</h1>
+        <>
+            <BasicHeader title={`Здравей, ${session.user.name}`} 
+            subtitle={`Всичко важно за теб - на едно място.`}
+            />
+
+            {session.user.role === "ADMIN" && (
+                <>
+                                <div className="">
             <div className="grid md:grid-cols-4 grid-cols-2 gap-6 mb-10">
                 <Card>
                     <CardHeader>
@@ -54,10 +67,10 @@ export default async function DashboardHome() {
                     </CardHeader>
                 </Card>
             </div>
-            <div className="bg-white rounded-xl border shadow p-6 mb-10">
+            {/* <div className="bg-white rounded-xl border shadow p-6 mb-10">
                 <h2 className="text-xl font-semibold mb-4">Обобщение</h2>
-                {/* <DashboardStatsChart data={chartData} /> */}
-            </div>
+                <DashboardStatsChart data={chartData} />
+            </div> */}
             <div className="flex w-full flex-wrap gap-4 justify-center">
                 <Link href="/dashboard/stands" className="px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 w-full transition">Виж всички щандове</Link>
                 <Link href="/dashboard/stands/create" className="px-6 py-3 rounded-lg bg-blue-50 text-blue-800 font-semibold shadow w-full hover:bg-blue-100 transition">+ Добави нов щанд</Link>
@@ -65,5 +78,35 @@ export default async function DashboardHome() {
                 <Link href="/dashboard/revisions" className="px-6 py-3 rounded-lg bg-yellow-50 text-yellow-800 font-semibold shadow w-full hover:bg-yellow-100 transition">Виж всички ревизии</Link>
             </div>
         </div>  
+                </>
+            )}
+
+            {session.user.role === "USER" && (
+                <div className="grid grid-cols-2 gap-3" >
+                    <Link href={'/dashboard/stands'}>
+                        <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
+                            Твоите щендери
+                        </div>
+                    </Link>
+                    <Link href={'/dashboard/partners'}>
+                    <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
+                    Твоите партньори
+                        </div>
+                    </Link>
+                    <Link href={'/dashboard/storages'}>
+                    <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
+                    Твоите складове
+                        </div>
+                    </Link>
+                    <Link href={'/dashboard/sales'}>
+                    <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
+                    Твоите продажби
+                        </div>
+                    </Link>
+                </div>
+            )} 
+
+
+        </>
     )
 }

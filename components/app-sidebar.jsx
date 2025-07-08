@@ -54,7 +54,7 @@ const groupedDocuments = {
     
   ],
   "Справки и счетоводни документи": [
-    { name: "Импорти", url: "/dashboard/imports", icon: ImportIcon },
+    { name: "Импорти", url: "/dashboard/imports", icon: ImportIcon, adminOnly: true },
 
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
