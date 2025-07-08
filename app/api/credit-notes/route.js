@@ -62,6 +62,8 @@ export async function POST(req) {
           partnerBulstat: '',
           partnerMol: '',
           partnerAddress: '',
+          partnerCountry: '',
+          partnerCity: '',
           preparedBy,
           products: products,
           totalValue: products.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)), 0),
@@ -108,6 +110,8 @@ export async function POST(req) {
         partnerBulstat: originalInvoice.partnerBulstat,
         partnerMol: originalInvoice.partnerMol,
         partnerAddress: originalInvoice.partnerAddress,
+        partnerCountry: originalInvoice.partnerCountry,
+        partnerCity: originalInvoice.partnerCity,
         preparedBy: preparedBy,
         products: originalInvoice.products, // Direct copy
         totalValue: originalInvoice.totalValue,

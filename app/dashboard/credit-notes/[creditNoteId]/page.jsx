@@ -92,9 +92,9 @@ export default function CreditNotePage() {
             <span className="font-semibold">МОЛ</span>
             <span>{creditNote.partnerMol || "-"}</span>
             <span className="font-semibold">Държава</span>
-            <span>България</span>
+            <span>{creditNote.partnerCountry || "-"}</span>
             <span className="font-semibold">Град</span>
-            <span>{creditNote.partnerAddress?.split(",")[0] || "-"}</span>
+            <span>{creditNote.partnerCity || "-"}</span>
             <span className="font-semibold">Адрес</span>
             <span>{creditNote.partnerAddress || "-"}</span>
           </div>

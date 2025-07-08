@@ -11,6 +11,7 @@ import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import BasicHeader from '@/components/BasicHeader';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
@@ -311,12 +312,22 @@ export default function StandRevisionPage({ params }) {
 
   return (
     <div className="pb-15">
-      {standName && (
-      <h1 className="text-xl lg:text-2xl font-bold md:pb-4 md:p-0 p-4 border-b mb-4">Чекиране на {standName}</h1>
-      )}
+      <BasicHeader title={`Чекиране на щендер: ${standName}`}>
+      {!revisionId && (
+      <Button  
+      onClick={handleFinish}
+      disabled={products.length === 0}
+size="lg" className='w-full! h-15 mt-3 mb-4'>
+<CheckCircle />  Приключи чекиране
+</Button>
+  )}
+      </BasicHeader>
 
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-3">
 <div className="lg:col-span-1">
+
 {!finished && (
         <Card>
           <CardContent>
@@ -388,14 +399,7 @@ export default function StandRevisionPage({ params }) {
       </CardContent>
   </Card>
 
-  {!revisionId && (
-      <Button  
-      onClick={handleFinish}
-      disabled={products.length === 0}
-size="lg" className='w-full! h-15 mt-3'>
-<CheckCircle />  Приключи чекиране
-</Button>
-  )}
+
 
   {revisionId && (
             <div className="flex w-full justify-center">

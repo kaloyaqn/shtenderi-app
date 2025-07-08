@@ -62,6 +62,8 @@ export async function POST(req) {
         partnerBulstat: revision.partner.bulstat,
         partnerMol: revision.partner.mol,
         partnerAddress: revision.partner.address,
+        partnerCountry: revision.partner.country,
+        partnerCity: revision.partner.city,
         preparedBy,
         products,
         totalValue,

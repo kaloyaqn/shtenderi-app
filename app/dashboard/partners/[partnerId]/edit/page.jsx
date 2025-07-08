@@ -21,6 +21,8 @@ export default function EditPartnerPage({ params }) {
   const [partner, setPartner] = useState(null)
   const [address, setAddress] = useState("")
   const [mol, setMol] = useState("")
+  const [country, setCountry] = useState("")
+  const [city, setCity] = useState("")
   const partnerId = use(params).partnerId
 
   useEffect(() => {
@@ -32,6 +34,8 @@ export default function EditPartnerPage({ params }) {
         setPartner(data)
         setAddress(data.address || "")
         setMol(data.mol || "")
+        setCountry(data.country || "")
+        setCity(data.city || "")
       } catch (error) {
         console.error('Error fetching partner:', error)
         setError('Грешка при зареждане на партньор')
@@ -53,6 +57,8 @@ export default function EditPartnerPage({ params }) {
       contactPerson: formData.get('contactPerson')?.trim(),
       phone: formData.get('phone')?.trim(),
       address: address.trim(),
+      country: country.trim(),
+      city: city.trim(),
       mol: mol.trim(),
     }
 
@@ -156,6 +162,27 @@ export default function EditPartnerPage({ params }) {
                     placeholder="Въведете седалище на партньора (по избор)"
                     value={address}
                     onChange={e => setAddress(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="country">Държава</Label>
+                  <Input
+                    id="country"
+                    name="country"
+                    placeholder="Въведете държава (по избор)"
+                    value={country}
+                    onChange={e => setCountry(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="city">Град</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    placeholder="Въведете град (по избор)"
+                    value={city}
+                    onChange={e => setCity(e.target.value)}
                   />
                 </div>
 

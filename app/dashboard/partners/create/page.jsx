@@ -18,6 +18,8 @@ export default function CreatePartnerPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [address, setAddress] = useState("")
+  const [country, setCountry] = useState("")
+  const [city, setCity] = useState("")
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,6 +34,8 @@ export default function CreatePartnerPage() {
       contactPerson: formData.get('contactPerson')?.trim(),
       phone: formData.get('phone')?.trim(),
       address: address.trim(),
+      country: country.trim(),
+      city: city.trim(),
       mol: formData.get('mol')?.trim(),
     }
 
@@ -127,6 +131,27 @@ export default function CreatePartnerPage() {
                     placeholder="Въведете седалище на партньора (по избор)"
                     value={address}
                     onChange={e => setAddress(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="country">Държава</Label>
+                  <Input
+                    id="country"
+                    name="country"
+                    placeholder="Въведете държава (по избор)"
+                    value={country}
+                    onChange={e => setCountry(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="city">Град</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    placeholder="Въведете град (по избор)"
+                    value={city}
+                    onChange={e => setCity(e.target.value)}
                   />
                 </div>
 

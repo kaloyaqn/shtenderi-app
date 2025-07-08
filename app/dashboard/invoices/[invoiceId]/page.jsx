@@ -109,9 +109,9 @@ export default function InvoicePage() {
             <span className="font-semibold">МОЛ</span>
             <span>{invoice.partnerMol || "-"}</span>
             <span className="font-semibold">Държава</span>
-            <span>България</span>
+            <span>{invoice.partnerCountry || "-"}</span>
             <span className="font-semibold">Град</span>
-            <span>{invoice.partnerAddress?.split(",")[0] || "-"}</span>
+            <span>{invoice.partnerCity || "-"}</span>
             <span className="font-semibold">Адрес</span>
             <span>{invoice.partnerAddress || "-"}</span>
           </div>
