@@ -238,3 +238,6 @@ export default function PartnersPage() {
     </div>
   )
 } 
+
+
+//final working version

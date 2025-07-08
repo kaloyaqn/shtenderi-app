@@ -147,6 +147,7 @@ export function AppSidebar({
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
+        <p className="text-sm text-gray-600">1.0.0</p>
         <NavUser user={session?.user} />
       </SidebarFooter>
     </Sidebar>
