@@ -12,17 +12,8 @@ export async function POST(req, context) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
-    // Check for duplicate file name in last 100 imports for this stand
-    if (fileName) {
-      const recentImports = await prisma.import.findMany({
-        where: { standId, fileName: { not: null } },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-      });
-      if (recentImports.some(imp => imp.fileName === fileName)) {
-        return NextResponse.json({ error: 'A file with this name was recently imported. Please rename the file and try again.' }, { status: 400 });
-      }
-    }
+    // Debug: log the fileName being imported
+    console.log('[IMPORT] Attempting import with fileName:', fileName);
 
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) {
@@ -133,7 +124,7 @@ export async function POST(req, context) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('Import Stand XML error:', err);
+    console.error('Import Stand XML error:', err, 'fileName:', fileName);
     if (err instanceof Error) {
       console.error('Error message:', err.message);
       console.error('Error stack:', err.stack);
