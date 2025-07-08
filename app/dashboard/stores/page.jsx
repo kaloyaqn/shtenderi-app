@@ -60,6 +60,11 @@ export default function StoresPage() {
       },
     },
     {
+      accessorKey: "stands",
+      header: "Щендери",
+      cell: ({ row }) => Array.isArray(row.original.stands) ? row.original.stands.length : 0,
+    },
+    {
       id: "actions",
       cell: ({ row }) => {
         const store = row.original
