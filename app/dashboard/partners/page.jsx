@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, UserIcon } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ import { toast } from "sonner"
 import TableLink from "@/components/ui/table-link"
 import LoadingScreen from "@/components/LoadingScreen"
 import BasicHeader from "@/components/BasicHeader"
+import NoAcess from "@/components/NoAccess"
 
 export default function PartnersPage() {
   const router = useRouter()
@@ -155,13 +156,17 @@ export default function PartnersPage() {
 
   if (!loading && data.length === 0 && !userIsAdmin) {
     return (
-      <div className="container mx-auto py-10 text-center">
-        <h1 className="text-3xl font-bold mb-4">Партньори</h1>
-        <p>Нямате зачислени партньори. Моля, свържете се с администратор.</p>
-      </div>
+      <NoAcess 
+      icon={<UserIcon className="h-12 w-12 text-gray-400" />}
+      help_text={`Ако имате нужда от помощ, свържете се с администратор.`}
+      subtitlte={`
+        Нямате зачислени партньори. За добавяне на нови партньори се свържете с администратор.
+        `}
+      title= {userIsAdmin ? "Няма намерени партньори" : "Нямате зачислени партньори"}
+      />
     );
   }
-
+vi
   return (
     <div className="">
       {/* <div className="flex justify-between items-center mb-8">

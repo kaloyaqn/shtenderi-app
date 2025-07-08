@@ -45,7 +45,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import LoadingScreen from "@/components/LoadingScreen";
-import { IconTransferIn, IconTruckReturn } from "@tabler/icons-react";
+import { IconTransfer, IconTransferIn, IconTruckReturn } from "@tabler/icons-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -344,7 +344,7 @@ export default function StandDetailPage({ params }) {
             <Card>
               <CardContent className="p-3 text-center">
                 <p className="text-lg font-bold text-gray-900">{filteredProducts.length}</p>
-                <p className="text-xs text-gray-500">Видове</p>
+                <p className="text-xs text-gray-500">Позиции</p>
               </CardContent>
             </Card>
             <Card>
@@ -362,8 +362,8 @@ export default function StandDetailPage({ params }) {
               Рекламации
             </Button>
             <Button variant="outline" className="w-full h-12 bg-transparent" onClick={() => router.push(`/dashboard/resupply?source=stand`)}>
-              <Warehouse className="h-4 w-4 mr-2" />
-              Превози от склад
+              <IconTransfer className="h-4 w-4 mr-2" />
+              Трансфер
             </Button>
             <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white" onClick={() => router.push(`/dashboard/stands/${stand.id}/revision`)}>
               <CheckCircle className="h-4 w-4 mr-2" />

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { Plus, Pencil, Trash2, PlusIcon, Warehouse } from "lucide-react";
+import { Plus, Pencil, Trash2, PlusIcon, Warehouse, WarehouseIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -177,7 +177,13 @@ export default function StoragesPage() {
   if (loading) return <LoadingScreen />;
 
   if (!loading && storages.length === 0 && !userIsAdmin) {
-    return <NoAcess />;
+    return <NoAcess title={`Нямате зачислени складове`} 
+    subtitlte={`
+                  В момента няма налични складове в системата. За добавяне на нови складове се свържете с администратор.
+      `}
+      help_text={`                  Складовете се управляват от администратор. Свържете се с него за достъп до складови операции.
+`}
+    icon={<><WarehouseIcon className="h-12 w-12 text-gray-400" /></>}/>;
   }
 
   if (isMobile) {

@@ -41,16 +41,16 @@ export default function NoAcess({icon, title, subtitlte, help_text}) {
           </div>
 
           {/* Help Text */}
-          <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mt-8 p-4 bg-green-50 rounded-lg border border-green-200">
             <div className="flex items-start space-x-3">
-              <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+              <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-2 h-2 bg-green-600 rounded-full"></div>
               </div>
               <div className="text-left">
-                <p className="text-sm font-medium text-blue-900 mb-1">
+                <p className="text-sm font-medium text-green-900 mb-1">
                   Нужда от помощ?
                 </p>
-                <p className="text-xs text-blue-700 leading-relaxed">
+                <p className="text-xs text-green-700 leading-relaxed">
                     {help_text}
                 </p>
               </div>
