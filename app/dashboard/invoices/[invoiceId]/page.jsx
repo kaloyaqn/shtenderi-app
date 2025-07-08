@@ -172,10 +172,10 @@ export default function InvoicePage() {
               <td className="p-2 border">{p.barcode}</td>
               <td className="p-2 border text-center">{p.quantity}</td>
               <td className="p-2 border text-right">
-                {(p.clientPrice || 0).toFixed(2)} лв.
+                {((p.clientPrice || 0) / 1.2).toLocaleString("bg-BG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(',', '.')} лв.
               </td>
               <td className="p-2 border text-right">
-                {(p.quantity * (p.clientPrice || 0)).toFixed(2)} лв.
+                {((p.quantity * (p.clientPrice || 0)) / 1.2).toLocaleString("bg-BG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(',', '.')} лв.
               </td>
             </tr>
           ))}
@@ -188,7 +188,7 @@ export default function InvoicePage() {
             <td className="p-2 border text-center">{totalQuantity}</td>
             <td className="p-2 border"></td>
             <td className="p-2 border text-right">
-              {invoice.totalValue.toFixed(2)} лв.
+              {(invoice.totalValue / 1.2).toLocaleString("bg-BG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(',', '.')} лв.
             </td>
           </tr>
         </tfoot>

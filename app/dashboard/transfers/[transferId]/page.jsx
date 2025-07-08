@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import BasicHeader from '@/components/BasicHeader';
+import { PrinterIcon } from 'lucide-react';
 
 export default function TransferDetailPage() {
     const { transferId } = useParams();
@@ -84,7 +85,9 @@ export default function TransferDetailPage() {
             <BasicHeader hasBackButton
             title={`Преместване № ${transfer.id.substring(0, 8).toUpperCase()}  `}
             >
-            <Button onClick={handlePrint}>Принтирай</Button>
+            <Button onClick={handlePrint}>
+                <PrinterIcon />
+                Принтирай</Button>
 
             </BasicHeader>
 

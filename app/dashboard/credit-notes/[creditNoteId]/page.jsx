@@ -154,10 +154,10 @@ export default function CreditNotePage() {
               <td className="p-2 border">{p.barcode}</td>
               <td className="p-2 border text-center">{p.quantity}</td>
               <td className="p-2 border text-right">
-                {(p.clientPrice || 0).toFixed(2)} лв.
+                {((p.clientPrice || 0) / 1.2).toFixed(2)} лв.
               </td>
               <td className="p-2 border text-right">
-                {(p.quantity * (p.clientPrice || 0)).toFixed(2)} лв.
+                {((p.quantity * (p.clientPrice || 0)) / 1.2).toFixed(2)} лв.
               </td>
             </tr>
           ))}
@@ -170,7 +170,7 @@ export default function CreditNotePage() {
             <td className="p-2 border text-center">{totalQuantity}</td>
             <td className="p-2 border"></td>
             <td className="p-2 border text-right">
-              {creditNote.totalValue.toFixed(2)} лв.
+              {(creditNote.totalValue / 1.2).toLocaleString("bg-BG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,/g, ".")} лв.
             </td>
           </tr>
         </tfoot>
