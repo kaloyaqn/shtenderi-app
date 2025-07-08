@@ -33,6 +33,7 @@ export default function StandRevisionPage({ params }) {
   const [showCheck, setShowCheck] = useState(false);
   const [inputReadOnly, setInputReadOnly] = useState(false);
   const [pendingProducts, setPendingProducts] = useState({}); // barcode -> { product, quantity }
+  const [finishing, setFinishing] = useState(false); // loading state for finish button
   const { data: session } = useSession();
   const userId = session?.user?.id || null;
 
@@ -226,6 +227,7 @@ export default function StandRevisionPage({ params }) {
 
   // Finish revision and generate report
   const handleFinish = async () => {
+    setFinishing(true);
     setFinished(true);
     const missing = remaining.filter(p => p.remaining > 0);
     setReport(missing);
@@ -268,6 +270,8 @@ export default function StandRevisionPage({ params }) {
       toast.success('Продажбата е записана успешно!');
     } catch (err) {
       toast.error(err.message);
+    } finally {
+      setFinishing(false);
     }
   };
 
@@ -316,14 +320,21 @@ export default function StandRevisionPage({ params }) {
       {!revisionId && (
       <Button  
       onClick={handleFinish}
-      disabled={products.length === 0}
-size="lg" className='w-full! h-15 mt-3 mb-4'>
-<CheckCircle />  Приключи чекиране
-</Button>
-  )}
+      disabled={products.length === 0 || finishing}
+      size="lg" className='w-full! h-15 mt-3 mb-4'>
+        {finishing ? <span className="flex items-center gap-2"><span className="loader mr-2 w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Обработка...</span> : <><CheckCircle />  Приключи чекиране</>}
+      </Button>
+      )}
+      {revisionId && (
+        <Button 
+          asChild 
+          size="lg" 
+          className="w-full! h-15 mb-4 mt-3"
+        >
+          <Link href={`/dashboard/revisions/${revisionId}`}><Eye className="mr-2"/> Виж продажба</Link>
+        </Button>
+      )}
       </BasicHeader>
-
-
 
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-3">
 <div className="lg:col-span-1">
@@ -356,29 +367,8 @@ size="lg" className='w-full! h-15 mt-3 mb-4'>
 </div>
 
 <div className="lg:col-span-2 gap-4 w-full">
-  <Card>
-  {!finished && (
-        <CardContent>
-          <CardTitle className="text-base font-semibold mb-2  flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</CardTitle>
-          <div className="grid gap-2 mb-6 sm:grid-cols-2">
-            {allProducts.map(p => (
-              <div key={p.barcode} className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${p.isPending ? 'bg-yellow-100 border-yellow-400' : ''}`}>
-                <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
-                <div className='w-full flex justify-between items-end'>
-                  <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
-                    <Barcode size={12} />
-                    <span className='leading-tight'>{p.barcode}</span>
-                  </div>
-                  <h6 className='font-bold text-base gray-900'>{p.quantity}</h6>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      )}
-  </Card>
-
-  <Card className='mt-2'>
+  {/* Switch order: show Непродадени продукти first */}
+  <Card className='mb-2'>
       <CardContent>
       <CardTitle className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/> Непродадени продукти</CardTitle>
       <div className="grid gap-2 mb-6 sm:grid-cols-2">
@@ -399,29 +389,30 @@ size="lg" className='w-full! h-15 mt-3 mb-4'>
       </CardContent>
   </Card>
 
+  <Card>
+  {!finished && (
+        <CardContent>
+          <CardTitle className="text-base font-semibold mb-2  flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</CardTitle>
+          <div className="grid gap-2 mb-6 sm:grid-cols-2">
+            {allProducts.filter(p => p.quantity > 0).map(p => (
+              <div key={p.barcode} className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${p.isPending ? 'bg-yellow-100 border-yellow-400' : ''}`}>
+                <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
+                <div className='w-full flex justify-between items-end'>
+                  <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
+                    <Barcode size={12} />
+                    <span className='leading-tight'>{p.barcode}</span>
+                  </div>
+                  <h6 className='font-bold text-base gray-900'>{p.quantity}</h6>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      )}
+  </Card>
 
-
-  {revisionId && (
-            <div className="flex w-full justify-center">
-            <Link
-            className='w-full'
-                href={`/dashboard/revisions/${revisionId}`}
-            
-            >
-            <Button
-                className="w-full! h-15 mt-3 bg-blue-600 hover:bg-blue-700"
-              >
-
-                <Eye />
-                Виж продажбата
-              </Button>
-            </Link>
-            </div>
-          )}
 </div>
 </div>
-
-
     </div>
   );
 } 

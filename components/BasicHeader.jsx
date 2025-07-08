@@ -9,11 +9,11 @@ export default function BasicHeader({title, subtitle, onClick, button_text, butt
 
     return (
         <div className="flex md:flex-row flex-col  justify-between md:items-center items-start mb-4 md:pb-4 border-b md:p-0 p-1 py-4 md:mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 md:flex-row">
             {hasBackButton && (
                             <Button
                             onClick={() => router.back()}
-                            className={'text-sm'} size='sm' variant={'ghost'}>
+                            className={'text-sm md:w-auto w-auto'} size='sm' variant={'ghost'}>
                             {"<-"} Назад
                         </Button>
             )}

@@ -1,7 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bus, Home, ListChecks, Store, Users, PersonStanding, BoxIcon } from "lucide-react";
+import { Bus, Home, ListChecks, Store, Users, PersonStanding, BoxIcon, User } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { useState } from "react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 const navItems = [
   { href: "/dashboard", label: "Начало", icon: Home },
@@ -31,6 +34,22 @@ export default function MobileBottomNav() {
           </Link>
         );
       })}
+      {/* Profile button with shadcn DropdownMenu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="flex flex-col items-center justify-center gap-1 text-xs px-2 py-1 transition-colors text-muted-foreground hover:text-blue-500 focus:outline-none"
+          >
+            <User className="w-6 h-6 mb-0.5" />
+            <span>Профил</span>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="center">
+          <DropdownMenuItem onClick={() => signOut()} className="text-red-600">
+            Изход
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </nav>
   );
 } 

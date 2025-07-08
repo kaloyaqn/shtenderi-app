@@ -98,7 +98,7 @@ export default async function DashboardHome() {
                     Твоите складове
                         </div>
                     </Link>
-                    <Link href={'/dashboard/sales'}>
+                    <Link href={'/dashboard/revisions'}>
                     <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
                     Твоите продажби
                         </div>
