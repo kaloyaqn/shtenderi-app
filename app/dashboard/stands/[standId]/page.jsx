@@ -7,14 +7,20 @@ import { DataTable } from "@/components/ui/data-table";
 import {
   Plus,
   Pencil,
-  Trash2,
   Upload,
   Barcode,
   ArrowRightLeft,
   FilePlus,
   PlusIcon,
   ImportIcon,
-} from "lucide-react";
+  Search,
+  Edit,
+  Trash2,
+  Warehouse,
+  CheckCircle,
+  AlertTriangle,
+  ArrowLeft,
+  } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +47,9 @@ import { useSession } from "next-auth/react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { IconTransferIn, IconTruckReturn } from "@tabler/icons-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function StandDetailPage({ params }) {
   const router = useRouter();
@@ -66,6 +75,8 @@ export default function StandDetailPage({ params }) {
 
   const { data: session } = useSession();
   const userIsAdmin = session?.user?.role === "ADMIN";
+  const isMobile = useIsMobile();
+  const [search, setSearch] = useState("");
 
 
   const fetchData = async () => {
@@ -294,6 +305,168 @@ export default function StandDetailPage({ params }) {
   if (loading) return <LoadingScreen />;
   if (error) return <div className="text-red-500">Грешка: {error}</div>;
   if (!stand) return <div>Щандът не е намерен.</div>;
+
+  if (isMobile) {
+    const filteredProducts = productsOnStand.filter((product) => {
+      const q = search.toLowerCase();
+      return (
+        product.product?.name?.toLowerCase().includes(q) ||
+        product.product?.barcode?.toLowerCase().includes(q)
+      );
+    });
+    const totalProducts = filteredProducts.reduce((sum, p) => sum + p.quantity, 0);
+    const outOfStockCount = filteredProducts.filter((p) => p.quantity === 0).length;
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-4 py-4">
+          <div className="flex items-center space-x-3 mb-2">
+            <Button variant="ghost" size="sm" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">{stand.name}</h1>
+              <p className="text-xs text-gray-500">Управление на щендер и зареждане на стока</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-4 space-y-4">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-3">
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-lg font-bold text-gray-900">{totalProducts}</p>
+                <p className="text-xs text-gray-500">Общо</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-lg font-bold text-gray-900">{filteredProducts.length}</p>
+                <p className="text-xs text-gray-500">Видове</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-lg font-bold text-red-600">{outOfStockCount}</p>
+                <p className="text-xs text-gray-500">Изчерпани</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-2">
+            <Button variant="outline" className="w-full h-12 bg-transparent" onClick={() => router.push(`/dashboard/stands/${stand.id}/refund`)}>
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Рекламации
+            </Button>
+            <Button variant="outline" className="w-full h-12 bg-transparent" onClick={() => router.push(`/dashboard/resupply?source=stand`)}>
+              <Warehouse className="h-4 w-4 mr-2" />
+              Превози от склад
+            </Button>
+            <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white" onClick={() => router.push(`/dashboard/stands/${stand.id}/revision`)}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Проверка на щанд
+            </Button>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Потърси..."
+              className="pl-10 h-12"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Products Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Продукти</h2>
+            {userIsAdmin && (
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => {/* TODO: open add product dialog */}}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Products List */}
+          <div className="space-y-3">
+            {filteredProducts.map((product) => (
+              <Card key={product.id} className="border border-gray-200 py-0">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 text-sm mb-2 leading-tight">{product.product?.name}</h3>
+                    </div>
+                    {userIsAdmin && (
+                      <div className="flex items-center space-x-2 ml-3">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setProductOnStandToEdit(product); setEditDialogOpen(true); }}>
+                          <Edit className="h-4 w-4 text-gray-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => { setProductOnStandToDelete(product); setDeleteDialogOpen(true); }}
+                          disabled={product.quantity !== 0}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-gray-500 mb-1">Баркод</p>
+                      <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{product.product?.barcode}</code>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Количество на щанда</span>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={product.quantity > 0 ? "outline" : "destructive"} className="font-mono text-xs">
+                          {product.quantity}
+                        </Badge>
+                        {product.quantity === 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            Изчерпан
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+        <EditQuantityDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          standProduct={productOnStandToEdit}
+          onProductUpdated={fetchData}
+        />
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Премахване на продукт</AlertDialogTitle>
+              <AlertDialogDescription>
+                Сигурни ли сте, че искате да премахнете този продукт от щанда? Това действие не може да бъде отменено.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отказ</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Изтрий</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
 
   return (
     <div className="md:p-0 p-2">
