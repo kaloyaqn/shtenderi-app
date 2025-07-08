@@ -161,6 +161,12 @@ export default function Stands() {
         `}
       title= {isAdmin ? "Няма намерени щендери" : "Нямате зачислени щендери"}
       />
+
+{isAdmin && (
+            <Button onClick={() => router.push("/dashboard/stands/create")}> 
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
       </>
     );
   }

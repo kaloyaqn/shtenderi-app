@@ -47,7 +47,6 @@ async function main() {
   await prisma.product.deleteMany();
 
   // Users
-  await prisma.user.deleteMany();
 
   // Do NOT delete partners!
   // await prisma.partner.deleteMany();
