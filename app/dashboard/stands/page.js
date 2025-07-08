@@ -89,6 +89,23 @@ export default function Stands() {
             },
         },
         {
+          accessorKey: 'store.partner.name',
+          header: 'партньор'
+        },
+        {
+          accessorKey: 'store.name',
+          header: 'магазин'
+        },
+        {
+          header: 'Търговец',
+          accessorKey: 'userStands',
+          cell: ({ row }) => {
+            const userStands = row.original.userStands || [];
+            if (userStands.length === 0) return "-";
+            return userStands.map(us => us.user?.name || us.user?.email).join(", ");
+          }
+        },
+        {
             accessorKey: '_count.standProducts',
             header: 'Брой продукти',
         },
