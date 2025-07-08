@@ -123,16 +123,7 @@ export default function CreatePartnerPage() {
                   />
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="address">Седалище</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    placeholder="Въведете седалище на партньора (по избор)"
-                    value={address}
-                    onChange={e => setAddress(e.target.value)}
-                  />
-                </div>
+
 
                 <div className="grid gap-2">
                   <Label htmlFor="country">Държава</Label>
@@ -152,6 +143,17 @@ export default function CreatePartnerPage() {
                     placeholder="Въведете град (по избор)"
                     value={city}
                     onChange={e => setCity(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Адрес</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    placeholder="Въведете адрес на партньора (по избор)"
+                    value={address}
+                    onChange={e => setAddress(e.target.value)}
                   />
                 </div>
 

@@ -6,6 +6,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { toast } from 'sonner';
 import BasicHeader from '@/components/BasicHeader';
 import { EyeIcon } from 'lucide-react';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function CreditNotesPage() {
   const [creditNotes, setCreditNotes] = useState([]);
@@ -59,7 +60,7 @@ export default function CreditNotesPage() {
     },
   ];
 
-  if (loading) return <div>Зареждане...</div>;
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="container mx-auto">

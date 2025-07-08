@@ -71,6 +71,7 @@ export async function POST(req) {
           vatAmount: products.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) * 0.2 / 1.2, 0),
           paymentMethod: 'CASH',
           invoiceId: products[0]?.invoiceId || null, // Link to the first invoice if available
+          refundId: refundId, // <-- set refundId if present
         },
       });
       return NextResponse.json(newCreditNote, { status: 201 });
@@ -135,25 +136,35 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const creditNoteId = searchParams.get('id');
+    const refundId = searchParams.get('refundId'); // <-- add this
 
-    // If no ID, get all credit notes for the list view
-    if (!creditNoteId) {
+    // If ID is present, get one specific credit note
+    if (creditNoteId) {
+      const creditNote = await prisma.creditNote.findUnique({
+        where: { id: creditNoteId },
+        include: { invoice: true } // Include the linked invoice
+      });
+
+      if (!creditNote) {
+        return NextResponse.json({ error: 'Credit note not found' }, { status: 404 });
+      }
+      return NextResponse.json(creditNote);
+    }
+
+    // If refundId is present, filter by it
+    if (refundId) {
       const creditNotes = await prisma.creditNote.findMany({
+        where: { refundId },
         orderBy: { creditNoteNumber: 'desc' },
       });
       return NextResponse.json(creditNotes);
     }
 
-    // If ID is present, get one specific credit note
-    const creditNote = await prisma.creditNote.findUnique({
-      where: { id: creditNoteId },
-      include: { invoice: true } // Include the linked invoice
+    // If no ID and no refundId, get all credit notes for the list view
+    const creditNotes = await prisma.creditNote.findMany({
+      orderBy: { creditNoteNumber: 'desc' },
     });
-
-    if (!creditNote) {
-      return NextResponse.json({ error: 'Credit note not found' }, { status: 404 });
-    }
-    return NextResponse.json(creditNote);
+    return NextResponse.json(creditNotes);
   } catch (error) {
     console.error('CREDIT_NOTE_GET_ERROR', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -232,6 +232,9 @@ model CreditNote {
   // Reference to the credited invoice
   invoiceId      String
   invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+  // Reference to the refund (optional)
+  refundId       String?  // <-- add this
+  refund         Refund?  @relation(fields: [refundId], references: [id])
 }
 
 enum PaymentMethod {
@@ -249,6 +252,7 @@ model Refund {
   refundProducts RefundProduct[]
   returnedToStorageId String? // storage where products were returned
   returnedAt DateTime?        // when products were returned
+  creditNotes CreditNote[]    // <-- add this for relation
 }
 
 model RefundProduct {

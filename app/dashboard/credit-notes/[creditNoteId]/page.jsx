@@ -4,6 +4,8 @@ import { useRef, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import BasicHeader from "@/components/BasicHeader";
+import { CopyIcon, PrinterIcon } from "lucide-react";
 
 export default function CreditNotePage() {
   const originalRef = useRef(null);
@@ -74,6 +76,9 @@ export default function CreditNotePage() {
             >
               {creditNote.invoice.invoiceNumber}
             </Button>
+            <div className="text-xs text-gray-600 mt-1">
+              Дата: {creditNote.invoice.issuedAt ? new Date(creditNote.invoice.issuedAt).toLocaleDateString("bg-BG") : "-"}
+            </div>
         </div>
       )}
 
@@ -219,8 +224,8 @@ export default function CreditNotePage() {
   );
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-4">
+    <div className="container mx-auto">
+      {/* <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">
           Кредитно известие № {creditNote.creditNoteNumber}
         </h1>
@@ -229,7 +234,17 @@ export default function CreditNotePage() {
           <Button onClick={() => handlePrint("copy")} variant="secondary">Принтирай копие</Button>
           <Button variant="ghost" onClick={() => router.push("/dashboard/credit-notes")}>Назад</Button>
         </div>
-      </div>
+      </div> */}
+
+      <BasicHeader
+      hasBackButton
+      title={`
+          Кредитно известие № ${creditNote.creditNoteNumber}
+        `}
+      >
+          <Button onClick={() => handlePrint("copy")} variant="outline"> <CopyIcon /> Принтирай копие</Button>
+          <Button onClick={() => handlePrint("original")}> <PrinterIcon />  Принтирай оригинал</Button>
+      </BasicHeader>
 
       {/* ORIGINAL CREDIT NOTE */}
       <div className="mb-8">

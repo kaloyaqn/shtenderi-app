@@ -36,6 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import TableLink from "@/components/ui/table-link";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import BasicHeader from "@/components/BasicHeader";
 
 export default function RefundDetailPage() {
   const { refundId } = useParams();
@@ -308,36 +309,11 @@ export default function RefundDetailPage() {
           Кредитно известие
         </Button>
       </div> */}
-      <div className="flex justify-between items-center mb-4 pb-4 border-b">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-            onClick={() => router.push("/dashboard/revisions")}
-          >
-            {" "}
-            {"<-"} Назад
-          </Button>
-          <div>
-            <h1 className={`text-2xl text-gray-900 font-bold`}>
-              Детайли за връщане
-            </h1>
-            <p className="text-gray-600">Преглед на върнати продукти</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* {invoice ? (
-            <Button variant="outline" onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}>
-              Виж фактура
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={() => setIsPaymentModalOpen(true)} disabled={invoiceLoading}>
-              <IconInvoice />
-              {invoiceLoading ? 'Обработка...' : 'Фактура'}
-            </Button>
-          )} */}
-          {/* <Button variant="outline" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}><EditIcon /> Редактирай</Button> */}
+
+      <BasicHeader
+      hasBackButton
+      title={'Детайли за връщане'}
+      >
           <Button onClick={handlePrint} variant="outline">
             {" "}
             <Printer /> Принтирай
@@ -359,8 +335,7 @@ export default function RefundDetailPage() {
             <Warehouse />
             {returned ? "Върнато в склад" : "Върни продуктите в склад"}
           </Button>
-        </div>
-      </div>
+      </BasicHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
@@ -523,23 +498,25 @@ export default function RefundDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex flex-col gap-3">
-                  {creditNotesSummary.map((cn) => (
-                    <div className="flex items-center space-x-3" key={cn.id}>
-                      <div className="h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-gray-600" />
-                      </div>
-
-                      <div key={cn.id}>
-                        <TableLink href={`/dashboard/credit-notes/${cn.id}`}>
-                          Кредитно известие {cn.creditNoteNumber}
-                        </TableLink>
+              <div className="flex flex-col gap-3">
+                {creditNotesSummary.map((cn) => (
+                  <div className="flex items-center space-x-3" key={cn.id}>
+                    <div className="h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <TableLink href={`/dashboard/credit-notes/${cn.id}`}>
+                        Кредитно известие №{cn.creditNoteNumber}
+                      </TableLink>
+                      <div className="text-xs text-gray-500">
+                        Дата: {new Date(cn.issuedAt).toLocaleDateString("bg-BG")}
+                        {cn.totalValue && (
+                          <> • Сума: {Number(cn.totalValue).toFixed(2)} лв.</>
+                        )}
                       </div>
                     </div>
-                  ))}
-
-                </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

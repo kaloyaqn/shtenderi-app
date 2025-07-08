@@ -4,6 +4,10 @@ import { useRef, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import LoadingScreen from "@/components/LoadingScreen";
+import BasicHeader from "@/components/BasicHeader";
+import { CopyIcon, PrinterIcon } from "lucide-react";
+import { IconInvoice } from "@tabler/icons-react";
 
 export default function InvoicePage() {
   const originalRef = useRef(null);
@@ -73,7 +77,7 @@ export default function InvoicePage() {
     }
   };
 
-  if (loading) return <div>Зареждане...</div>;
+  if (loading) return <LoadingScreen />;
   if (!invoice) return <div>Фактурата не е намерена.</div>;
 
   const products = Array.isArray(invoice.products) ? invoice.products : [];
@@ -237,8 +241,8 @@ export default function InvoicePage() {
   );
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-4">
+    <div className="">
+      {/* <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">
           Фактура № {invoice.invoiceNumber}
         </h1>
@@ -263,7 +267,32 @@ export default function InvoicePage() {
             Назад
           </Button>
         </div>
-      </div>
+      </div> */}
+
+      <BasicHeader
+      hasBackButton
+      title={`
+          Фактура № ${invoice.invoiceNumber}
+        
+        `}
+      >
+
+          <Button onClick={() => handlePrint("copy")} variant="outline">
+           <CopyIcon />  Принтирай копие
+          </Button>
+          
+          <Button 
+            onClick={handleCreateCreditNote} 
+            disabled={isCreatingCreditNote || invoice?.creditNotes?.length > 0}
+            variant="outline"
+          >
+           <IconInvoice /> {invoice?.creditNotes?.length > 0 ? 'Има издадено КИ' : 'Кредитно известие'}
+          </Button>
+
+          <Button onClick={() => handlePrint("original")}>
+           <PrinterIcon /> Принтирай оригинал
+          </Button>
+      </BasicHeader>
 
       {/* Credit Notes Link */}
       {invoice.creditNotes && invoice.creditNotes.length > 0 && (
