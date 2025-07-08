@@ -344,7 +344,7 @@ model Import {
   standId     String?
   storage     Storage? @relation(fields: [storageId], references: [id])
   storageId   String?
-  fileName    String?
+  fileName    String   @unique
   createdAt   DateTime @default(now())
   importProducts ImportProduct[]
 }
