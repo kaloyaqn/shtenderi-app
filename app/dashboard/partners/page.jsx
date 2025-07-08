@@ -166,7 +166,6 @@ export default function PartnersPage() {
       />
     );
   }
-vi
   return (
     <div className="">
       {/* <div className="flex justify-between items-center mb-8">
