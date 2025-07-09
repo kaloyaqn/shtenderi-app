@@ -127,6 +127,8 @@ export function AppSidebar({
       .filter(group => group.items.length > 0);
   }, [userRole]);
 
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -136,6 +138,9 @@ export function AppSidebar({
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">Stendo</span>
+                {isDevelopment && (
+                  <p className="font-bold text-red-500">ТОВА Е DEV ВЕРСИЯ</p>
+                )}
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
