@@ -37,6 +37,7 @@ export default function CreatePartnerPage() {
       country: country.trim(),
       city: city.trim(),
       mol: formData.get('mol')?.trim(),
+      percentageDiscount: Number(formData.get('percentageDiscount')) || 0,
     }
 
     try {

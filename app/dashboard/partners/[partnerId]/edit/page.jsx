@@ -60,6 +60,7 @@ export default function EditPartnerPage({ params }) {
       country: country.trim(),
       city: city.trim(),
       mol: mol.trim(),
+      percentageDiscount: Number(formData.get('percentageDiscount')) || 0,
     }
 
     try {

@@ -136,11 +136,11 @@ export function AppSidebar({
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">Stendo</span>
-                {process.env.NODE_ENV === 'development' && (
-  <p className="font-bold text-red-500">
-    DEV ВЕРСИЯ
-  </p>
-)}
+                {typeof window !== "undefined" && process.env.NEXT_PUBLIC_SUSTOQNIE === 'development' && (
+                  <span className="ml-2 font-bold text-red-500 text-xs align-middle">
+                    DEV ВЕРСИЯ
+                  </span>
+                )}
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
