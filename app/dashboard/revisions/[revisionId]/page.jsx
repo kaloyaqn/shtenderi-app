@@ -24,6 +24,9 @@ import LoadingScreen from '@/components/LoadingScreen';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import BasicHeader from '@/components/BasicHeader';
+import { ArrowLeft, FileText, Edit as LucideEdit, Search, Package, Warehouse, MoreHorizontal } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -265,8 +268,227 @@ export default function RevisionDetailPage() {
     }
   };
 
+  const isMobile = useIsMobile();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAllActions, setShowAllActions] = useState(false);
+
   if (loading) return <LoadingScreen />;
   if (!revision) return <div>Ревизията не е намерена.</div>;
+
+  // Filter products for mobile search
+  const filteredProducts = revision.missingProducts.filter((mp) =>
+    !searchTerm ||
+    mp.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mp.product?.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Mobile Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="px-4 py-3">
+            <div className="flex items-center space-x-2 mb-2">
+              <Button variant="ghost" size="sm" className="p-1" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex-1">
+                <h1 className="text-lg font-bold text-gray-900">Продажба #{revision.number}</h1>
+                <p className="text-xs text-gray-500">Всички данни за тази продажба</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowAllActions(!showAllActions)}>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="p-3 space-y-3">
+          {/* Info Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Информация за поръчката</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <span className="text-xs text-gray-500">Партньор</span>
+                <p className="text-base font-medium">{revision.partner?.name}</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <span className="text-xs text-gray-500">Щанд</span>
+                  <p className="text-base">{revision.stand?.name || "N/A"}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500">Магазин</span>
+                  <p className="text-base">{revision.store?.name || "N/A"}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500">Тип</span>
+                  <p className="text-base">{revision.type || "N/A"}</p>
+                </div>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500">Ревизор</span>
+                <p className="text-base">{revision.user?.name || revision.user?.email || 'N/A'}</p>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Action Buttons */}
+          <Card className={'py-0'}>
+            <CardContent className="p-3">
+              <div className="flex justify-end mb-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowAllActions(!showAllActions)}>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </div>
+              {showAllActions ? (
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <Button variant="outline" size="sm" className="h-7 text-xs bg-transparent" onClick={handlePrintStock}>
+                    <Printer className="h-3 w-3 mr-1" />
+                    Принтирай
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs bg-transparent" onClick={handleSendToClient}>
+                    <Send className="h-3 w-3 mr-1" />
+                    Изпрати
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs bg-transparent" onClick={() => invoice ? router.push(`/dashboard/invoices/${invoice.id}`) : setIsPaymentModalOpen(true)}>
+                    <FileText className="h-3 w-3 mr-1" />
+                    Фактура
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs bg-transparent" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>
+                    <LucideEdit className="h-3 w-3 mr-1" />
+                    Редактирай
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex space-x-2 mb-3">
+                  <Button variant="outline" size="sm" className="h-7 text-xs flex-1 bg-transparent" onClick={handlePrintStock}>
+                    <Printer className="h-3 w-3 mr-1" />
+                    Принтирай
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs flex-1 bg-transparent" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>
+                    <LucideEdit className="h-3 w-3 mr-1" />
+                    Редактирай
+                  </Button>
+                </div>
+              )}
+
+              <Button className="w-full bg-green-600 hover:bg-green-700 text-white h-8 text-sm" onClick={() => setResupplyDialogOpen(true)}>
+                <Warehouse className="h-3 w-3 mr-2" />
+                Зареди от склад
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Products Section */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">Продадени продукти</CardTitle>
+                <Badge variant="secondary" className="bg-gray-200 text-gray-700 text-xs">
+                  {revision.missingProducts.length} продукта
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {/* Search */}
+              <div className="relative mb-3">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+                <Input
+                  placeholder="Потърси..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-7 h-8 text-sm bg-white border-gray-300"
+                />
+              </div>
+
+              {/* Products List */}
+              <div className="space-y-2">
+                {filteredProducts.map((mp) => (
+                  <Card key={mp.id} className="border border-gray-200">
+                    <CardContent className="p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-5 h-5 bg-gray-100 rounded-md flex items-center justify-center">
+                          <Package className="w-2 h-2 text-gray-600" />
+                        </div>
+                        <span className="text-xs font-medium text-gray-500">Име</span>
+                      </div>
+                      <p className="text-xs text-gray-900 mb-3 leading-tight">{mp.product?.name}</p>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-500">Баркод:</span>
+                          <span className="text-xs font-mono text-gray-900">{mp.product?.barcode}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-gray-500">Брой:</span>
+                          <span className="text-sm font-bold text-gray-900">{mp.missingQuantity}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {filteredProducts.length === 0 && (
+                  <div className="text-center text-gray-500 py-8">Няма намерени продукти.</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          {/* Printable Stock Table (always rendered, hidden except for print) */}
+          <div ref={contentRef} className="hidden print:block bg-white p-8 text-black">
+            <div className="flex justify-between items-center mb-4">
+              <div className="text-xl font-bold">Стокова № {revision.number}</div>
+              <div className="text-md">Дата: {new Date(revision.createdAt).toLocaleDateString('bg-BG')}</div>
+            </div>
+            <div className='flex items-center justify-between'>
+              <div className="mb-2">
+                <div className="font-semibold">Доставчик:</div>
+                <div>Фирма: Омакс Сълюшънс ЕООД</div>
+                <div>ЕИК/ДДС номер: BG200799887</div>
+                <div>Седалище: гр. Хасково, ул. Рай №7</div>
+              </div>
+              <div className="mb-2 text-right">
+                <div className="font-semibold">Получател:</div>
+                <div>Фирма: {revision.partner?.name || '-'}</div>
+                <div>ЕИК/ДДС номер: {revision.partner?.bulstat || '-'}</div>
+                <div>Седалище: {revision.partner?.address || '-'}</div>
+              </div>
+            </div>
+            <div className="mb-4">
+              <div className="font-semibold">Описание:</div>
+            </div>
+            <table className="w-full border border-black mb-4">
+              <thead>
+                <tr className="bg-gray-200">
+                  <th className="border border-black px-2 py-1">Име на продукта</th>
+                  <th className="border border-black px-2 py-1">EAN код</th>
+                  <th className="border border-black px-2 py-1">Количество</th>
+                  <th className="border border-black px-2 py-1">Единична цена без ДДС</th>
+                  <th className="border border-black px-2 py-1">ПЦД</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revision.missingProducts.map(mp => (
+                  <tr key={mp.id}>
+                    <td className="border border-black px-2 py-1">{mp.product?.name || '-'}</td>
+                    <td className="border border-black px-2 py-1">{mp.product?.barcode || '-'}</td>
+                    <td className="border border-black px-2 py-1 text-center">{mp.missingQuantity}</td>
+                    <td className="border border-black px-2 py-1 text-right">{mp.product?.clientPrice?.toFixed(2) || '-'}</td>
+                    <td className="border border-black px-2 py-1 text-right">{mp.product?.pcd || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="mb-2">Общ брой продукти: <b>{revision.missingProducts.reduce((sum, mp) => sum + mp.missingQuantity, 0)}</b></div>
+            <div className="mb-2">Стойност с ДДС: <b>{revision.missingProducts.reduce((sum, mp) => sum + (mp.missingQuantity * (mp.product?.clientPrice || 0)), 0).toFixed(2)} лв.</b></div>
+            <div className="mt-6">Изготвил: <b>{revision.user?.name || revision.user?.email || ''}</b></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const columns = [
     {
