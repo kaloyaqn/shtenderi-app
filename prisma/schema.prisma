@@ -30,10 +30,11 @@ model Product {
   id          String   @id @default(uuid())
   name        String
   barcode     String   @unique
-  clientPrice Float //цена на едро
-  pcd         String? //препоръчкителна цена доставчик
+  clientPrice Float    // цена на продажба (за магазини)
+  deliveryPrice Float  @default(0) // цена на доставка (от XML)
+  pcd         String?  // препоръчкителна цена доставчик
   quantity    Int      @default(0)
-  active      Boolean  @default(true) // Product is active or discontinued
+  active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
   standProducts   StandProduct[]

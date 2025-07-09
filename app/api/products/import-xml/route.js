@@ -25,7 +25,7 @@ export async function POST(req) {
         if (existingProduct) {
           const updateData = {
             name: product.name,
-            clientPrice: product.clientPrice,
+            deliveryPrice: parseFloat(product.deliveryPrice) || 0,
           };
           if (updateQuantities) {
             updateData.quantity = { increment: parseInt(product.quantity, 10) || 0 };
@@ -43,7 +43,8 @@ export async function POST(req) {
             data: {
               name: product.name || 'Unnamed Product',
               barcode: barcodeAsString,
-              clientPrice: parseFloat(product.clientPrice) || 0,
+              clientPrice: 0, // Selling price is set manually
+              deliveryPrice: parseFloat(product.deliveryPrice) || 0,
               quantity: parseInt(product.quantity, 10) || 0,
               active: true,
             },

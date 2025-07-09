@@ -118,6 +118,11 @@ export default function EditProductPage({ params }) {
                 </div>
 
                 <div className="grid gap-2">
+                  <Label htmlFor="deliveryPrice">Цена на доставка *</Label>
+                  <Input id="deliveryPrice" name="deliveryPrice" type="number" step="0.01" required defaultValue={product.deliveryPrice} placeholder="0.00" />
+                </div>
+
+                <div className="grid gap-2">
                   <Label htmlFor="pcd">Препоръчителна цена (ПЦД)</Label>
                   <Input id="pcd" name="pcd" defaultValue={product.pcd || ''} placeholder="Въведете ПЦД" />
                 </div>

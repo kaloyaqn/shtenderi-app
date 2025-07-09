@@ -33,19 +33,20 @@ export async function POST(req, context) {
           data: {
             barcode: String(product.barcode),
             name: product.name || `Imported ${product.barcode}`,
-            clientPrice: product.clientPrice || 0,
+            clientPrice: 0, // Selling price is set manually
+            deliveryPrice: product.deliveryPrice || 0,
             quantity: product.quantity,
           },
         });
       } else {
         const updateData = {
-          quantity: { increment: product.quantity },
+          name: product.name,
+          deliveryPrice: product.deliveryPrice || 0,
         };
-
+        updateData.quantity = { increment: product.quantity };
         if (product.shouldActivate) {
           updateData.active = true;
         }
-        // Increment the global product quantity by the XML quantity
         dbProduct = await prisma.product.update({
           where: { id: dbProduct.id },
           data: updateData,

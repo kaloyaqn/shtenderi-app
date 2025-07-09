@@ -38,7 +38,11 @@ export async function POST(req, { params }) {
         // Increment the global product quantity
         await prisma.product.update({
           where: { id: dbProduct.id },
-          data: { quantity: { increment: xmlQuantity } },
+          data: {
+            name: product.name,
+            deliveryPrice: product.deliveryPrice || 0,
+            quantity: { increment: xmlQuantity },
+          },
         });
       } else {
         // If it doesn't exist, create it
@@ -46,7 +50,8 @@ export async function POST(req, { params }) {
           data: {
             barcode: product.barcode,
             name: product.name || `XML Import ${product.barcode}`,
-            clientPrice: product.clientPrice || 0,
+            clientPrice: 0, // Selling price is set manually
+            deliveryPrice: product.deliveryPrice || 0,
             quantity: xmlQuantity,
           },
         });
