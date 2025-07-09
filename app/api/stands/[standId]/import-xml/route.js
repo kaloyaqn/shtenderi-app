@@ -124,6 +124,10 @@ export async function POST(req, context) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    if (err.code === 'P2002' && err.meta?.target?.includes('fileName')) {
+      console.warn('[IMPORT] Duplicate fileName error:', fileName);
+      return NextResponse.json({ error: 'A file with this name was already imported. Please rename the file and try again.' }, { status: 400 });
+    }
     console.error('Import Stand XML error:', err, 'fileName:', fileName);
     if (err instanceof Error) {
       console.error('Error message:', err.message);

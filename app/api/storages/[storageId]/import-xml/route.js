@@ -113,6 +113,10 @@ export async function POST(req, { params }) {
     return NextResponse.json({ success: true, message: 'Products imported successfully.' });
 
   } catch (error) {
+    if (error.code === 'P2002' && error.meta?.target?.includes('fileName')) {
+      console.warn('[IMPORT] Duplicate fileName error:', fileName);
+      return new NextResponse('A file with this name was already imported. Please rename the file and try again.', { status: 400 });
+    }
     console.error('[STORAGE_IMPORT_XML_ERROR]', error, 'fileName:', fileName);
     return new NextResponse('Internal server error during XML import.', { status: 500 });
   }
