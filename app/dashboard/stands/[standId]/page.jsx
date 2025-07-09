@@ -164,6 +164,14 @@ export default function StandDetailPage({ params }) {
       header: "ПЦД",
     },
     {
+      accessorKey: "effectivePrice",
+      header: "Продажна цена",
+      cell: ({ row }) => {
+        const price = row.original.effectivePrice;
+        return price !== undefined ? `${price.toFixed(2)} лв.` : '-';
+      },
+    },
+    {
       accessorKey: "quantity",
       header: "Количество на щанда",
     },

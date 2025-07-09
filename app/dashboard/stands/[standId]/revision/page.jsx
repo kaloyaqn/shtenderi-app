@@ -244,14 +244,22 @@ export default function StandRevisionPage({ params }) {
     }
     // Build missingProducts: original missing + all pending products
     const missingProducts = [
-      ...missing.map(m => ({
-        productId: products.find(p => p.product.barcode === m.barcode)?.product.id,
-        missingQuantity: m.remaining,
-      })).filter(mp => mp.productId),
-      ...pendingBarcodes.map(barcode => ({
-        productId: pendingProducts[barcode].product.id,
-        missingQuantity: pendingProducts[barcode].quantity,
-      })),
+      ...missing.map(m => {
+        const prod = products.find(p => p.product.barcode === m.barcode)?.product;
+        return prod ? {
+          productId: prod.id,
+          missingQuantity: m.remaining,
+          clientPrice: prod.clientPrice,
+        } : null;
+      }).filter(mp => mp && mp.productId),
+      ...pendingBarcodes.map(barcode => {
+        const prod = pendingProducts[barcode].product;
+        return {
+          productId: prod.id,
+          missingQuantity: pendingProducts[barcode].quantity,
+          clientPrice: prod.clientPrice,
+        };
+      }),
     ];
     // Always create a revision, even if there are no missing products
     try {

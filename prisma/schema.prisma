@@ -115,6 +115,7 @@ model Partner {
   country        String?                    // Държава
   city           String?                    // Град
   mol            String?                    // МОЛ - Материално отговорно лице
+  percentageDiscount Float?                 // Процентна отстъпка за партньора
 
   stores         Store[]                    // Връзка към магазини
   revisions     Revision[]
@@ -160,6 +161,7 @@ model MissingProduct {
   product     Product  @relation(fields: [productId], references: [id])
   productId   String
   missingQuantity Int
+  priceAtSale Float?
 }
 
 model Storage {
@@ -263,6 +265,7 @@ model RefundProduct {
   product    Product  @relation(fields: [productId], references: [id])
   productId  String
   quantity   Int
+  priceAtRefund Float?
 }
 
 enum RefundSourceType {

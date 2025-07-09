@@ -27,6 +27,7 @@ import BasicHeader from '@/components/BasicHeader';
 import { ArrowLeft, FileText, Edit as LucideEdit, Search, Package, Warehouse, MoreHorizontal } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useIsMobile } from "@/hooks/use-mobile"
+import RevisionProductsTable from './_components/RevisionProductsTable';
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -459,30 +460,7 @@ export default function RevisionDetailPage() {
             <div className="mb-4">
               <div className="font-semibold">Описание:</div>
             </div>
-            <table className="w-full border border-black mb-4">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="border border-black px-2 py-1">Име на продукта</th>
-                  <th className="border border-black px-2 py-1">EAN код</th>
-                  <th className="border border-black px-2 py-1">Количество</th>
-                  <th className="border border-black px-2 py-1">Единична цена без ДДС</th>
-                  <th className="border border-black px-2 py-1">ПЦД</th>
-                </tr>
-              </thead>
-              <tbody>
-                {revision.missingProducts.map(mp => (
-                  <tr key={mp.id}>
-                    <td className="border border-black px-2 py-1">{mp.product?.name || '-'}</td>
-                    <td className="border border-black px-2 py-1">{mp.product?.barcode || '-'}</td>
-                    <td className="border border-black px-2 py-1 text-center">{mp.missingQuantity}</td>
-                    <td className="border border-black px-2 py-1 text-right">{mp.product?.clientPrice?.toFixed(2) || '-'}</td>
-                    <td className="border border-black px-2 py-1 text-right">{mp.product?.pcd || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="mb-2">Общ брой продукти: <b>{revision.missingProducts.reduce((sum, mp) => sum + mp.missingQuantity, 0)}</b></div>
-            <div className="mb-2">Стойност с ДДС: <b>{revision.missingProducts.reduce((sum, mp) => sum + (mp.missingQuantity * (mp.product?.clientPrice || 0)), 0).toFixed(2)} лв.</b></div>
+            <RevisionProductsTable missingProducts={revision.missingProducts} priceLabel="Единична цена с ДДС" totalLabel="Обща стойност" />
             <div className="mt-6">Изготвил: <b>{revision.user?.name || revision.user?.email || ''}</b></div>
           </div>
         </div>
@@ -505,6 +483,14 @@ export default function RevisionDetailPage() {
       accessorKey: 'missingQuantity',
       header: 'Брой',
       cell: ({ row }) => row.original.missingQuantity,
+    },
+    {
+      accessorKey: 'priceAtSale',
+      header: 'Цена при продажба',
+      cell: ({ row }) => {
+        const price = row.original.priceAtSale ?? row.original.product?.clientPrice;
+        return price !== undefined ? `${price.toFixed(2)} лв.` : '-';
+      },
     },
   ];
 
@@ -631,10 +617,10 @@ export default function RevisionDetailPage() {
                 </CardHeader>
                 <CardContent>
                 {revision.missingProducts?.length > 0 ? (
-              <DataTable columns={columns} data={data} searchKey="barcode" />
-            ) : (
-              <p>Няма регистрирани продажби.</p>
-            )}
+                  <DataTable columns={columns} data={data} searchKey="barcode" />
+                ) : (
+                  <p>Няма регистрирани продажби.</p>
+                )}
                 </CardContent>
               </Card>
           </div>    
@@ -794,30 +780,7 @@ export default function RevisionDetailPage() {
         <div className="mb-4">
           <div className="font-semibold">Описание:</div>
         </div>
-        <table className="w-full border border-black mb-4">
-          <thead>
-            <tr className="bg-gray-200">
-              <th className="border border-black px-2 py-1">Име на продукта</th>
-              <th className="border border-black px-2 py-1">EAN код</th>
-              <th className="border border-black px-2 py-1">Количество</th>
-              <th className="border border-black px-2 py-1">Единична цена без ДДС</th>
-              <th className="border border-black px-2 py-1">ПЦД</th>
-            </tr>
-          </thead>
-          <tbody>
-            {revision.missingProducts.map(mp => (
-              <tr key={mp.id}>
-                <td className="border border-black px-2 py-1">{mp.product?.name || '-'}</td>
-                <td className="border border-black px-2 py-1">{mp.product?.barcode || '-'}</td>
-                <td className="border border-black px-2 py-1 text-center">{mp.missingQuantity}</td>
-                <td className="border border-black px-2 py-1 text-right">{mp.product?.clientPrice?.toFixed(2) || '-'}</td>
-                <td className="border border-black px-2 py-1 text-right">{mp.product?.pcd || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="mb-2">Общ брой продукти: <b>{totalQuantity}</b></div>
-        <div className="mb-2">Стойност с ДДС: <b>{totalValue.toFixed(2)} лв.</b></div>
+        <RevisionProductsTable missingProducts={revision.missingProducts} priceLabel="Единична цена с ДДС" totalLabel="Обща стойност" />
         <div className="mt-6">Изготвил: <b>{adminName}</b></div>
       </div>
       {/* Repeat Sale Dialog */}

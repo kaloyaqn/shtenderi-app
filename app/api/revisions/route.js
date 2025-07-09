@@ -12,12 +12,13 @@ export async function POST(req) {
     // Get partnerId from stand
     const stand = await prisma.stand.findUnique({
       where: { id: standId },
-      select: { store: { select: { partnerId: true } } }
+      select: { store: { select: { partnerId: true, partner: { select: { percentageDiscount: true } } } } }
     });
     if (!stand) {
       return NextResponse.json({ error: 'Stand not found' }, { status: 404 });
     }
     const partnerId = stand.store.partnerId;
+    const partnerDiscount = stand.store.partner?.percentageDiscount || 0;
     // Get next global revision number
     const last = await prisma.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
     const nextNumber = last?.number ? last.number + 1 : 1;
@@ -32,6 +33,7 @@ export async function POST(req) {
           create: missingProducts.map(mp => ({
             productId: mp.productId,
             missingQuantity: mp.missingQuantity,
+            priceAtSale: mp.clientPrice * (1 - partnerDiscount / 100),
           }))
         }
       },

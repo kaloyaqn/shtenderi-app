@@ -165,6 +165,10 @@ export default function CreatePartnerPage() {
                     placeholder="Въведете МОЛ (Материално отговорно лице)"
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="percentageDiscount">Процентна отстъпка</Label>
+                  <Input id="percentageDiscount" name="percentageDiscount" type="number" step="0.01" min="0" max="100" placeholder="0" />
+                </div>
               </div>
 
               {error && (

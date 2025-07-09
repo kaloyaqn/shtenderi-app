@@ -37,14 +37,19 @@ export async function POST(req) {
     const preparedBy = session?.user?.name || session?.user?.email || 'Admin';
 
     // Prepare products snapshot
-    const products = revision.missingProducts.map(mp => ({
-      productId: mp.product?.id,
-      name: mp.product?.name || '-',
-      barcode: mp.product?.barcode || '-',
-      quantity: mp.missingQuantity,
-      clientPrice: mp.product?.clientPrice || 0,
-      pcd: mp.product?.pcd || '',
-    }));
+    const partnerDiscount = revision.partner?.percentageDiscount || 0;
+    const products = revision.missingProducts.map(mp => {
+      const basePrice = mp.product?.clientPrice || 0;
+      const price = basePrice * (1 - partnerDiscount / 100);
+      return {
+        productId: mp.product?.id,
+        name: mp.product?.name || '-',
+        barcode: mp.product?.barcode || '-',
+        quantity: mp.missingQuantity,
+        clientPrice: price,
+        pcd: mp.product?.pcd || '',
+      };
+    });
     const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.clientPrice), 0);
     const vatBase = totalValue / 1.2;
     const vatAmount = totalValue - vatBase;
