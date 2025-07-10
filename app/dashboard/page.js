@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import BasicHeader from "@/components/BasicHeader";
 
 export default function DashboardHome() {
@@ -24,6 +24,12 @@ export default function DashboardHome() {
   const [adminStats, setAdminStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      signOut({ callbackUrl: '/login', redirect: true });
+    }
+  }, [status]);
 
   useEffect(() => {
     if (session?.user?.role === "ADMIN") {
