@@ -40,6 +40,15 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "./ui/button";
+import { useEffect, useState } from "react";
+
+function useHasMounted() {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  return hasMounted;
+}
 
 const groupedDocuments = {
   Начало: [
@@ -117,6 +126,7 @@ export function AppSidebar({
 }) {
   const { data: session } = useSession()
   const userRole = session?.user?.role;
+  const hasMounted = useHasMounted();
 
   const visibleNavGroups = React.useMemo(() => {
     return Object.entries(groupedDocuments)
@@ -136,7 +146,7 @@ export function AppSidebar({
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">Stendo</span>
-                {typeof window !== "undefined" && process.env.NEXT_PUBLIC_SUSTOQNIE === 'development' && (
+                {hasMounted && process.env.NEXT_PUBLIC_SUSTOQNIE === 'development' && (
                   <span className="ml-2 font-bold text-red-500 text-xs align-middle">
                     DEV ВЕРСИЯ
                   </span>
