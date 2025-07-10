@@ -29,6 +29,9 @@ export async function POST(req, { params }) {
       
       const xmlQuantity = product.quantity;
 
+      // Use 'price' from XML as deliveryPrice
+      const deliveryPrice = typeof product.price === 'number' ? product.price : (product.deliveryPrice || 0);
+
       // Always increment the global product quantity
       let dbProduct = await prisma.product.findUnique({
         where: { barcode: product.barcode },
@@ -40,7 +43,7 @@ export async function POST(req, { params }) {
           where: { id: dbProduct.id },
           data: {
             name: product.name,
-            deliveryPrice: product.deliveryPrice || 0,
+            deliveryPrice: deliveryPrice,
             quantity: { increment: xmlQuantity },
           },
         });
@@ -51,7 +54,7 @@ export async function POST(req, { params }) {
             barcode: product.barcode,
             name: product.name || `XML Import ${product.barcode}`,
             clientPrice: 0, // Selling price is set manually
-            deliveryPrice: product.deliveryPrice || 0,
+            deliveryPrice: deliveryPrice,
             quantity: xmlQuantity,
           },
         });

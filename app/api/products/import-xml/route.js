@@ -17,6 +17,9 @@ export async function POST(req) {
 
       const barcodeAsString = String(product.barcode);
 
+      // Use 'price' from XML as deliveryPrice
+      const deliveryPrice = typeof product.price === 'number' ? product.price : (parseFloat(product.deliveryPrice) || 0);
+
       try {
         const existingProduct = await prisma.product.findUnique({
           where: { barcode: barcodeAsString },
@@ -25,7 +28,7 @@ export async function POST(req) {
         if (existingProduct) {
           const updateData = {
             name: product.name,
-            deliveryPrice: parseFloat(product.deliveryPrice) || 0,
+            deliveryPrice: deliveryPrice,
           };
           if (updateQuantities) {
             updateData.quantity = { increment: parseInt(product.quantity, 10) || 0 };
@@ -44,7 +47,7 @@ export async function POST(req) {
               name: product.name || 'Unnamed Product',
               barcode: barcodeAsString,
               clientPrice: 0, // Selling price is set manually
-              deliveryPrice: parseFloat(product.deliveryPrice) || 0,
+              deliveryPrice: deliveryPrice,
               quantity: parseInt(product.quantity, 10) || 0,
               active: true,
             },

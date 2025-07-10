@@ -24,6 +24,9 @@ export async function POST(req, context) {
     for (const product of products) {
       if (!product.barcode || typeof product.quantity !== 'number') continue;
 
+      // Use 'price' from XML as deliveryPrice
+      const deliveryPrice = typeof product.price === 'number' ? product.price : (product.deliveryPrice || 0);
+
       let dbProduct = await prisma.product.findUnique({
         where: { barcode: String(product.barcode) },
       });
@@ -34,14 +37,14 @@ export async function POST(req, context) {
             barcode: String(product.barcode),
             name: product.name || `Imported ${product.barcode}`,
             clientPrice: 0, // Selling price is set manually
-            deliveryPrice: product.deliveryPrice || 0,
+            deliveryPrice: deliveryPrice,
             quantity: product.quantity,
           },
         });
       } else {
         const updateData = {
           name: product.name,
-          deliveryPrice: product.deliveryPrice || 0,
+          deliveryPrice: deliveryPrice,
         };
         updateData.quantity = { increment: product.quantity };
         if (product.shouldActivate) {
