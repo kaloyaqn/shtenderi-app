@@ -16,20 +16,28 @@ export async function GET() {
     prisma.store.count(),
   ]);
 
-  // Revenue this month (sum of all invoices issued this month)
+  // Gross income this month (sum of all sales from revisions in the month)
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const invoicesThisMonth = await prisma.invoice.findMany({
+  // In the revisionsThisMonth query, include missingProducts.product
+  const revisionsThisMonth = await prisma.revision.findMany({
     where: {
-      issuedAt: {
+      createdAt: {
         gte: startOfMonth,
         lt: endOfMonth,
       },
     },
-    select: { totalValue: true, products: true, revisionNumber: true },
+    include: {
+      missingProducts: { include: { product: true } },
+    },
   });
-  const revenue = invoicesThisMonth.reduce((sum, inv) => sum + (inv.totalValue || 0), 0);
+  let grossIncome = 0;
+  for (const rev of revisionsThisMonth) {
+    for (const mp of rev.missingProducts) {
+      grossIncome += (mp.missingQuantity || 0) * (mp.priceAtSale || 0);
+    }
+  }
 
   // Stands needing resupply: stands with at least one product below threshold
   const LOW_STOCK_THRESHOLD = 5;
@@ -42,23 +50,21 @@ export async function GET() {
   const standsNeedingResupply = new Set(standProducts.map(sp => sp.standId));
 
   // --- Sales by Stand (bar chart) ---
-  // Get all stands
-  const allStands = await prisma.stand.findMany({ select: { id: true, name: true } });
-  // Map revisionNumber to standId
-  const revisions = await prisma.revision.findMany({
-    where: {
-      number: { in: invoicesThisMonth.map(inv => inv.revisionNumber).filter(Boolean) },
-    },
-    select: { number: true, standId: true },
-  });
-  const revisionToStand = Object.fromEntries(revisions.map(r => [r.number, r.standId]));
-  const standIdToName = Object.fromEntries(allStands.map(s => [s.id, s.name]));
+  // Map standId to stand name
+  const standIdToName = Object.fromEntries(
+    (await prisma.stand.findMany({ select: { id: true, name: true } })).map(s => [s.id, s.name])
+  );
   // Sum sales per stand
   const salesByStandMap = {};
-  for (const inv of invoicesThisMonth) {
-    const standId = revisionToStand[inv.revisionNumber];
+  for (const rev of revisionsThisMonth) {
+    const standId = rev.standId;
     if (!standId) continue;
-    salesByStandMap[standId] = (salesByStandMap[standId] || 0) + (inv.totalValue || 0);
+    let standTotal = 0;
+    for (const mp of rev.missingProducts) {
+      const price = mp.priceAtSale || (mp.product?.clientPrice || 0);
+      standTotal += (mp.missingQuantity || 0) * price;
+    }
+    salesByStandMap[standId] = (salesByStandMap[standId] || 0) + standTotal;
   }
   const salesByStand = Object.entries(salesByStandMap).map(([standId, value]) => ({
     name: standIdToName[standId] || standId,
@@ -67,10 +73,11 @@ export async function GET() {
 
   // --- Top Products (bar chart) ---
   const productSalesMap = {};
-  for (const inv of invoicesThisMonth) {
-    for (const p of inv.products || []) {
-      if (!p.name) continue;
-      productSalesMap[p.name] = (productSalesMap[p.name] || 0) + (p.quantity || 0);
+  for (const rev of revisionsThisMonth) {
+    for (const mp of rev.missingProducts) {
+      // Get product name
+      const name = mp.product?.name || mp.productId;
+      productSalesMap[name] = (productSalesMap[name] || 0) + (mp.missingQuantity || 0);
     }
   }
   const topProducts = Object.entries(productSalesMap)
@@ -86,10 +93,10 @@ export async function GET() {
     const key = day.toISOString().slice(0, 10);
     salesTrendMap[key] = 0;
   }
-  for (const inv of invoicesThisMonth) {
-    const day = inv.issuedAt ? new Date(inv.issuedAt).toISOString().slice(0, 10) : null;
+  for (const rev of revisionsThisMonth) {
+    const day = rev.createdAt ? new Date(rev.createdAt).toISOString().slice(0, 10) : null;
     if (day && salesTrendMap[day] !== undefined) {
-      salesTrendMap[day] += inv.totalValue || 0;
+      salesTrendMap[day] += rev.totalValue || 0;
     }
   }
   const salesTrend = Object.entries(salesTrendMap).map(([name, value]) => ({ name, value: Number(value.toFixed(2)) }));
@@ -99,7 +106,7 @@ export async function GET() {
     products,
     partners,
     stores,
-    revenue: revenue.toFixed(2) + ' лв.',
+    grossIncome: grossIncome.toFixed(2) + ' лв.',
     resupplyNeeds: standsNeedingResupply.size,
     chartData: [
       { name: 'Щандове', value: stands },

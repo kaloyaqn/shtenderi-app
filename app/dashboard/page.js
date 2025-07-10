@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession, signOut } from "next-auth/react";
 import BasicHeader from "@/components/BasicHeader";
+import Link from "next/link";
 
 export default function DashboardHome() {
   const { data: session, status } = useSession();
@@ -65,8 +66,8 @@ export default function DashboardHome() {
       trendValue: 0,
     },
     {
-      title: "Приходи този месец",
-      value: loading ? <span className="animate-pulse text-gray-400">...</span> : adminStats?.revenue ?? '-',
+      title: "Оборот",
+      value: loading ? <span className="animate-pulse text-gray-400">...</span> : adminStats?.grossIncome ?? '-',
       icon: DollarSign,
       trend: "up",
       trendValue: 0,
@@ -80,7 +81,8 @@ export default function DashboardHome() {
     },
   ];
 
-  const getTrendIcon = (trend) => {
+  const getTrendIcon = (trend, trendValue) => {
+    if (trendValue === null || trendValue === undefined) return <Minus className="h-3 w-3 text-gray-400" />;
     switch (trend) {
       case "up":
         return <ArrowUp className="h-3 w-3 text-green-500" />;
@@ -104,6 +106,44 @@ export default function DashboardHome() {
 
   if (status === "loading") return null;
 
+  // USER DASHBOARD VIEW
+  if (session?.user?.role !== "ADMIN") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="max-w-xl w-full px-4 py-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Здравей, {session?.user?.name || ''}!</h1>
+          <p className="text-gray-600 mb-6">Тук можеш бързо да достъпиш своите стелажи, партньори, складове и продажби.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link href="/dashboard/stands">
+              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
+                <Store className="h-8 w-8 text-blue-600 mb-2" />
+                <span className="font-semibold text-gray-900">Моите стелажи</span>
+              </Card>
+            </Link>
+            <Link href="/dashboard/partners">
+              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
+                <Building className="h-8 w-8 text-green-600 mb-2" />
+                <span className="font-semibold text-gray-900">Моите партньори</span>
+              </Card>
+            </Link>
+            <Link href="/dashboard/storages">
+              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
+                <Package className="h-8 w-8 text-yellow-600 mb-2" />
+                <span className="font-semibold text-gray-900">Моите складове</span>
+              </Card>
+            </Link>
+            <Link href="/dashboard/revisions">
+              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
+                <TrendingUp className="h-8 w-8 text-purple-600 mb-2" />
+                <span className="font-semibold text-gray-900">Моите продажби</span>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen ">
       {/* Header */}
@@ -122,8 +162,8 @@ export default function DashboardHome() {
                   <div className="flex items-center justify-between mb-2">
                     <metric.icon className="h-5 w-5 text-gray-600" />
                     <div className="flex items-center space-x-1">
-                      {getTrendIcon(metric.trend)}
-                      {metric.trendValue !== 0 && (
+                      {getTrendIcon(metric.trend, metric.trendValue)}
+                      {(metric.trendValue !== null && metric.trendValue !== undefined && metric.trendValue !== 0) && (
                         <span className={`text-xs font-medium ${getTrendColor(metric.trend)}`}>
                           {metric.trendValue > 0 ? "+" : ""}
                           {metric.trendValue}
@@ -152,24 +192,28 @@ export default function DashboardHome() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(adminStats?.salesByStand || []).map((item, index) => {
-                    const maxValue = Math.max(...(adminStats?.salesByStand ? adminStats.salesByStand.map(i => i.value) : [1]));
-                    const widthPercent = (item.value / maxValue) * 100;
-                    return (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">{item.name}</span>
-                          <span className="font-medium text-gray-900">{item.value}</span>
+                  {adminStats?.salesByStand && adminStats.salesByStand.length > 0 ? (
+                    adminStats.salesByStand.map((item, index) => {
+                      const maxValue = Math.max(...(adminStats?.salesByStand ? adminStats.salesByStand.map(i => i.value) : [1]));
+                      const widthPercent = (item.value / maxValue) * 100;
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">{item.name}</span>
+                            <span className="font-medium text-gray-900">{item.value}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${widthPercent}%` }}
+                            ></div>
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${widthPercent}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <div className="text-gray-400 text-center py-4">Няма данни</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -184,24 +228,28 @@ export default function DashboardHome() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(adminStats?.topProducts || []).map((item, index) => {
-                    const maxValue = Math.max(...(adminStats?.topProducts ? adminStats.topProducts.map(i => i.value) : [1]));
-                    const widthPercent = (item.value / maxValue) * 100;
-                    return (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 truncate pr-2">{item.name}</span>
-                          <span className="font-medium text-gray-900 whitespace-nowrap">{item.value}</span>
+                  {adminStats?.topProducts && adminStats.topProducts.length > 0 ? (
+                    adminStats.topProducts.map((item, index) => {
+                      const maxValue = Math.max(...(adminStats?.topProducts ? adminStats.topProducts.map(i => i.value) : [1]));
+                      const widthPercent = (item.value / maxValue) * 100;
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 truncate pr-2">{item.name}</span>
+                            <span className="font-medium text-gray-900 whitespace-nowrap">{item.value}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${widthPercent}%` }}
+                            ></div>
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${widthPercent}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <div className="text-gray-400 text-center py-4">Няма данни</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
