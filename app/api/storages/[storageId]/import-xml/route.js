@@ -44,6 +44,7 @@ export async function POST(req, { params }) {
           data: {
             name: product.name,
             deliveryPrice: deliveryPrice,
+            // Do NOT update clientPrice
             quantity: { increment: xmlQuantity },
           },
         });
@@ -53,7 +54,7 @@ export async function POST(req, { params }) {
           data: {
             barcode: product.barcode,
             name: product.name || `XML Import ${product.barcode}`,
-            clientPrice: 0, // Selling price is set manually
+            clientPrice: 0, // Always 0 on create
             deliveryPrice: deliveryPrice,
             quantity: xmlQuantity,
           },

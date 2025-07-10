@@ -36,7 +36,7 @@ export async function POST(req, context) {
           data: {
             barcode: String(product.barcode),
             name: product.name || `Imported ${product.barcode}`,
-            clientPrice: 0, // Selling price is set manually
+            clientPrice: 0, // Always 0 on create
             deliveryPrice: deliveryPrice,
             quantity: product.quantity,
           },
@@ -45,6 +45,7 @@ export async function POST(req, context) {
         const updateData = {
           name: product.name,
           deliveryPrice: deliveryPrice,
+          // Do NOT update clientPrice
         };
         updateData.quantity = { increment: product.quantity };
         if (product.shouldActivate) {
