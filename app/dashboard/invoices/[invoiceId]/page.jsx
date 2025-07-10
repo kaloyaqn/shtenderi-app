@@ -18,6 +18,7 @@ export default function InvoicePage() {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isCreatingCreditNote, setIsCreatingCreditNote] = useState(false);
+  const [hasCreditNote, setHasCreditNote] = useState(false);
   const router = useRouter();
 
   const printOriginal = useReactToPrint({ 
@@ -38,6 +39,15 @@ export default function InvoicePage() {
       .then((data) => setInvoice(data))
       .catch(() => toast.error("Failed to load invoice data."))
       .finally(() => setLoading(false));
+    // Check if a credit note exists for this invoice
+    fetch(`/api/credit-notes?invoiceId=${invoiceId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) setHasCreditNote(true);
+        else if (data && data.invoiceId === invoiceId) setHasCreditNote(true);
+        else setHasCreditNote(false);
+      })
+      .catch(() => setHasCreditNote(false));
   }, [invoiceId]);
 
   const handleCreateCreditNote = async () => {
@@ -283,10 +293,11 @@ export default function InvoicePage() {
           
           <Button 
             onClick={handleCreateCreditNote} 
-            disabled={isCreatingCreditNote || invoice?.creditNotes?.length > 0}
+            disabled={hasCreditNote || isCreatingCreditNote}
             variant="outline"
+            className="ml-2"
           >
-           <IconInvoice /> {invoice?.creditNotes?.length > 0 ? 'Има издадено КИ' : 'Кредитно известие'}
+           <IconInvoice /> Кредитиране
           </Button>
 
           <Button onClick={() => handlePrint("original")}>
