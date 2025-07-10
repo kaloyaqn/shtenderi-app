@@ -40,7 +40,7 @@ export async function GET() {
   }
 
   // Stands needing resupply: stands with at least one product below threshold
-  const LOW_STOCK_THRESHOLD = 5;
+  const LOW_STOCK_THRESHOLD = 1;
   const standProducts = await prisma.standProduct.findMany({
     where: {
       quantity: { lt: LOW_STOCK_THRESHOLD },
