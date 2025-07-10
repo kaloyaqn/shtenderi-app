@@ -95,6 +95,10 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const invoiceId = searchParams.get('id');
+    const productId = searchParams.get('productId');
+    const barcode = searchParams.get('barcode');
+    const partnerId = searchParams.get('partnerId');
+    const partnerName = searchParams.get('partnerName');
 
     // If ID is present, get one specific invoice (check access later)
     if (invoiceId) {
@@ -117,7 +121,65 @@ export async function GET(req) {
       return NextResponse.json(invoice);
     }
 
-    // If no ID, get all invoices for the list view
+    // Special filtering for modal fetch (credit note creation)
+    if (
+      (productId && productId !== 'undefined') ||
+      (barcode && barcode !== 'undefined') ||
+      (partnerId && partnerId !== 'undefined' && partnerId !== '') ||
+      (partnerName && partnerName !== 'undefined' && partnerName !== '')
+    ) {
+      let invoiceWhere = {};
+      // Filter by partnerId (via revision join)
+      if (partnerId && partnerId !== 'undefined' && partnerId !== '') {
+        const revisions = await prisma.revision.findMany({
+          where: { partnerId },
+          select: { number: true },
+        });
+        const revisionNumbers = revisions.map(r => r.number);
+        if (revisionNumbers.length === 0) {
+          return NextResponse.json([]); // No invoices for this partner
+        }
+        invoiceWhere.revisionNumber = { in: revisionNumbers };
+      } else if (partnerName && partnerName !== 'undefined' && partnerName !== '') {
+        invoiceWhere.partnerName = partnerName;
+      }
+      // Filter by product in products JSON
+      if (productId && productId !== 'undefined') {
+        invoiceWhere.products = {
+          path: ['productId'],
+          equals: productId,
+        };
+      } else if (barcode && barcode !== 'undefined') {
+        invoiceWhere.products = {
+          path: ['barcode'],
+          equals: barcode,
+        };
+      }
+      // User access restriction
+      if (session.user.role === 'USER') {
+        const userStands = await prisma.userStand.findMany({ where: { userId: session.user.id }, select: { standId: true } });
+        const standIds = userStands.map(s => s.standId);
+        const allowedRevisions = await prisma.revision.findMany({
+          where: { standId: { in: standIds } },
+          select: { number: true },
+        });
+        const revisionNumbers = allowedRevisions.map(r => r.number);
+        if (invoiceWhere.revisionNumber) {
+          invoiceWhere.revisionNumber.in = invoiceWhere.revisionNumber.in
+            ? invoiceWhere.revisionNumber.in.filter(n => revisionNumbers.includes(n))
+            : revisionNumbers;
+        } else {
+          invoiceWhere.revisionNumber = { in: revisionNumbers };
+        }
+      }
+      const invoices = await prisma.invoice.findMany({
+        where: invoiceWhere,
+        orderBy: { invoiceNumber: 'desc' },
+      });
+      return NextResponse.json(invoices);
+    }
+
+    // If no special filters, get all invoices for the list view
     let whereClause = {};
     if (session.user.role === 'USER') {
       const userStands = await prisma.userStand.findMany({ where: { userId: session.user.id }, select: { standId: true } });

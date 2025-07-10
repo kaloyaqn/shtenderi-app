@@ -104,7 +104,7 @@ export default function RefundDetailPage() {
     },
     {
       accessorKey: "quantity",
-      header: "Количество",
+      header: "кол.",
       cell: ({ row }) => row.original.quantity,
     },
     {

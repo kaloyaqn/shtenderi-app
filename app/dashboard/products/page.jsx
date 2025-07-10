@@ -401,7 +401,7 @@ export default function ProductsPage() {
     },
     {
       accessorKey: "quantity",
-      header: "Общо количество",
+      header: "Общо Кол.",
       cell: ({ row }) => {
         if (!row) return null;
         const product = row.original;
