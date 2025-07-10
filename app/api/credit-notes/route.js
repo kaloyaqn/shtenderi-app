@@ -149,15 +149,15 @@ export async function GET(req) {
 
     // If ID is present, get one specific credit note
     if (creditNoteId) {
-      const creditNote = await prisma.creditNote.findUnique({
-        where: { id: creditNoteId },
-        include: { invoice: true } // Include the linked invoice
-      });
+    const creditNote = await prisma.creditNote.findUnique({
+      where: { id: creditNoteId },
+      include: { invoice: true } // Include the linked invoice
+    });
 
-      if (!creditNote) {
-        return NextResponse.json({ error: 'Credit note not found' }, { status: 404 });
-      }
-      return NextResponse.json(creditNote);
+    if (!creditNote) {
+      return NextResponse.json({ error: 'Credit note not found' }, { status: 404 });
+    }
+    return NextResponse.json(creditNote);
     }
 
     // If refundId is present, filter by it

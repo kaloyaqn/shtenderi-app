@@ -19,6 +19,7 @@ export default function InvoicePage() {
   const [loading, setLoading] = useState(true);
   const [isCreatingCreditNote, setIsCreatingCreditNote] = useState(false);
   const [hasCreditNote, setHasCreditNote] = useState(false);
+  const [hasRefund, setHasRefund] = useState(false);
   const router = useRouter();
 
   const printOriginal = useReactToPrint({ 
@@ -48,6 +49,14 @@ export default function InvoicePage() {
         else setHasCreditNote(false);
       })
       .catch(() => setHasCreditNote(false));
+    // Check if a refund exists for this invoice
+    fetch(`/api/refunds?invoiceId=${invoiceId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) setHasRefund(true);
+        else setHasRefund(false);
+      })
+      .catch(() => setHasRefund(false));
   }, [invoiceId]);
 
   const handleCreateCreditNote = async () => {
@@ -293,9 +302,10 @@ export default function InvoicePage() {
           
           <Button 
             onClick={handleCreateCreditNote} 
-            disabled={hasCreditNote || isCreatingCreditNote}
+            disabled={hasCreditNote || isCreatingCreditNote || !hasRefund}
             variant="outline"
             className="ml-2"
+            title={!hasRefund ? "Не може да се издаде кредитно известие без връщане по тази фактура." : undefined}
           >
            <IconInvoice /> Кредитиране
           </Button>
