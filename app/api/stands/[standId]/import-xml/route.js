@@ -24,14 +24,28 @@ export async function POST(req, context) {
     for (const product of products) {
       if (!product.barcode || typeof product.quantity !== 'number') continue;
 
-      // Use 'price' from XML as deliveryPrice
-      const deliveryPrice = typeof product.price === 'number' ? product.price : (product.deliveryPrice || 0);
+      // Use 'price' from XML as deliveryPrice, fallback to clientPrice, then deliveryPrice, then 0
+      const deliveryPrice =
+        typeof product.price === 'number'
+          ? product.price
+          : typeof product.clientPrice === 'number'
+            ? product.clientPrice
+            : (product.deliveryPrice || 0);
+      console.log('[IMPORT-XML][STAND] Incoming product:', product);
+      console.log('[IMPORT-XML][STAND] Computed deliveryPrice:', deliveryPrice);
 
       let dbProduct = await prisma.product.findUnique({
         where: { barcode: String(product.barcode) },
       });
 
       if (!dbProduct) {
+        console.log('[IMPORT-XML][STAND] Creating product with:', {
+          barcode: String(product.barcode),
+          name: product.name || `Imported ${product.barcode}`,
+          clientPrice: 0,
+          deliveryPrice: deliveryPrice,
+          quantity: product.quantity,
+        });
         dbProduct = await prisma.product.create({
           data: {
             barcode: String(product.barcode),
@@ -51,6 +65,7 @@ export async function POST(req, context) {
         if (product.shouldActivate) {
           updateData.active = true;
         }
+        console.log('[IMPORT-XML][STAND] Updating product with:', updateData);
         dbProduct = await prisma.product.update({
           where: { id: dbProduct.id },
           data: updateData,
