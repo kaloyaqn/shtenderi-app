@@ -37,7 +37,7 @@ export async function GET(req, { params }) {
     status: 200,
     headers: {
       'Content-Type': 'application/xml',
-      'Content-Disposition': `attachment; filename=stand-${standId}.xml`,
+      'Content-Disposition': `attachment; filename=stendo-${standId}.xml`,
     },
   });
 } 

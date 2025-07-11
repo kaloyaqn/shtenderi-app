@@ -490,6 +490,27 @@ export default function StandDetailPage({ params }) {
         </div>
 
         <div className="flex md:flex-row w-full md:w-auto flex-col items-center gap-2 ">
+
+        <Button
+  variant="outline"
+  onClick={async () => {
+    const res = await fetch(`/api/stands/${standId}/export-xml`);
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stand-${standId}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }}
+  className="md:flex hidden"
+>
+  <FilePlus />
+  Експорт
+</Button>
+
           <Button
             variant={"outline"}
             onClick={handleImportClick}
