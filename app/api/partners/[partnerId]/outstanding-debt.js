@@ -31,9 +31,5 @@ export async function GET(req, { params }) {
   });
   const totalPayments = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const outstandingDebt = totalSales - totalPayments;
-  return NextResponse.json({ 
-    outstandingDebt: Number(outstandingDebt).toFixed(2),
-    totalSales: Number(totalSales).toFixed(2),
-    totalPayments: Number(totalPayments).toFixed(2)
-  });
+  return NextResponse.json({ outstandingDebt, totalSales, totalPayments });
 } 

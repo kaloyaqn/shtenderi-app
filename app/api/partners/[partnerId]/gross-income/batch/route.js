@@ -31,6 +31,9 @@ export async function GET(req, { params }) {
       const { start, end } = getPeriodDates(period);
       results[period] = await getPartnerGrossIncome(partnerId, start, end, prisma);
     }
+    // Also fetch all-time outstanding debt and totals
+    const allTime = await getPartnerGrossIncome(partnerId, new Date('1970-01-01'), new Date(), prisma);
+    results['all_time'] = allTime;
     return NextResponse.json(results);
   } catch (err) {
     console.error(err);

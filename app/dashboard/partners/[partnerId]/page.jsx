@@ -36,6 +36,8 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import Link from 'next/link';
+import PartnerOutstandingDebt from "../../../../components/partners/outstanding-debt";
+import GrossIncomeComponent from "@/components/partners/grossIncome";
 
 export default function PartnerViewPage({ params }) {
   const router = useRouter();
@@ -44,6 +46,7 @@ export default function PartnerViewPage({ params }) {
   const [grossIncome, setGrossIncome] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
 
   useEffect(() => {
     const fetchPartner = async () => {
@@ -292,88 +295,7 @@ export default function PartnerViewPage({ params }) {
           {/* Statistics Sidebar */}
           <div className="space-y-6">
             {/* Quick Stats (placeholder) */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Статистики</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">
-                      Оборот този месец
-                    </span>
-                  </div>
-                  {grossIncome.this_month && (
-                    <Tooltip>
-                      <TooltipTrigger className="text-lg font-bold text-gray-900">
-                        {grossIncome.this_month &&
-                          grossIncome.this_month.grossIncome}{" "}
-                        лв.
-                      </TooltipTrigger>
-                      <TooltipContent className="flex flex-col gap-1">
-                        <span>
-                          Продажби: <b>{grossIncome.this_month.sales} лв.</b>
-                        </span>
-                        <span>
-                          Връщания: <b>{grossIncome.this_month.refunds} лв.</b>
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Package className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">Оборот тази седмица</span>
-                  </div>
-                  {grossIncome.this_week && (
-                    <Tooltip>
-                      <TooltipTrigger className="text-lg font-bold text-gray-900">
-                        {grossIncome.this_week &&
-                          grossIncome.this_week.grossIncome}{" "}
-                        лв.
-                      </TooltipTrigger>
-                      <TooltipContent className="flex flex-col gap-1">
-                        <span>
-                          Продажби: <b>{grossIncome.this_week.sales} лв.</b>
-                        </span>
-                        <span>
-                          Връщания: <b>{grossIncome.this_week.refunds} лв.</b>
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">
-                      Оборот предходен месец
-                    </span>
-                  </div>
-                  {grossIncome.last_month && (
-                    <Tooltip>
-                      <TooltipTrigger className="text-lg font-bold text-gray-900">
-                        {grossIncome.last_month &&
-                          grossIncome.last_month.grossIncome}{" "}
-                        лв.
-                      </TooltipTrigger>
-                      <TooltipContent className="flex flex-col gap-1">
-                        <span>
-                          Продажби: <b>{grossIncome.last_month.sales} лв.</b>
-                        </span>
-                        <span>
-                          Връщания: <b>{grossIncome.last_month.refunds} лв.</b>
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <GrossIncomeComponent partnerId={partnerId}/>
 
             {/* Contact Actions */}
             <Card>

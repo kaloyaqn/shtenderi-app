@@ -19,6 +19,7 @@ export default function CashRegisterDetailPage() {
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [invoices, setInvoices] = useState({});
+  
 
   useEffect(() => {
     setLoading(true);

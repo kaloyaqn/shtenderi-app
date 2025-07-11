@@ -37,7 +37,7 @@ export async function GET(req) {
     },
     include: {
       user: { select: { id: true, name: true, email: true } },
-      revision: { select: { id: true, number: true } },
+      revision: { select: { id: true, number: true, partner: { select: { id: true, name: true } } } },
       invoice: { select: { id: true, invoiceNumber: true } },
       cashRegister: { include: { storage: true } },
     },
