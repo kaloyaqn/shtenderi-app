@@ -44,10 +44,7 @@ export default function CashMovementCreatePage() {
   return (
     <div className="container mx-auto max-w-md">
       <BasicHeader title="Ново движение по каса" subtitle="Внасяне или теглене на пари в касата">
-      
-        <Link href={'cash-movements-create'}>
-        <Button>Създай движение</Button>
-        </Link>
+  
       </BasicHeader>
       <form className="mt-6 p-4 border rounded bg-gray-50" onSubmit={handleSubmit}>
         <div className="mb-4">

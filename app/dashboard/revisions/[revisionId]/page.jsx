@@ -135,7 +135,7 @@ export default function RevisionDetailPage() {
       fetch(`/api/invoices?revisionNumber=${revision.number}`)
         .then(res => res.json())
         .then(data => {
-          if (data && data.id) setInvoice(data);
+          if (Array.isArray(data) && data.length > 0) setInvoice(data[0]);
           else setInvoice(null);
         })
         .catch(() => setInvoice(null));

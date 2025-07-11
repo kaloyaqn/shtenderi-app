@@ -7,6 +7,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import TableLink from '@/components/ui/table-link';
+import { Button } from '@/components/ui/button';
 
 export default function CashRegisterDetailPage() {
   const { storageId } = useParams();
@@ -127,7 +128,13 @@ export default function CashRegisterDetailPage() {
 
   return (
     <div className="container mx-auto">
-      <BasicHeader title={`Каса за склад: ${cashRegister.storage?.name || cashRegister.storageId}`} subtitle="Детайли и разбивка на касата" />
+      <BasicHeader title={`Каса за склад: ${cashRegister.storage?.name || cashRegister.storageId}`} subtitle="Детайли и разбивка на касата">
+        
+            <Link href={`${window.location.pathname.replace(/\/$/, '')}/cash-movement-create`}>
+            <Button>
+              Добави движение
+            </Button></Link>
+        </BasicHeader>
       <div className="mb-6">
         <div className="text-lg font-bold">Текущ баланс: {cashRegister.cashBalance}</div>
       </div>
