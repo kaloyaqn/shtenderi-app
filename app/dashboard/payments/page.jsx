@@ -5,6 +5,7 @@ import BasicHeader from '@/components/BasicHeader';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import TableLink from '@/components/ui/table-link';
+import { Input } from '@/components/ui/input';
 
 export default function PaymentsPage() {
   const [activity, setActivity] = useState([]);
@@ -12,6 +13,10 @@ export default function PaymentsPage() {
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [invoices, setInvoices] = useState({});
+  const [amountGt, setAmountGt] = useState('');
+  const [amountLt, setAmountLt] = useState('');
+  const [partnerFilter, setPartnerFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
 
   useEffect(() => {
     async function fetchActivity() {
@@ -47,6 +52,26 @@ export default function PaymentsPage() {
     fetchInvoicesForRevisions();
   }, [activity]);
 
+  // Filtering logic
+  const filteredActivity = activity.filter(row => {
+    // Amount filters
+    let amount = row.amount;
+    if (row.type === 'cash_movement') {
+      amount = row.cashMovementType === 'DEPOSIT' ? row.amount : -row.amount;
+    }
+    if (amountGt && !(amount > parseFloat(amountGt))) return false;
+    if (amountLt && !(amount < parseFloat(amountLt))) return false;
+    // Partner filter
+    const partnerName = row.revision?.partner?.name || row.revision?.partnerName || '';
+    if (partnerFilter && !partnerName.toLowerCase().includes(partnerFilter.toLowerCase())) return false;
+    // Date filter (single date)
+    if (dateFilter) {
+      const rowDate = new Date(row.createdAt).toISOString().slice(0, 10);
+      if (rowDate !== dateFilter) return false;
+    }
+    return true;
+  });
+
   const columns = [
     { accessorKey: 'createdAt', header: 'Дата', cell: ({ row }) => new Date(row.original.createdAt).toLocaleString('bg-BG') },
     { accessorKey: 'type', header: 'Тип', cell: ({ row }) => (
@@ -79,6 +104,7 @@ export default function PaymentsPage() {
       }
       return (amount > 0 ? '+' : '') + amount.toFixed(2) + ' лв.';
     } },
+    { accessorKey: 'partner', header: 'Партньор', cell: ({ row }) => row.original.revision?.partner?.name || row.original.revision?.partnerName || '-' },
     { accessorKey: 'reason', header: 'Основание', cell: ({ row }) =>
       row.original.type === 'payment'
         ? (row.original.revision && row.original.revision.number
@@ -101,7 +127,7 @@ export default function PaymentsPage() {
   return (
     <div className="container mx-auto">
       <BasicHeader title="Всички плащания и касови операции" subtitle="Общ журнал на всички каси" />
-      <div className="mb-4 flex items-center gap-4">
+      <div className="mb-4 flex flex-wrap items-center gap-4">
         <label htmlFor="fromDate" className="font-medium">От дата:</label>
         <input
           id="fromDate"
@@ -124,7 +150,48 @@ export default function PaymentsPage() {
         {loading ? (
           <div>Зареждане...</div>
         ) : (
-          <DataTable columns={columns} data={activity} />
+          <DataTable
+            columns={columns}
+            data={filteredActivity}
+            searchKey={null}
+            filterableColumns={[]}
+            extraFilters={
+              <>
+                <label htmlFor="amountGt" className="font-medium">Сума &gt;=</label>
+                <Input
+                  id="amountGt"
+                  type="number"
+                  value={amountGt}
+                  onChange={e => setAmountGt(e.target.value)}
+                  className="w-24"
+                />
+                <label htmlFor="amountLt" className="font-medium">Сума &lt;=</label>
+                <Input
+                  id="amountLt"
+                  type="number"
+                  value={amountLt}
+                  onChange={e => setAmountLt(e.target.value)}
+                  className="w-24"
+                />
+                <label htmlFor="partnerFilter" className="font-medium">Партньор</label>
+                <Input
+                  id="partnerFilter"
+                  type="text"
+                  value={partnerFilter}
+                  onChange={e => setPartnerFilter(e.target.value)}
+                  className="w-32"
+                />
+                <label htmlFor="dateFilter" className="font-medium">Дата</label>
+                <input
+                  id="dateFilter"
+                  type="date"
+                  value={dateFilter}
+                  onChange={e => setDateFilter(e.target.value)}
+                  className="border rounded px-2 py-1"
+                />
+              </>
+            }
+          />
         )}
       </div>
     </div>

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import TableLink from '@/components/ui/table-link';
 import { Button } from '@/components/ui/button';
+import { IconCashPlus } from '@tabler/icons-react';
 
 export default function CashRegisterDetailPage() {
   const { storageId } = useParams();
@@ -132,7 +133,7 @@ export default function CashRegisterDetailPage() {
         
             <Link href={`${window.location.pathname.replace(/\/$/, '')}/cash-movement-create`}>
             <Button>
-              Добави движение
+             <IconCashPlus />  Добави движение
             </Button></Link>
         </BasicHeader>
       <div className="mb-6">
