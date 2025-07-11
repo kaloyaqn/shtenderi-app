@@ -14,6 +14,8 @@ export default function CashRegisterDetailPage() {
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     setLoading(true);
@@ -26,14 +28,19 @@ export default function CashRegisterDetailPage() {
   useEffect(() => {
     async function fetchActivity() {
       setLoading(true);
-      let url = `/api/cash-registers/${storageId}/activity?date=${date}`;
+      let url = `/api/cash-registers/${storageId}/activity`;
+      if (fromDate && toDate) {
+        url += `?from=${fromDate}&to=${toDate}`;
+      } else if (fromDate) {
+        url += `?date=${fromDate}`;
+      }
       const res = await fetch(url);
       const data = await res.json();
       setActivity(data);
       setLoading(false);
     }
-    if (storageId && date) fetchActivity();
-  }, [storageId, date]);
+    if (storageId && fromDate && toDate) fetchActivity();
+  }, [storageId, fromDate, toDate]);
 
   if (loading && !cashRegister) return <div>Зареждане...</div>;
   if (!cashRegister) return <div>Касата не е намерена.</div>;
@@ -52,15 +59,27 @@ export default function CashRegisterDetailPage() {
   const breakdownColumns = [
     { accessorKey: 'createdAt', header: 'Дата', cell: ({ row }) => new Date(row.original.createdAt).toLocaleString() },
     { accessorKey: 'type', header: 'Тип', cell: ({ row }) => (
-      <Badge variant={row.original.type === 'payment' ? 'success' : 'secondary'}>
-        {row.original.type === 'payment'
-          ? 'Плащане'
-          : row.original.cashMovementType === 'DEPOSIT'
-            ? 'Приход'
-            : row.original.cashMovementType === 'WITHDRAWAL'
-              ? 'Разход'
-              : 'Теглене'}
-      </Badge>
+      (() => {
+        let variant = 'destructive';
+        if (row.original.type === 'payment') {
+          variant = 'success';
+        } else if (row.original.cashMovementType === 'DEPOSIT') {
+          variant = 'danger';
+        } else if (row.original.cashMovementType === 'WITHDRAWAL') {
+          variant = 'destructive';
+        }
+        return (
+          <Badge variant={variant}>
+            {row.original.type === 'payment'
+              ? 'Плащане'
+              : row.original.cashMovementType === 'DEPOSIT'
+                ? 'Приход'
+                : row.original.cashMovementType === 'WITHDRAWAL'
+                  ? 'Разход'
+                  : 'Теглене'}
+          </Badge>
+        );
+      })()
     ) },
     { accessorKey: 'amount', header: 'Сума', cell: ({ row }) => {
       let amount = row.original.amount;
@@ -88,12 +107,20 @@ export default function CashRegisterDetailPage() {
         <div className="text-lg font-bold">Текущ баланс: {cashRegister.cashBalance}</div>
       </div>
       <div className="mb-4 flex items-center gap-4">
-        <label htmlFor="date" className="font-medium">Дата:</label>
+        <label htmlFor="fromDate" className="font-medium">От дата:</label>
         <input
-          id="date"
+          id="fromDate"
           type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
+          value={fromDate}
+          onChange={e => setFromDate(e.target.value)}
+          className="border rounded px-2 py-1"
+        />
+        <label htmlFor="toDate" className="font-medium">До дата:</label>
+        <input
+          id="toDate"
+          type="date"
+          value={toDate}
+          onChange={e => setToDate(e.target.value)}
           className="border rounded px-2 py-1"
         />
       </div>
