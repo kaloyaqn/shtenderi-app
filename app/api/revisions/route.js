@@ -60,12 +60,18 @@ export async function POST(req) {
   }
 }
 
-export async function GET() {
+export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status');
+    const source = searchParams.get('source');
+    const partnerName = searchParams.get('partnerName');
+    const userName = searchParams.get('userName');
 
     let whereClause = {};
     if (session.user.role === 'USER') {
@@ -78,6 +84,31 @@ export async function GET() {
         standId: {
           in: standIds,
         },
+      };
+    }
+
+    // Add status filter if present
+    if (status && (status === 'PAID' || status === 'NOT_PAID')) {
+      whereClause.status = status;
+    }
+    // Add source filter (stand name or storage name)
+    if (source) {
+      whereClause.OR = [
+        { stand: { name: { contains: source, mode: 'insensitive' } } },
+        { storage: { name: { contains: source, mode: 'insensitive' } } },
+      ];
+    }
+    // Add partnerName filter
+    if (partnerName) {
+      whereClause.partner = { name: { contains: partnerName, mode: 'insensitive' } };
+    }
+    // Add userName filter
+    if (userName) {
+      whereClause.user = {
+        OR: [
+          { name: { contains: userName, mode: 'insensitive' } },
+          { email: { contains: userName, mode: 'insensitive' } },
+        ],
       };
     }
 

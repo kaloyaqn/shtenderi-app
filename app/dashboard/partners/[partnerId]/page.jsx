@@ -35,6 +35,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import Link from 'next/link';
 
 export default function PartnerViewPage({ params }) {
   const router = useRouter();
@@ -444,6 +445,7 @@ export default function PartnerViewPage({ params }) {
                 </div>
               </CardContent>
             </Card>
+            <Link href={`/dashboard/partners/${partnerId}/outstanding-debt`} className="text-blue-600 underline">View Outstanding Debt</Link>
           </div>
         </div>
       </div>

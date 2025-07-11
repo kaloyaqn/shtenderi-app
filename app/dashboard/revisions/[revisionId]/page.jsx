@@ -37,6 +37,7 @@ export default function RevisionDetailPage() {
   const [resupplyDialogOpen, setResupplyDialogOpen] = useState(false);
   const [storages, setStorages] = useState([]);
   const [selectedStorage, setSelectedStorage] = useState('');
+  const [selectedCashRegister, setSelectedCashRegister] = useState('');
   const [addProductDialogOpen, setAddProductDialogOpen] = useState(false);
   const [storageProducts, setStorageProducts] = useState([]);
   const [search, setSearch] = useState('');
@@ -54,6 +55,36 @@ export default function RevisionDetailPage() {
   const [stands, setStands] = useState([]);
   const [selectedRepeatStand, setSelectedRepeatStand] = useState('');
   const [repeatLoading, setRepeatLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [method, setMethod] = useState('CASH');
+  const [userId, setUserId] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [cashRegisters, setCashRegisters] = useState([]);
+  // --- Desktop only: payments state and fetch (must be at top for hook order) ---
+  const [payments, setPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+
+  const fetchPayments = async () => {
+    setPaymentsLoading(true);
+    try {
+      const res = await fetch(`/api/revisions/${revisionId}/payments`); // <-- use new endpoint
+      if (!res.ok) throw new Error('Failed to fetch payments');
+      const data = await res.json();
+      setPayments(data);
+    } catch (error) {
+      setPayments([]);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (revisionId) fetchPayments();
+  }, [revisionId]);
+  // TODO: fetch revision details, including storageId
+  const storageId = revision?.storageId || '';
 
   const contentRef = useRef(null);
   const reactToPrintFn = useReactToPrint({ contentRef });
@@ -120,6 +151,26 @@ export default function RevisionDetailPage() {
         .catch(() => toast.error('Грешка при зареждане на щандове.'));
     }
   }, [repeatDialogOpen]);
+
+  useEffect(() => {
+    // Fetch all storages for this partner or store
+    if (revision?.partnerId) {
+      fetch(`/api/partners/${revision.partnerId}/storages`)
+        .then(res => res.json())
+        .then(setStorages);
+    } else if (revision?.storeId) {
+      fetch(`/api/stores/${revision.storeId}/storages`)
+        .then(res => res.json())
+        .then(setStorages);
+    }
+  }, [revision?.partnerId, revision?.storeId]);
+
+  useEffect(() => {
+    // Fetch all cash registers
+    fetch('/api/cash-registers')
+      .then(res => res.json())
+      .then(setCashRegisters);
+  }, []);
 
   const handleResupply = async () => {
     if (!selectedStorage) {
@@ -468,6 +519,9 @@ export default function RevisionDetailPage() {
     );
   }
 
+  // Calculate total paid for this revision
+  const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
   const columns = [
     {
       accessorKey: 'name',
@@ -507,6 +561,29 @@ export default function RevisionDetailPage() {
   const totalQuantity = revision.missingProducts.reduce((sum, mp) => sum + mp.missingQuantity, 0);
   const totalValue = revision.missingProducts.reduce((sum, mp) => sum + (mp.missingQuantity * (mp.product?.clientPrice || 0)), 0);
   const adminName = revision.user?.name || revision.user?.email || '';
+
+  // Calculate total price of revision
+  const totalRevisionPrice = revision?.missingProducts?.reduce((sum, mp) => sum + (mp.missingQuantity * (mp.priceAtSale ?? mp.product?.clientPrice ?? 0)), 0) || 0;
+
+  async function handlePayment(e) {
+    e.preventDefault();
+    setPaymentLoading(true);
+    setSuccess(false);
+    await fetch(`/api/cash-registers/${selectedCashRegister}/payments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: parseFloat(amount),
+        method,
+        revisionId,
+        userId: session?.user?.id,
+      }),
+    });
+    setPaymentLoading(false);
+    setSuccess(true);
+    setAmount('');
+    fetchPayments(); // refetch payments after new payment
+  }
 
   return (
     <div className="container mx-auto">
@@ -617,7 +694,45 @@ export default function RevisionDetailPage() {
                 </CardHeader>
                 <CardContent>
                 {revision.missingProducts?.length > 0 ? (
-                  <DataTable columns={columns} data={data} searchKey="barcode" />
+                  <>
+                    <DataTable columns={columns} data={data} searchKey="barcode" />
+                    {/* Payment form under DataTable */}
+                    <form className="mt-6 p-4 border rounded bg-gray-50" onSubmit={handlePayment}>
+                      <h3 className="font-semibold mb-2">Добави плащане към тази продажба</h3>
+                      <div className="mb-2 flex items-center gap-2">
+                        <label className="block mb-1">Сума</label>
+                        <span className="text-xs text-gray-500">{totalPaid}/{totalRevisionPrice}</span>
+                      </div>
+                      <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                      <div className="mb-2">
+                        <label className="block mb-1">Метод</label>
+                        <Select value={method} onValueChange={setMethod}>
+                          <SelectTrigger><SelectValue placeholder="Избери метод" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CASH">В брой</SelectItem>
+                            <SelectItem value="BANK">Банка</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="mb-2">
+                        <label className="block mb-1">Каса (склад)</label>
+                        <Select value={selectedCashRegister} onValueChange={setSelectedCashRegister} required>
+                          <SelectTrigger><SelectValue placeholder="Избери каса" /></SelectTrigger>
+                          <SelectContent>
+                            {cashRegisters.map(cr => (
+                              <SelectItem key={cr.id} value={cr.storageId}>{cr.storage?.name || cr.storageId}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button type="submit" disabled={paymentLoading}>
+                          {paymentLoading ? 'Обработка...' : 'Добави плащане'}
+                        </Button>
+                      </div>
+                      {success && <div className="mt-2 text-green-700">Плащането е успешно!</div>}
+                    </form>
+                  </>
                 ) : (
                   <p>Няма регистрирани продажби.</p>
                 )}
@@ -814,6 +929,71 @@ export default function RevisionDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {showPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <form className="bg-white p-6 rounded shadow-md min-w-[300px]" onSubmit={handlePayment}>
+            <h2 className="text-lg font-bold mb-2">Make Payment</h2>
+            <div className="mb-2 flex items-center gap-2">
+              <label className="block mb-1">Amount</label>
+              <span className="text-xs text-gray-500">{amount || 0}/{totalRevisionPrice}</span>
+            </div>
+            <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className="border px-2 py-1 w-full" required />
+            <div className="mb-2">
+              <label className="block mb-1">Method</label>
+              <select value={method} onChange={e => setMethod(e.target.value)} className="border px-2 py-1 w-full">
+                <option value="CASH">Cash</option>
+                <option value="BANK">Bank</option>
+              </select>
+            </div>
+            <div className="mb-2">
+              <label className="block mb-1">User ID</label>
+              <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="border px-2 py-1 w-full" required />
+              {/* TODO: Replace with user picker or use current session user */}
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button type="submit" className="bg-green-600 text-white px-4 py-1 rounded" disabled={paymentLoading}>
+                {paymentLoading ? 'Processing...' : 'Submit'}
+              </button>
+              <button type="button" className="bg-gray-300 px-4 py-1 rounded" onClick={() => setShowPayment(false)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {success && <div className="mt-2 text-green-700">Payment successful!</div>}
+      {/* Below the payment form (desktop only): */}
+      <div className="mt-6">
+        <h4 className="font-semibold mb-2">Плащания към тази продажба</h4>
+        {paymentsLoading ? (
+          <div>Зареждане...</div>
+        ) : payments.length === 0 ? (
+          <div className="text-gray-500">Няма плащания.</div>
+        ) : (
+          <table className="min-w-full text-sm border">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-2 py-1 border">Дата</th>
+                <th className="px-2 py-1 border">Сума</th>
+                <th className="px-2 py-1 border">Метод</th>
+                <th className="px-2 py-1 border">Каса</th>
+                <th className="px-2 py-1 border">Потребител</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map(p => (
+                <tr key={p.id}>
+                  <td className="px-2 py-1 border">{new Date(p.createdAt).toLocaleString('bg-BG')}</td>
+                  <td className="px-2 py-1 border">{p.amount.toFixed(2)} лв.</td>
+                  <td className="px-2 py-1 border">{p.method === 'CASH' ? 'В брой' : 'Банка'}</td>
+                  <td className="px-2 py-1 border">{p.cashRegisterId || '-'}</td>
+                  <td className="px-2 py-1 border">{p.user?.name || p.user?.email || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 } 

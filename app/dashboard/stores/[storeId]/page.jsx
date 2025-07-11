@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import LoadingScreen from '@/components/LoadingScreen';
+import Link from 'next/link';
 
 export default function StoreDetailPage({ params }) {
     const router = useRouter();
@@ -80,6 +81,7 @@ export default function StoreDetailPage({ params }) {
                 data={store.stands || []}
                 searchKey="name"
             />
+            <Link href={`/dashboard/stores/${storeId}/outstanding-debt`} className="text-blue-600 underline">View Outstanding Debt</Link>
         </div>
     );
 } 

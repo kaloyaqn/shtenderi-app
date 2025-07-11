@@ -11,7 +11,8 @@ import {
   IconInnerShadowTop,
   IconTransfer,
   IconCashRegister,
-  IconCash
+  IconCash,
+  IconPaywall
 } from "@tabler/icons-react"
 import {
     BoxIcon,
@@ -59,6 +60,8 @@ const groupedDocuments = {
     { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
     { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
     { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
+    { name: "Каси", url: "/dashboard/cash-registers", icon: IconCashRegister },
+    { name: "Плащания", url: "/dashboard/payments", icon: IconPaywall , adminOnly: true },
 
     
   ],
