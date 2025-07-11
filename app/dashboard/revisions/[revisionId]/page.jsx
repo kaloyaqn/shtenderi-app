@@ -405,9 +405,9 @@ export default function RevisionDetailPage() {
                     <Send className="h-3 w-3 mr-1" />
                     Изпрати
                   </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-xs bg-transparent" onClick={() => invoice ? router.push(`/dashboard/invoices/${invoice.id}`) : setIsPaymentModalOpen(true)}>
+                  <Button variant="outline" size="sm" className="h-7 text-xs bg-transparent" onClick={() => invoice ? router.push(`/dashboard/invoices/${invoice.id}`) : setIsPaymentModalOpen(true)} disabled={!!invoice}>
                     <FileText className="h-3 w-3 mr-1" />
-                    Фактура
+                    {invoice ? 'Фактура създадена' : 'Фактура'}
                   </Button>
                   <Button variant="outline" size="sm" className="h-7 text-xs bg-transparent" onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}>
                     <LucideEdit className="h-3 w-3 mr-1" />
