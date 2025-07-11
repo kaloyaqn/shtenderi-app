@@ -11,6 +11,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [invoices, setInvoices] = useState({});
 
   useEffect(() => {
     async function fetchActivity() {
@@ -28,6 +29,23 @@ export default function PaymentsPage() {
     }
     if (fromDate && toDate) fetchActivity();
   }, [fromDate, toDate]);
+
+  // Fetch all invoices for the revisions in the activity
+  useEffect(() => {
+    async function fetchInvoicesForRevisions() {
+      const revisionNumbers = Array.from(new Set(activity.filter(a => a.revision?.number).map(a => a.revision.number)));
+      if (revisionNumbers.length === 0) return;
+      const params = new URLSearchParams();
+      revisionNumbers.forEach(n => params.append('revisionNumber', n));
+      const res = await fetch(`/api/invoices?${params.toString()}`);
+      const data = await res.json();
+      // Map revisionNumber to invoice
+      const invoiceMap = {};
+      data.forEach(inv => { invoiceMap[inv.revisionNumber] = inv; });
+      setInvoices(invoiceMap);
+    }
+    fetchInvoicesForRevisions();
+  }, [activity]);
 
   const columns = [
     { accessorKey: 'createdAt', header: 'Дата', cell: ({ row }) => new Date(row.original.createdAt).toLocaleString('bg-BG') },
@@ -69,7 +87,14 @@ export default function PaymentsPage() {
         : (row.original.reason || '-')
     },
     { accessorKey: 'user', header: 'Потребител', cell: ({ row }) => row.original.user?.name || row.original.user?.email || '-' },
-    { accessorKey: 'invoiceId', header: 'Фактура', cell: ({ row }) => row.original.invoiceId ? <TableLink href={`/dashboard/invoices/${row.original.invoiceId}`}>{row.original.invoice?.invoiceNumber || row.original.invoiceId}</TableLink> : '-' },
+    { accessorKey: 'invoiceId', header: 'Фактура', cell: ({ row }) => {
+      // Find invoice by revision number
+      const revNum = row.original.revision?.number;
+      const invoice = revNum ? invoices[revNum] : null;
+      return invoice ? (
+        <TableLink href={`/dashboard/invoices/${invoice.id}`}>{invoice.invoiceNumber}</TableLink>
+      ) : '-';
+    } },
     { accessorKey: 'storageName', header: 'Каса/Склад', cell: ({ row }) => row.original.storageName || '-' },
   ];
 

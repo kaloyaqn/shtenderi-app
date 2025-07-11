@@ -26,6 +26,7 @@ export default function RevisionsListPage() {
   const searchParams = useSearchParams();
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
   const { data: session } = useSession();
+  const [invoices, setInvoices] = useState({});
 
   // Move all hooks here, before any return
   const isMobile = useIsMobile();
@@ -93,6 +94,23 @@ export default function RevisionsListPage() {
     }
   }, [session, statusFilter]);
 
+  // Fetch all invoices for the revisions
+  useEffect(() => {
+    async function fetchInvoicesForRevisions() {
+      const revisionNumbers = Array.from(new Set(revisions.map(r => r.number)));
+      if (revisionNumbers.length === 0) return;
+      const params = new URLSearchParams();
+      revisionNumbers.forEach(n => params.append('revisionNumber', n));
+      const res = await fetch(`/api/invoices?${params.toString()}`);
+      const data = await res.json();
+      // Map revisionNumber to invoice
+      const invoiceMap = {};
+      data.forEach(inv => { invoiceMap[inv.revisionNumber] = inv; });
+      setInvoices(invoiceMap);
+    }
+    fetchInvoicesForRevisions();
+  }, [revisions]);
+
   const columns = [
     {
       accessorKey: "number",
@@ -140,24 +158,43 @@ export default function RevisionsListPage() {
       header: "Дата",
       cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
     },
-    {
-      accessorKey: "missingProducts",
-      header: "кол.",
-      cell: ({ row }) => row.original.missingProducts?.length || 0,
-    },
+    // {
+    //   accessorKey: "missingProducts",
+    //   header: "кол.",
+    //   cell: ({ row }) => row.original.missingProducts?.length || 0,
+    // },
         {
       accessorKey: "status",
       header: "Статус",
       cell: ({ row }) => {
         const type = row.original.status;
         if (!type) return null;
+
+        let variant = 'destructive';
+        if (type === 'PAID') {
+          variant = 'success';
+        } 
         return (
-          <span className={`px-2 py-0.5 rounded text-xs font-semibold  ${type === 'NOT_PAID' ? 'border-red-400 text-red-700 bg-red-100 border ' : 'border-green-300 text-green-600 bg-green-100 border'}`}>
-            {type === 'NOT_PAID' ? 'Неплатена' : 'Платена'}
-          </span>
+        <>
+  <Badge variant={variant}>
+  {type === 'NOT_PAID' ? 'Неплатена' : 'Платена'}
+
+  </Badge>
+
+        </>
         );
       },
       
+    },
+    {
+      accessorKey: "invoiceNumber",
+      header: "Фактура",
+      cell: ({ row }) => {
+        const invoice = invoices[row.original.number];
+        return invoice ? (
+          <TableLink href={`/dashboard/invoices/${invoice.id}`}>{invoice.invoiceNumber}</TableLink>
+        ) : "-";
+      },
     },
     {
       id: "actions",
@@ -321,6 +358,24 @@ export default function RevisionsListPage() {
                     >
                       Преглед
                     </Button>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-5 h-5 bg-gray-100 rounded-md flex items-center justify-center">
+                        <Package className="w-2 h-2 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Фактура:</p>
+                        {(() => {
+                          const invoice = invoices[sale.number];
+                          return invoice ? (
+                            <a href={`/dashboard/invoices/${invoice.id}`} className="text-xs text-blue-700 underline">{invoice.invoiceNumber}</a>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
