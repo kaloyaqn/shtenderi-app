@@ -37,23 +37,48 @@ export const PrintableRevision = React.forwardRef(({ revision }, ref) => {
               <th className="p-2 border">Продукт</th>
               <th className="p-2 border">Баркод</th>
               <th className="p-2 border text-center">Липсващи бройки</th>
+              <th className="p-2 border text-right">Ед. цена (лв.)</th>
+              <th className="p-2 border text-right">Обща стойност (лв.)</th>
             </tr>
           </thead>
           <tbody>
             {revision.missingProducts?.length > 0 ? (
-              revision.missingProducts.map((mp) => (
-                <tr key={mp.id}>
-                  <td className="p-2 border">{mp.product?.name || 'N/A'}</td>
-                  <td className="p-2 border">{mp.product?.barcode || 'N/A'}</td>
-                  <td className="p-2 border text-center">{mp.missingQuantity}</td>
-                </tr>
-              ))
+              revision.missingProducts.map((mp) => {
+                const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+                const total = price * mp.missingQuantity;
+                return (
+                  <tr key={mp.id}>
+                    <td className="p-2 border">{mp.product?.name || 'N/A'}</td>
+                    <td className="p-2 border">{mp.product?.barcode || 'N/A'}</td>
+                    <td className="p-2 border text-center">{mp.missingQuantity}</td>
+                    <td className="p-2 border text-right">{price.toFixed(2)}</td>
+                    <td className="p-2 border text-right">{total.toFixed(2)}</td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan="3" className="p-2 border text-center">Няма липсващи продукти.</td>
+                <td colSpan="5" className="p-2 border text-center">Няма липсващи продукти.</td>
               </tr>
             )}
           </tbody>
+          {revision.missingProducts?.length > 0 && (
+            <tfoot>
+              <tr className="font-bold bg-gray-100">
+                <td className="p-2 border text-right" colSpan={2}>Общо:</td>
+                <td className="p-2 border text-center">
+                  {revision.missingProducts.reduce((sum, mp) => sum + mp.missingQuantity, 0)}
+                </td>
+                <td className="p-2 border"></td>
+                <td className="p-2 border text-right">
+                  {revision.missingProducts.reduce((sum, mp) => {
+                    const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+                    return sum + price * mp.missingQuantity;
+                  }, 0).toFixed(2)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </section>
 

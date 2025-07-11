@@ -30,10 +30,11 @@ model Product {
   id          String   @id @default(uuid())
   name        String
   barcode     String   @unique
-  clientPrice Float //цена на едро
-  pcd         String? //препоръчкителна цена доставчик
+  clientPrice Float    // цена на продажба (за магазини)
+  deliveryPrice Float  @default(0) // цена на доставка (от XML)
+  pcd         String?  // препоръчкителна цена доставчик
   quantity    Int      @default(0)
-  active      Boolean  @default(true) // Product is active or discontinued
+  active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
   standProducts   StandProduct[]
@@ -96,6 +97,8 @@ model User {
   userStands     UserStand[]
   userStorages   UserStorage[]
   imports        Import[]
+  payments       Payment[]
+  cashMovements  CashMovement[]
   @@map("users")
 }
 
@@ -114,6 +117,7 @@ model Partner {
   country        String?                    // Държава
   city           String?                    // Град
   mol            String?                    // МОЛ - Материално отговорно лице
+  percentageDiscount Float?                 // Процентна отстъпка за партньора
 
   stores         Store[]                    // Връзка към магазини
   revisions     Revision[]
@@ -148,8 +152,15 @@ model Revision {
   userId     String
   createdAt  DateTime @default(now())
   type       String   @default("manual") // NEW FIELD: origin of revision (e.g., 'import', 'manual', etc.)
+  status     RevisionStatus @default(NOT_PAID) // <-- new field
 
   missingProducts MissingProduct[]
+  payments Payment[]
+}
+
+enum RevisionStatus {
+  PAID
+  NOT_PAID
 }
 
 model MissingProduct {
@@ -159,6 +170,7 @@ model MissingProduct {
   product     Product  @relation(fields: [productId], references: [id])
   productId   String
   missingQuantity Int
+  priceAtSale Float?
 }
 
 model Storage {
@@ -170,6 +182,7 @@ model Storage {
   userStorages    UserStorage[]
   revisions       Revision[]
   imports         Import[]
+  cashRegister    CashRegister?
 }
 
 model StorageProduct {
@@ -207,6 +220,7 @@ model Invoice {
   revisionNumber Int?
 
   creditNotes    CreditNote[] // An invoice can have many credit notes
+  payments Payment[]
 }
 
 model CreditNote {
@@ -239,7 +253,7 @@ model CreditNote {
 
 enum PaymentMethod {
   CASH
-  CARD
+  BANK
 }
 
 model Refund {
@@ -262,6 +276,7 @@ model RefundProduct {
   product    Product  @relation(fields: [productId], references: [id])
   productId  String
   quantity   Int
+  priceAtRefund Float?
 }
 
 enum RefundSourceType {
@@ -347,4 +362,47 @@ model Import {
   fileName    String   @unique
   createdAt   DateTime @default(now())
   importProducts ImportProduct[]
+}
+
+model CashRegister {
+  id           String        @id @default(uuid())
+  storage      Storage       @relation(fields: [storageId], references: [id])
+  storageId    String        @unique
+  cashBalance  Float         @default(0)
+  payments     Payment[]
+  cashMovements CashMovement[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Payment {
+  id             String      @id @default(uuid())
+  amount         Float
+  method         PaymentMethod
+  revision       Revision    @relation(fields: [revisionId], references: [id])
+  revisionId     String
+  invoice        Invoice?    @relation(fields: [invoiceId], references: [id])
+  invoiceId      String?
+  cashRegister   CashRegister @relation(fields: [cashRegisterId], references: [id])
+  cashRegisterId String
+  user           User        @relation(fields: [userId], references: [id])
+  userId         String
+  createdAt      DateTime    @default(now())
+}
+
+model CashMovement {
+  id             String      @id @default(uuid())
+  amount         Float
+  type           CashMovementType
+  cashRegister   CashRegister @relation(fields: [cashRegisterId], references: [id])
+  cashRegisterId String
+  user           User        @relation(fields: [userId], references: [id])
+  userId         String
+  reason         String?
+  createdAt      DateTime    @default(now())
+}
+
+enum CashMovementType {
+  DEPOSIT
+  WITHDRAWAL
 }

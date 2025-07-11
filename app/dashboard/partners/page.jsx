@@ -21,6 +21,7 @@ import TableLink from "@/components/ui/table-link"
 import LoadingScreen from "@/components/LoadingScreen"
 import BasicHeader from "@/components/BasicHeader"
 import NoAcess from "@/components/NoAccess"
+import { Badge } from "@/components/ui/badge"
 
 export default function PartnersPage() {
   const router = useRouter()
@@ -53,6 +54,7 @@ export default function PartnersPage() {
       accessorKey: "bulstat",
       header: "Булстат",
     },
+
     {
       accessorKey: "contactPerson",
       header: "Лице за контакт",
@@ -68,6 +70,18 @@ export default function PartnersPage() {
         const stores = row.original.stores
         return <div>{stores?.length || 0}</div>
       },
+    },
+            {
+      accessorKey: "percentageDiscount",
+      header: "%",
+      cell: ({row}) => {
+        const PD = row.original.percentageDiscount
+        return (
+          <>
+            <Badge variant='outline'>{PD || 0}%</Badge>
+          </>
+        )
+      }
     },
     {
       id: "actions",

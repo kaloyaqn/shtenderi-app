@@ -54,6 +54,15 @@ export async function POST(req) {
       const lastCreditNote = await prisma.creditNote.findFirst({ orderBy: { creditNoteNumber: 'desc' } });
       const nextNumber = (lastCreditNote?.creditNoteNumber || 0) + 1;
       // 7. Create the credit note
+      // Use the price from the refund's products if available, otherwise calculate
+      const partnerDiscount = refund.user?.percentageDiscount || 0;
+      const creditNoteProducts = products.map(p => {
+        const basePrice = p.clientPrice !== undefined ? p.clientPrice : 0;
+        return {
+          ...p,
+          clientPrice: basePrice,
+        };
+      });
       const newCreditNote = await prisma.creditNote.create({
         data: {
           creditNoteNumber: nextNumber,
@@ -65,10 +74,10 @@ export async function POST(req) {
           partnerCountry: '',
           partnerCity: '',
           preparedBy,
-          products: products,
-          totalValue: products.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)), 0),
-          vatBase: products.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) / 1.2, 0),
-          vatAmount: products.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) * 0.2 / 1.2, 0),
+          products: creditNoteProducts,
+          totalValue: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)), 0),
+          vatBase: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) / 1.2, 0),
+          vatAmount: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) * 0.2 / 1.2, 0),
           paymentMethod: 'CASH',
           invoiceId: products[0]?.invoiceId || null, // Link to the first invoice if available
           refundId: refundId, // <-- set refundId if present
@@ -140,15 +149,15 @@ export async function GET(req) {
 
     // If ID is present, get one specific credit note
     if (creditNoteId) {
-      const creditNote = await prisma.creditNote.findUnique({
-        where: { id: creditNoteId },
-        include: { invoice: true } // Include the linked invoice
-      });
+    const creditNote = await prisma.creditNote.findUnique({
+      where: { id: creditNoteId },
+      include: { invoice: true } // Include the linked invoice
+    });
 
-      if (!creditNote) {
-        return NextResponse.json({ error: 'Credit note not found' }, { status: 404 });
-      }
-      return NextResponse.json(creditNote);
+    if (!creditNote) {
+      return NextResponse.json({ error: 'Credit note not found' }, { status: 404 });
+    }
+    return NextResponse.json(creditNote);
     }
 
     // If refundId is present, filter by it

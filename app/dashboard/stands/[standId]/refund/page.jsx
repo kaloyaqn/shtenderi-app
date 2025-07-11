@@ -96,6 +96,7 @@ export default function StandRefundPage() {
     const productsToRefund = Object.values(refundList).map((item) => ({
       productId: item.product.id,
       quantity: item.quantity,
+      clientPrice: item.product.clientPrice,
     }));
     if (productsToRefund.length === 0) {
       toast.error("Няма избрани продукти за връщане.");

@@ -60,6 +60,7 @@ export default function EditPartnerPage({ params }) {
       country: country.trim(),
       city: city.trim(),
       mol: mol.trim(),
+      percentageDiscount: Number(formData.get('percentageDiscount')) || 0,
     }
 
     try {
@@ -154,7 +155,10 @@ export default function EditPartnerPage({ params }) {
                   />
                 </div>
 
-
+                <div className="grid gap-2">
+                  <Label htmlFor="percentageDiscount">Процентна отстъпка</Label>
+                  <Input id="percentageDiscount" name="percentageDiscount" type="number" step="0.01" min="0" max="100" defaultValue={partner.percentageDiscount ?? ''} placeholder="0" />
+                </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="country">Държава</Label>

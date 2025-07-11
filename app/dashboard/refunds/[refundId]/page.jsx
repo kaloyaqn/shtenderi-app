@@ -104,8 +104,24 @@ export default function RefundDetailPage() {
     },
     {
       accessorKey: "quantity",
-      header: "Количество",
+      header: "кол.",
       cell: ({ row }) => row.original.quantity,
+    },
+    {
+      accessorKey: "priceAtRefund",
+      header: "Ед. цена",
+      cell: ({ row }) => {
+        const price = row.original.priceAtRefund ?? row.original.product?.clientPrice ?? 0;
+        return price ? price.toFixed(2) + ' лв.' : '-';
+      },
+    },
+    {
+      id: "total",
+      header: "Обща стойност",
+      cell: ({ row }) => {
+        const price = row.original.priceAtRefund ?? row.original.product?.clientPrice ?? 0;
+        return (price * row.original.quantity).toFixed(2) + ' лв.';
+      },
     },
   ];
 
@@ -469,22 +485,24 @@ export default function RefundDetailPage() {
               <th className="border border-black px-2 py-1">Име на продукта</th>
               <th className="border border-black px-2 py-1">EAN код</th>
               <th className="border border-black px-2 py-1">Количество</th>
+              <th className="border border-black px-2 py-1">Ед. цена</th>
+              <th className="border border-black px-2 py-1">Обща стойност</th>
             </tr>
           </thead>
           <tbody>
-            {refund.refundProducts.map((rp) => (
-              <tr key={rp.id}>
-                <td className="border border-black px-2 py-1">
-                  {rp.product?.name || "-"}
-                </td>
-                <td className="border border-black px-2 py-1">
-                  {rp.product?.barcode || "-"}
-                </td>
-                <td className="border border-black px-2 py-1 text-center">
-                  {rp.quantity}
-                </td>
-              </tr>
-            ))}
+            {refund.refundProducts.map((rp) => {
+              const price = rp.priceAtRefund ?? rp.product?.clientPrice ?? 0;
+              const total = price * rp.quantity;
+              return (
+                <tr key={rp.id}>
+                  <td className="border border-black px-2 py-1">{rp.product?.name || "-"}</td>
+                  <td className="border border-black px-2 py-1">{rp.product?.barcode || "-"}</td>
+                  <td className="border border-black px-2 py-1 text-center">{rp.quantity}</td>
+                  <td className="border border-black px-2 py-1 text-right">{price.toFixed(2)}</td>
+                  <td className="border border-black px-2 py-1 text-right">{total.toFixed(2)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -15,13 +15,27 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     // Create refund
+    // Fetch partner's percentageDiscount if needed (if refund is for a stand, get the stand's partner)
+    let partnerDiscount = 0;
+    if (sourceType === 'STAND') {
+      const stand = await prisma.stand.findUnique({
+        where: { id: sourceId },
+        select: { store: { select: { partner: { select: { percentageDiscount: true } } } } }
+      });
+      partnerDiscount = stand?.store?.partner?.percentageDiscount || 0;
+    }
+    // For storage refunds, you may want to fetch the partner if needed
     const refund = await prisma.refund.create({
       data: {
         userId: session.user.id,
         sourceType,
         sourceId,
         refundProducts: {
-          create: products.map(p => ({ productId: p.productId, quantity: p.quantity }))
+          create: products.map(p => ({
+            productId: p.productId,
+            quantity: p.quantity,
+            priceAtRefund: p.clientPrice * (1 - partnerDiscount / 100),
+          }))
         }
       },
       include: { refundProducts: true }

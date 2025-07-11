@@ -17,6 +17,16 @@ export async function POST(req) {
 
       const barcodeAsString = String(product.barcode);
 
+      // Use 'price' from XML as deliveryPrice, fallback to clientPrice, then deliveryPrice, then 0
+      const deliveryPrice =
+        typeof product.price === 'number'
+          ? product.price
+          : typeof product.clientPrice === 'number'
+            ? product.clientPrice
+            : (parseFloat(product.deliveryPrice) || 0);
+      console.log('[IMPORT-XML][PRODUCTS] Incoming product:', product);
+      console.log('[IMPORT-XML][PRODUCTS] Computed deliveryPrice:', deliveryPrice);
+
       try {
         const existingProduct = await prisma.product.findUnique({
           where: { barcode: barcodeAsString },
@@ -25,7 +35,8 @@ export async function POST(req) {
         if (existingProduct) {
           const updateData = {
             name: product.name,
-            clientPrice: product.clientPrice,
+            deliveryPrice: deliveryPrice,
+            // Do NOT update clientPrice
           };
           if (updateQuantities) {
             updateData.quantity = { increment: parseInt(product.quantity, 10) || 0 };
@@ -33,20 +44,24 @@ export async function POST(req) {
           if (product.shouldActivate) {
             updateData.active = true;
           }
+          console.log('[IMPORT-XML][PRODUCTS] Updating product with:', updateData);
           const updatedProduct = await prisma.product.update({
             where: { id: existingProduct.id },
             data: updateData,
           });
           updatedProducts.push(updatedProduct);
         } else {
+          const newProductData = {
+            name: product.name || 'Unnamed Product',
+            barcode: barcodeAsString,
+            clientPrice: 0, // Always 0 on create
+            deliveryPrice: deliveryPrice,
+            quantity: parseInt(product.quantity, 10) || 0,
+            active: true,
+          };
+          console.log('[IMPORT-XML][PRODUCTS] Creating product with:', newProductData);
           const newProduct = await prisma.product.create({
-            data: {
-              name: product.name || 'Unnamed Product',
-              barcode: barcodeAsString,
-              clientPrice: parseFloat(product.clientPrice) || 0,
-              quantity: parseInt(product.quantity, 10) || 0,
-              active: true,
-            },
+            data: newProductData,
           });
           createdProducts.push(newProduct);
         }

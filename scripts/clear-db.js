@@ -39,9 +39,9 @@ async function main() {
   await prisma.userStorage.deleteMany();
 
   // Stand, Storage, Store
-//   await prisma.stand.deleteMany();
-//   await prisma.storage.deleteMany();
-//   await prisma.store.deleteMany();
+  await prisma.stand.deleteMany();
+  await prisma.storage.deleteMany();
+  await prisma.store.deleteMany();
 
   // Products
   await prisma.product.deleteMany();
@@ -49,7 +49,7 @@ async function main() {
   // Users
 
   // Do NOT delete partners!
-  // await prisma.partner.deleteMany();
+  await prisma.partner.deleteMany();
 }
 
 main()

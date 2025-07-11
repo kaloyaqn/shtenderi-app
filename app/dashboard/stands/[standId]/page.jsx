@@ -164,6 +164,14 @@ export default function StandDetailPage({ params }) {
       header: "ПЦД",
     },
     {
+      accessorKey: "effectivePrice",
+      header: "Продажна цена",
+      cell: ({ row }) => {
+        const price = row.original.effectivePrice;
+        return price !== undefined ? `${price.toFixed(2)} лв.` : '-';
+      },
+    },
+    {
       accessorKey: "quantity",
       header: "Количество на щанда",
     },
@@ -365,6 +373,7 @@ export default function StandDetailPage({ params }) {
               <IconTransfer className="h-4 w-4 mr-2" />
               Трансфер
             </Button>
+            
             <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white" onClick={() => router.push(`/dashboard/stands/${stand.id}/revision`)}>
               <CheckCircle className="h-4 w-4 mr-2" />
               Проверка на щанд
@@ -527,6 +536,25 @@ export default function StandDetailPage({ params }) {
           <Link className="md:w-auto w-full" href={`/dashboard/resupply?source=stand`}>
             <Button variant="outline"> <IconTransferIn/>  Презареди от склад</Button>
           </Link>
+          <Button
+  variant="outline"
+  onClick={async () => {
+    const res = await fetch(`/api/stands/${standId}/export-xml`);
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stand-${standId}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }}
+  className="md:flex hidden"
+>
+  <FilePlus />
+  Експорт
+</Button>
           <div className="h-6 w-px md:block hidden bg-gray-300"></div>
           <Link
             className="md:w-auto w-full"

@@ -183,6 +183,14 @@ export default function StorageDetailPage({ params }) {
       header: 'Количество в склада',
     },
     {
+      accessorKey: 'clientPrice',
+      header: 'Продажна цена',
+      cell: ({ row }) => {
+        const price = row.original.product?.clientPrice;
+        return price !== undefined ? `${price.toFixed(2)} лв.` : '-';
+      },
+    },
+    {
       id: 'actions',
       cell: ({ row }) => {
         const storageProduct = row.original;

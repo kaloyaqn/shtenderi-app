@@ -12,12 +12,13 @@ export async function POST(req) {
     // Get partnerId from stand
     const stand = await prisma.stand.findUnique({
       where: { id: standId },
-      select: { store: { select: { partnerId: true } } }
+      select: { store: { select: { partnerId: true, partner: { select: { percentageDiscount: true } } } } }
     });
     if (!stand) {
       return NextResponse.json({ error: 'Stand not found' }, { status: 404 });
     }
     const partnerId = stand.store.partnerId;
+    const partnerDiscount = stand.store.partner?.percentageDiscount || 0;
     // Get next global revision number
     const last = await prisma.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
     const nextNumber = last?.number ? last.number + 1 : 1;
@@ -32,6 +33,7 @@ export async function POST(req) {
           create: missingProducts.map(mp => ({
             productId: mp.productId,
             missingQuantity: mp.missingQuantity,
+            priceAtSale: mp.clientPrice * (1 - partnerDiscount / 100),
           }))
         }
       },
@@ -58,12 +60,18 @@ export async function POST(req) {
   }
 }
 
-export async function GET() {
+export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status');
+    const source = searchParams.get('source');
+    const partnerName = searchParams.get('partnerName');
+    const userName = searchParams.get('userName');
 
     let whereClause = {};
     if (session.user.role === 'USER') {
@@ -76,6 +84,31 @@ export async function GET() {
         standId: {
           in: standIds,
         },
+      };
+    }
+
+    // Add status filter if present
+    if (status && (status === 'PAID' || status === 'NOT_PAID')) {
+      whereClause.status = status;
+    }
+    // Add source filter (stand name or storage name)
+    if (source) {
+      whereClause.OR = [
+        { stand: { name: { contains: source, mode: 'insensitive' } } },
+        { storage: { name: { contains: source, mode: 'insensitive' } } },
+      ];
+    }
+    // Add partnerName filter
+    if (partnerName) {
+      whereClause.partner = { name: { contains: partnerName, mode: 'insensitive' } };
+    }
+    // Add userName filter
+    if (userName) {
+      whereClause.user = {
+        OR: [
+          { name: { contains: userName, mode: 'insensitive' } },
+          { email: { contains: userName, mode: 'insensitive' } },
+        ],
       };
     }
 

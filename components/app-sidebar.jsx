@@ -11,7 +11,9 @@ import {
   IconInnerShadowTop,
   IconTransfer,
   IconCashRegister,
-  IconCash
+  IconCash,
+  IconPaywall,
+  IconCashMove
 } from "@tabler/icons-react"
 import {
     BoxIcon,
@@ -40,6 +42,15 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "./ui/button";
+import { useEffect, useState } from "react";
+
+function useHasMounted() {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  return hasMounted;
+}
 
 const groupedDocuments = {
   Начало: [
@@ -50,6 +61,8 @@ const groupedDocuments = {
     { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
     { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
     { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
+    { name: "Каси", url: "/dashboard/cash-registers", icon: IconCashRegister },
+    { name: "Движение каси", url: "/dashboard/payments", icon: IconCashMove , adminOnly: true },
 
     
   ],
@@ -117,6 +130,7 @@ export function AppSidebar({
 }) {
   const { data: session } = useSession()
   const userRole = session?.user?.role;
+  const hasMounted = useHasMounted();
 
   const visibleNavGroups = React.useMemo(() => {
     return Object.entries(groupedDocuments)
@@ -136,6 +150,11 @@ export function AppSidebar({
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">Stendo</span>
+                {hasMounted && process.env.NEXT_PUBLIC_SUSTOQNIE === 'development' && (
+                  <span className="ml-2 font-bold text-red-500 text-xs align-middle">
+                    DEV ВЕРСИЯ
+                  </span>
+                )}
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -153,6 +172,3 @@ export function AppSidebar({
     </Sidebar>
   );
 }
-
-
-  

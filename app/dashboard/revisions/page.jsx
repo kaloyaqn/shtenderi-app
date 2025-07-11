@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -15,6 +15,7 @@ import { Search, Filter, Download, Eye, Calendar, Package, MoreHorizontal, Menu 
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 
 export default function RevisionsListPage() {
   const [revisions, setRevisions] = useState([]);
@@ -22,7 +23,10 @@ export default function RevisionsListPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
   const { data: session } = useSession();
+  const [invoices, setInvoices] = useState({});
 
   // Move all hooks here, before any return
   const isMobile = useIsMobile();
@@ -48,9 +52,17 @@ export default function RevisionsListPage() {
   };
 
   useEffect(() => {
+    setStatusFilter(searchParams.get("status") || "");
+  }, [searchParams]);
+
+  useEffect(() => {
     const fetchRevisions = async () => {
       try {
-        const res = await fetch("/api/revisions");
+        let url = "/api/revisions";
+        const params = [];
+        if (statusFilter) params.push(`status=${statusFilter}`);
+        if (params.length) url += `?${params.join("&")}`;
+        const res = await fetch(url);
         if (!res.ok) {
           if (res.status === 401) {
             toast.error("Моля, влезте в системата.");
@@ -80,7 +92,24 @@ export default function RevisionsListPage() {
       fetchRevisions();
       fetchStats();
     }
-  }, [session]);
+  }, [session, statusFilter]);
+
+  // Fetch all invoices for the revisions
+  useEffect(() => {
+    async function fetchInvoicesForRevisions() {
+      const revisionNumbers = Array.from(new Set(revisions.map(r => r.number)));
+      if (revisionNumbers.length === 0) return;
+      const params = new URLSearchParams();
+      revisionNumbers.forEach(n => params.append('revisionNumber', n));
+      const res = await fetch(`/api/invoices?${params.toString()}`);
+      const data = await res.json();
+      // Map revisionNumber to invoice
+      const invoiceMap = {};
+      data.forEach(inv => { invoiceMap[inv.revisionNumber] = inv; });
+      setInvoices(invoiceMap);
+    }
+    fetchInvoicesForRevisions();
+  }, [revisions]);
 
   const columns = [
     {
@@ -129,10 +158,43 @@ export default function RevisionsListPage() {
       header: "Дата",
       cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
     },
+    // {
+    //   accessorKey: "missingProducts",
+    //   header: "кол.",
+    //   cell: ({ row }) => row.original.missingProducts?.length || 0,
+    // },
+        {
+      accessorKey: "status",
+      header: "Статус",
+      cell: ({ row }) => {
+        const type = row.original.status;
+        if (!type) return null;
+
+        let variant = 'destructive';
+        if (type === 'PAID') {
+          variant = 'success';
+        } 
+        return (
+        <>
+  <Badge variant={variant}>
+  {type === 'NOT_PAID' ? 'Неплатена' : 'Платена'}
+
+  </Badge>
+
+        </>
+        );
+      },
+      
+    },
     {
-      accessorKey: "missingProducts",
-      header: "Продадени продукти",
-      cell: ({ row }) => row.original.missingProducts?.length || 0,
+      accessorKey: "invoiceNumber",
+      header: "Фактура",
+      cell: ({ row }) => {
+        const invoice = invoices[row.original.number];
+        return invoice ? (
+          <TableLink href={`/dashboard/invoices/${invoice.id}`}>{invoice.invoiceNumber}</TableLink>
+        ) : "-";
+      },
     },
     {
       id: "actions",
@@ -297,6 +359,24 @@ export default function RevisionsListPage() {
                       Преглед
                     </Button>
                   </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-5 h-5 bg-gray-100 rounded-md flex items-center justify-center">
+                        <Package className="w-2 h-2 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Фактура:</p>
+                        {(() => {
+                          const invoice = invoices[sale.number];
+                          return invoice ? (
+                            <a href={`/dashboard/invoices/${invoice.id}`} className="text-xs text-blue-700 underline">{invoice.invoiceNumber}</a>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -349,6 +429,7 @@ export default function RevisionsListPage() {
                   </Card>
                 </div>
           )}
+      {/* Render DataTable with extraFilters for status */}
       <DataTable
         columns={columns}
         data={revisions}
@@ -358,6 +439,31 @@ export default function RevisionsListPage() {
           { id: "partnerName", title: "Партньор" },
           { id: "userName", title: "Потребител" },
         ]}
+        extraFilters={
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={value => {
+              const newValue = value === "all" ? "" : value;
+              setStatusFilter(newValue);
+              const params = new URLSearchParams(Array.from(searchParams.entries()));
+              if (newValue) {
+                params.set("status", newValue);
+              } else {
+                params.delete("status");
+              }
+              router.replace(`/dashboard/revisions${params.toString() ? `?${params.toString()}` : ""}`, { shallow: true });
+            }}
+          >
+            <SelectTrigger className="md:max-w-sm w-full md:mb-0 mb-2">
+              {statusFilter === "NOT_PAID" ? "Неплатена" : statusFilter === "PAID" ? "Платена" : "Всички"}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Всички</SelectItem>
+              <SelectItem value="NOT_PAID">Неплатена</SelectItem>
+              <SelectItem value="PAID">Платена</SelectItem>
+            </SelectContent>
+          </Select>
+        }
       />
     </div>
   );

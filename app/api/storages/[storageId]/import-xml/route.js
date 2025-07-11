@@ -29,6 +29,16 @@ export async function POST(req, { params }) {
       
       const xmlQuantity = product.quantity;
 
+      // Use 'price' from XML as deliveryPrice, fallback to clientPrice, then deliveryPrice, then 0
+      const deliveryPrice =
+        typeof product.price === 'number'
+          ? product.price
+          : typeof product.clientPrice === 'number'
+            ? product.clientPrice
+            : (product.deliveryPrice || 0);
+      console.log('[IMPORT-XML][STORAGE] Incoming product:', product);
+      console.log('[IMPORT-XML][STORAGE] Computed deliveryPrice:', deliveryPrice);
+
       // Always increment the global product quantity
       let dbProduct = await prisma.product.findUnique({
         where: { barcode: product.barcode },
@@ -36,17 +46,35 @@ export async function POST(req, { params }) {
 
       if (dbProduct) {
         // Increment the global product quantity
+        console.log('[IMPORT-XML][STORAGE] Updating product with:', {
+          name: product.name,
+          deliveryPrice: deliveryPrice,
+          quantity: { increment: xmlQuantity },
+        });
         await prisma.product.update({
           where: { id: dbProduct.id },
-          data: { quantity: { increment: xmlQuantity } },
+          data: {
+            name: product.name,
+            deliveryPrice: deliveryPrice,
+            // Do NOT update clientPrice
+            quantity: { increment: xmlQuantity },
+          },
         });
       } else {
         // If it doesn't exist, create it
+        console.log('[IMPORT-XML][STORAGE] Creating product with:', {
+          barcode: product.barcode,
+          name: product.name || `XML Import ${product.barcode}`,
+          clientPrice: 0,
+          deliveryPrice: deliveryPrice,
+          quantity: xmlQuantity,
+        });
         dbProduct = await prisma.product.create({
           data: {
             barcode: product.barcode,
             name: product.name || `XML Import ${product.barcode}`,
-            clientPrice: product.clientPrice || 0,
+            clientPrice: 0, // Always 0 on create
+            deliveryPrice: deliveryPrice,
             quantity: xmlQuantity,
           },
         });

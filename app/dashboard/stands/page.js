@@ -2,7 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { Plus, Pencil, Trash2, Store, Building, Package, Eye } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Store,
+  Building,
+  Package,
+  Eye,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -98,6 +106,7 @@ export default function Stands() {
       accessorKey: "store.partner.name",
       header: "партньор",
     },
+
     {
       accessorKey: "store.name",
       header: "магазин",
@@ -116,6 +125,17 @@ export default function Stands() {
     {
       accessorKey: "_count.standProducts",
       header: "Брой продукти",
+    },
+    {
+      accessorKey: "store.partner.percentageDiscount",
+      header: "%",
+      cell: ({row}) => {
+        const PD = row.original.store.partner.percentageDiscount;
+
+        return (
+          <Badge variant={'outline'}>{PD || 0}%</Badge>
+        )
+      }
     },
     // We might want to show the store name here later
     {
@@ -153,20 +173,20 @@ export default function Stands() {
   if (!loading && stands.length === 0) {
     return (
       <>
-      <NoAcess 
-      icon={<IconLayoutRows className="h-12 w-12 text-gray-400" />}
-      help_text={`Ако имате нужда от помощ, свържете се с администратор.`}
-      subtitlte={`
+        <NoAcess
+          icon={<IconLayoutRows className="h-12 w-12 text-gray-400" />}
+          help_text={`Ако имате нужда от помощ, свържете се с администратор.`}
+          subtitlte={`
         Нямате зачислени щендери. За добавяне на нови складове се свържете с администратор.
         `}
-      title= {isAdmin ? "Няма намерени щендери" : "Нямате зачислени щендери"}
-      />
+          title={isAdmin ? "Няма намерени щендери" : "Нямате зачислени щендери"}
+        />
 
-{isAdmin && (
-            <Button onClick={() => router.push("/dashboard/stands/create")}> 
-              <Plus className="h-4 w-4" />
-            </Button>
-          )}
+        {isAdmin && (
+          <Button onClick={() => router.push("/dashboard/stands/create")}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
       </>
     );
   }
@@ -176,17 +196,20 @@ export default function Stands() {
       <div className="">
         <BasicHeader
           title={isAdmin ? "Всички щендери" : "Твоите зачислени щендери"}
-          subtitle={'Виж твоите зачислени щендери '}
+          subtitle={"Виж твоите зачислени щендери "}
         >
           {isAdmin && (
-            <Button onClick={() => router.push("/dashboard/stands/create")}> 
+            <Button onClick={() => router.push("/dashboard/stands/create")}>
               <Plus className="h-4 w-4" />
             </Button>
           )}
         </BasicHeader>
         <div className="space-y-3 mt-2">
           {stands.map((stand) => (
-            <Card key={stand.id} className="border border-gray-200 shadow-sm py-0">
+            <Card
+              key={stand.id}
+              className="border border-gray-200 shadow-sm py-0"
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-3 min-w-0">
@@ -194,7 +217,9 @@ export default function Stands() {
                       <Store className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-medium text-gray-900 text-sm whitespace-pre-line break-words">{stand.name}</h3>
+                      <h3 className="font-medium text-gray-900 text-sm whitespace-pre-line break-words">
+                        {stand.name}
+                      </h3>
                     </div>
                   </div>
                   <Button
@@ -213,7 +238,9 @@ export default function Stands() {
                       <Building className="h-4 w-4 text-gray-400" />
                       <span className="text-gray-500">Партньор:</span>
                     </div>
-                    <span className="text-gray-900 font-medium">{stand.store?.partner?.name || '-'}</span>
+                    <span className="text-gray-900 font-medium">
+                      {stand.store?.partner?.name || "-"}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
@@ -221,7 +248,9 @@ export default function Stands() {
                       <Store className="h-4 w-4 text-gray-400" />
                       <span className="text-gray-500">Магазин:</span>
                     </div>
-                    <span className="text-gray-900 font-medium">{stand.store?.name || '-'}</span>
+                    <span className="text-gray-900 font-medium">
+                      {stand.store?.name || "-"}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
@@ -230,7 +259,9 @@ export default function Stands() {
                       <span className="text-gray-500">Брой продукти:</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-gray-900 font-bold">{stand._count?.standProducts ?? '-'}</span>
+                      <span className="text-gray-900 font-bold">
+                        {stand._count?.standProducts ?? "-"}
+                      </span>
                       {stand._count?.standProducts === 0 && (
                         <Badge variant="secondary" className="text-xs">
                           Празен
@@ -239,13 +270,16 @@ export default function Stands() {
                     </div>
                   </div>
                 </div>
-
               </CardContent>
             </Card>
           ))}
         </div>
         {isAdmin && (
-          <Button className="fixed bottom-6 right-6 rounded-full shadow-lg" size="icon" onClick={() => router.push("/dashboard/stands/create")}> 
+          <Button
+            className="fixed bottom-6 right-6 rounded-full shadow-lg"
+            size="icon"
+            onClick={() => router.push("/dashboard/stands/create")}
+          >
             <Plus className="h-4 w-4" />
           </Button>
         )}

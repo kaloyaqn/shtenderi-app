@@ -315,17 +315,29 @@ export default function ProductsPage() {
   const handleUpdateProductField = async (id, field, newValue) => {
     const product = data.find(p => p.id === id);
     if (!product) return;
-    const patch = { [field]: field === 'quantity' ? parseInt(newValue, 10) : newValue };
-    // Always send required fields for updateProduct
-    patch.name = product.name;
-    patch.barcode = product.barcode;
-    patch.clientPrice = product.clientPrice;
-    await fetch(`/api/products/${id}`, {
+    // Build patch with all required fields, using newValue for the edited field
+    const patch = {
+      name: product.name,
+      barcode: product.barcode,
+      clientPrice: field === 'clientPrice' ? parseFloat(newValue) : product.clientPrice,
+      deliveryPrice: field === 'deliveryPrice' ? parseFloat(newValue) : product.deliveryPrice,
+      pcd: field === 'pcd' ? String(newValue) : product.pcd,
+      quantity: field === 'quantity' ? parseInt(newValue, 10) : product.quantity,
+    };
+    const res = await fetch(`/api/products/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     });
-    await fetchProducts();
+    if (res.ok) {
+      // Update local state for the edited product only
+      const updated = await res.json();
+      setData(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p));
+      toast.success('Успешно записано!');
+    } else {
+      const err = await res.json();
+      toast.error(err.error || 'Грешка при запис');
+    }
   };
 
   const getRowClassName = (row) => {
@@ -349,11 +361,29 @@ export default function ProductsPage() {
       cell: ({ row }) => <BarcodeWithStoragesTooltip product={row.original} />,
     },
     {
-      accessorKey: "clientPrice",
-      header: "Единична цена без ДДС",
+      accessorKey: "deliveryPrice",
+      header: "Доставна цена",
       cell: ({ row }) => {
-        if (!row || !row.original || typeof row.original.clientPrice !== 'number') return null;
-        return `${row.original.clientPrice.toFixed(2)} лв.`;
+        if (!row) return null;
+        return (
+          <EditableCell
+            value={row.original.deliveryPrice}
+            onSave={val => handleUpdateProductField(row.original.id, 'deliveryPrice', val)}
+          />
+        );
+      },
+    },
+    {
+      accessorKey: "clientPrice",
+      header: "Продажна цена",
+      cell: ({ row }) => {
+        if (!row) return null;
+        return (
+          <EditableCell
+            value={row.original.clientPrice}
+            onSave={val => handleUpdateProductField(row.original.id, 'clientPrice', val)}
+          />
+        );
       },
     },
     {
@@ -371,7 +401,7 @@ export default function ProductsPage() {
     },
     {
       accessorKey: "quantity",
-      header: "Общо количество",
+      header: "Общо Кол.",
       cell: ({ row }) => {
         if (!row) return null;
         const product = row.original;

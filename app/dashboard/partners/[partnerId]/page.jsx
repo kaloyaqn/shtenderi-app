@@ -1,9 +1,15 @@
-'use client'
+"use client";
 
-import { useEffect, useState, use } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState, use } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   Edit,
@@ -18,93 +24,84 @@ import {
   Activity,
   TrendingUp,
   Package,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import BasicHeader from "@/components/BasicHeader"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import BasicHeader from "@/components/BasicHeader";
+import LoadingScreen from "@/components/LoadingScreen";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import Link from 'next/link';
+import PartnerOutstandingDebt from "../../../../components/partners/outstanding-debt";
+import GrossIncomeComponent from "@/components/partners/grossIncome";
 
 export default function PartnerViewPage({ params }) {
-  const router = useRouter()
-  const { partnerId } = use(params)
-  const [partner, setPartner] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [stands, setStands] = useState([]);
-  const [selectedStandId, setSelectedStandId] = useState('');
+  const router = useRouter();
+  const { partnerId } = use(params);
+  const [partner, setPartner] = useState(null);
+  const [grossIncome, setGrossIncome] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
 
   useEffect(() => {
     const fetchPartner = async () => {
       try {
-        const response = await fetch(`/api/partners/${partnerId}?includeStores=1`)
-        if (!response.ok) throw new Error('Failed to fetch partner')
-        const data = await response.json()
-        setPartner(data)
+        const response = await fetch(
+          `/api/partners/${partnerId}?includeStores=1`
+        );
+        if (!response.ok) throw new Error("Failed to fetch partner");
+        const data = await response.json();
+        setPartner(data);
       } catch (err) {
-        setError('Грешка при зареждане на партньор')
+        setError("Грешка при зареждане на партньор");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
+    };
+    fetchPartner();
+    fetchGrossIncomePartner();
+  }, [partnerId]);
+
+  const fetchGrossIncomePartner = async () => {
+    try {
+      const res = await fetch(`/api/partners/${partnerId}/gross-income/batch`);
+      if (!res.ok) throw new Error("Failed to fetch gross income");
+      const data = await res.json();
+      console.log(data);
+      setGrossIncome(data);
+    } catch (err) {
+      setError(err.message);
     }
-    fetchPartner()
-  }, [partnerId])
+  };
 
-  useEffect(() => {
-    if (!partner?.id) return;
-    fetch('/api/stands')
-      .then(res => res.json())
-      .then(allStands => setStands(allStands.filter(s => s.partnerId === partner.id)));
-  }, [partner?.id]);
-
-  if (loading) return <div>Зареждане...</div>
-  if (error) return <div className="text-red-500">{error}</div>
-  if (!partner) return null
+  if (loading) return <LoadingScreen />;
+  if (error) return <div className="text-red-500">{error}</div>;
+  if (!partner) return null;
 
   return (
     <div className="">
       {/* Header */}
       <BasicHeader
-      hasBackButton={true}
-      
-      title={partner.name} 
-      subtitle={'Всички данни за Вашия партньор'}
+        hasBackButton={true}
+        title={partner.name}
+        subtitle={"Всички данни за Вашия партньор"}
       >
-
-        <Button variant={'outline'} onClick={() => router.push(`/dashboard/partners/${partner.id}/edit`)}>
+        <Button
+          variant={"outline"}
+          onClick={() => router.push(`/dashboard/partners/${partner.id}/edit`)}
+        >
           <Edit />
           Редактирай
         </Button>
-
       </BasicHeader>
 
-      {/* Stand-to-stand transfer UI */}
-      {stands.length > 0 && (
-        <div className="mb-6 max-w-md">
-          <Select onValueChange={setSelectedStandId} value={selectedStandId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Изберете изходен щанд за трансфер..." />
-            </SelectTrigger>
-            <SelectContent>
-              {stands.map(stand => (
-                <SelectItem key={stand.id} value={stand.id}>{stand.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            className="mt-2"
-            disabled={!selectedStandId}
-            onClick={() => {
-              if (selectedStandId) router.push(`/dashboard/stands/${selectedStandId}/transfer`);
-            }}
-          >
-            Трансфер между щандове
-          </Button>
-        </div>
-      )}
-
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Partner Information */}
           <div className="lg:col-span-2 space-y-6">
@@ -114,7 +111,7 @@ export default function PartnerViewPage({ params }) {
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-16 w-16">
                     <AvatarFallback className="bg-gray-100 text-gray-600 text-xl font-bold">
-                      {partner.name?.slice(0,2).toUpperCase() || "П"}
+                      {partner.name?.slice(0, 2).toUpperCase() || "П"}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -123,7 +120,10 @@ export default function PartnerViewPage({ params }) {
                       <Badge variant="outline" className="text-xs">
                         ID: {partner.id}
                       </Badge>
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-green-50 text-green-700 border-green-200"
+                      >
                         {partner.active !== false ? "Активен" : "Неактивен"}
                       </Badge>
                     </div>
@@ -136,15 +136,23 @@ export default function PartnerViewPage({ params }) {
                     <div className="flex items-center space-x-3">
                       <Building className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Булстат</p>
-                        <p className="text-base font-mono">{partner.bulstat || '-'}</p>
+                        <p className="text-sm font-medium text-gray-500">
+                          Булстат
+                        </p>
+                        <p className="text-base font-mono">
+                          {partner.bulstat || "-"}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <User className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Лице за контакт</p>
-                        <p className="text-base">{partner.contactPerson || '-'}</p>
+                        <p className="text-sm font-medium text-gray-500">
+                          Лице за контакт
+                        </p>
+                        <p className="text-base">
+                          {partner.contactPerson || "-"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -152,17 +160,26 @@ export default function PartnerViewPage({ params }) {
                     <div className="flex items-center space-x-3">
                       <Phone className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Телефон</p>
-                        <a href={`tel:${partner.phone || ''}`} className="text-base text-blue-600 hover:text-blue-800">
-                          {partner.phone || '-'}
+                        <p className="text-sm font-medium text-gray-500">
+                          Телефон
+                        </p>
+                        <a
+                          href={`tel:${partner.phone || ""}`}
+                          className="text-base text-blue-600 hover:text-blue-800"
+                        >
+                          {partner.phone || "-"}
                         </a>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <MapPin className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Седалище</p>
-                        <p className="text-base text-gray-500">{partner.address || 'Не е посочено'}</p>
+                        <p className="text-sm font-medium text-gray-500">
+                          Седалище
+                        </p>
+                        <p className="text-base text-gray-500">
+                          {partner.address || "Не е посочено"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -184,20 +201,31 @@ export default function PartnerViewPage({ params }) {
               <CardContent>
                 {Array.isArray(partner.stores) && partner.stores.length > 0 ? (
                   partner.stores.map((store) => (
-                    <div key={store.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors mb-2">
+                    <div
+                      key={store.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors mb-2"
+                    >
                       <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
                           <StoreIcon className="h-5 w-5 text-gray-600" />
                         </div>
                         <div>
-                          <a href={`/dashboard/stores/${store.id}`} className="text-blue-600 hover:text-blue-800 font-medium text-sm underline decoration-2 underline-offset-2 flex items-center group">
+                          <a
+                            href={`/dashboard/stores/${store.id}`}
+                            className="text-blue-600 hover:text-blue-800 font-medium text-sm underline decoration-2 underline-offset-2 flex items-center group"
+                          >
                             {store.name}
                             <ExternalLink className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </a>
-                          <p className="text-xs text-gray-500 mt-1">{store.isMain ? 'Основен магазин' : ''}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {store.isMain ? "Основен магазин" : ""}
+                          </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-green-50 text-green-700 border-green-200"
+                      >
                         {store.active !== false ? "Активен" : "Неактивен"}
                       </Badge>
                     </div>
@@ -221,7 +249,10 @@ export default function PartnerViewPage({ params }) {
                   <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div className="h-2 w-2 bg-green-500 rounded-full mt-2"></div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">Нова продажба в магазин {partner.stores?.[0]?.name || ''}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        Нова продажба в магазин{" "}
+                        {partner.stores?.[0]?.name || ""}
+                      </p>
                       <p className="text-xs text-gray-500 mt-1">Преди 2 часа</p>
                     </div>
                     <Badge variant="outline" className="text-xs">
@@ -231,8 +262,12 @@ export default function PartnerViewPage({ params }) {
                   <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div className="h-2 w-2 bg-blue-500 rounded-full mt-2"></div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">Обновена информация за контакт</p>
-                      <p className="text-xs text-gray-500 mt-1">Преди 1 седмица</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        Обновена информация за контакт
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Преди 1 седмица
+                      </p>
                     </div>
                     <Badge variant="outline" className="text-xs">
                       Обновление
@@ -241,8 +276,12 @@ export default function PartnerViewPage({ params }) {
                   <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div className="h-2 w-2 bg-purple-500 rounded-full mt-2"></div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">Създаден партньор профил</p>
-                      <p className="text-xs text-gray-500 mt-1">Преди 2 месеца</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        Създаден партньор профил
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Преди 2 месеца
+                      </p>
                     </div>
                     <Badge variant="outline" className="text-xs">
                       Създаване
@@ -256,36 +295,7 @@ export default function PartnerViewPage({ params }) {
           {/* Statistics Sidebar */}
           <div className="space-y-6">
             {/* Quick Stats (placeholder) */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Статистики</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">Общо продажби</span>
-                  </div>
-                  <span className="text-lg font-bold text-gray-900">24</span>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Package className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">Продукти</span>
-                  </div>
-                  <span className="text-lg font-bold text-gray-900">156</span>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">Последна продажба</span>
-                  </div>
-                  <span className="text-sm text-gray-600">Днес</span>
-                </div>
-              </CardContent>
-            </Card>
+            <GrossIncomeComponent partnerId={partnerId}/>
 
             {/* Contact Actions */}
             <Card>
@@ -293,19 +303,31 @@ export default function PartnerViewPage({ params }) {
                 <CardTitle className="text-lg">Бързи действия</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start bg-transparent">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent"
+                >
                   <Phone className="h-4 w-4 mr-2" />
                   Обади се
                 </Button>
-                <Button variant="outline" className="w-full justify-start bg-transparent">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent"
+                >
                   <Mail className="h-4 w-4 mr-2" />
                   Изпрати имейл
                 </Button>
-                <Button variant="outline" className="w-full justify-start bg-transparent">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent"
+                >
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Виж продажби
                 </Button>
-                <Button variant="outline" className="w-full justify-start bg-transparent">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent"
+                >
                   <StoreIcon className="h-4 w-4 mr-2" />
                   Управление на магазини
                 </Button>
@@ -321,7 +343,10 @@ export default function PartnerViewPage({ params }) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Статус</span>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-200"
+                    >
                       {partner.active !== false ? "Активен" : "Неактивен"}
                     </Badge>
                   </div>
@@ -331,14 +356,21 @@ export default function PartnerViewPage({ params }) {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Създаден</span>
-                    <span className="text-sm text-gray-600">{partner.createdAt ? new Date(partner.createdAt).toLocaleDateString('bg-BG') : '-'}</span>
+                    <span className="text-sm text-gray-600">
+                      {partner.createdAt
+                        ? new Date(partner.createdAt).toLocaleDateString(
+                            "bg-BG"
+                          )
+                        : "-"}
+                    </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
+            <Link href={`/dashboard/partners/${partnerId}/outstanding-debt`} className="text-blue-600 underline">View Outstanding Debt</Link>
           </div>
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

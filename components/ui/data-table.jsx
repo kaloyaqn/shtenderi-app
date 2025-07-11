@@ -31,6 +31,11 @@ const getNestedValue = (obj, path) => {
   return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
 
+const statusFilterFn = (row, columnId, filterValue) => {
+  if (!filterValue) return true;
+  return getNestedValue(row.original, columnId) === filterValue;
+};
+
 export function DataTable({
   columns,
   data,
@@ -38,6 +43,7 @@ export function DataTable({
   filterableColumns = [],
   rowClassName,
   isMobile,
+  extraFilters, // <-- add prop
 }) {
   const [sorting, setSorting] = useState([])
   const [columnFilters, setColumnFilters] = useState([])
@@ -71,7 +77,8 @@ export function DataTable({
         global: (row, columnId, filterValue) => {
             const value = getNestedValue(row.original, searchKey);
             return String(value).toLowerCase().includes(filterValue.toLowerCase());
-        }
+        },
+        status: statusFilterFn,
     },
     globalFilterFn: 'global',
     initialState: { pagination: { pageSize: 30 } },
@@ -178,28 +185,47 @@ export function DataTable({
       <Card className="flex px-4 items-center md:flex-row flex-col gap-4 py-4 mb-2 md:w-auto w-full">
         {searchKey && (
           <div className="relative w-full md:mb-0 mb-2">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-            placeholder="Потърси..."
-            value={globalFilter ?? ""}
-            onChange={(event) => setGlobalFilter(event.target.value)}
-            className="md:max-w-sm pl-10 w-full"
-          />
-                    </div>
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Потърси..."
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="md:max-w-sm pl-10 w-full"
+            />
+          </div>
         )}
 
-
-        {filterableColumns.map((column) => (
-          <Input
-            key={column.id}
-            placeholder={`Филтрирай по ${column.title.toLowerCase()}...`}
-            value={(table.getColumn(column.id)?.getFilterValue()) ?? ""}
-            onChange={(event) =>
-              table.getColumn(column.id)?.setFilterValue(event.target.value)
-            }
-            className="md:max-w-sm w-full md:mb-0 mb-2"
-          />
+        {filterableColumns.map((column, idx) => (
+          column.options ? (
+            <Select
+              key={column.id}
+              value={table.getColumn(column.id)?.getFilterValue() || '__ALL__'}
+              onValueChange={value => table.getColumn(column.id)?.setFilterValue(value === '__ALL__' ? '' : value)}
+            >
+              <SelectTrigger className="md:max-w-sm w-full md:mb-0 mb-2">
+                {column.options.find(opt => opt.value === table.getColumn(column.id)?.getFilterValue())?.label || column.title}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ALL__">Всички</SelectItem>
+                {column.options.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              key={column.id}
+              placeholder={`Филтрирай по ${column.title.toLowerCase()}...`}
+              value={table.getColumn(column.id)?.getFilterValue() ?? ""}
+              onChange={(event) =>
+                table.getColumn(column.id)?.setFilterValue(event.target.value)
+              }
+              className="md:max-w-sm w-full md:mb-0 mb-2"
+            />
+          )
         ))}
+        {/* Inject extra filters here, e.g. status Select */}
+        {extraFilters}
         <div className="ml-auto flex items-center gap-2">
           <Select
             className="border rounded px-2 py-1 text-sm"

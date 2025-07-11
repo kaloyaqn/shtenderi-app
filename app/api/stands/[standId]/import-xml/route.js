@@ -24,28 +24,48 @@ export async function POST(req, context) {
     for (const product of products) {
       if (!product.barcode || typeof product.quantity !== 'number') continue;
 
+      // Use 'price' from XML as deliveryPrice, fallback to clientPrice, then deliveryPrice, then 0
+      const deliveryPrice =
+        typeof product.price === 'number'
+          ? product.price
+          : typeof product.clientPrice === 'number'
+            ? product.clientPrice
+            : (product.deliveryPrice || 0);
+      console.log('[IMPORT-XML][STAND] Incoming product:', product);
+      console.log('[IMPORT-XML][STAND] Computed deliveryPrice:', deliveryPrice);
+
       let dbProduct = await prisma.product.findUnique({
         where: { barcode: String(product.barcode) },
       });
 
       if (!dbProduct) {
+        console.log('[IMPORT-XML][STAND] Creating product with:', {
+          barcode: String(product.barcode),
+          name: product.name || `Imported ${product.barcode}`,
+          clientPrice: 0,
+          deliveryPrice: deliveryPrice,
+          quantity: product.quantity,
+        });
         dbProduct = await prisma.product.create({
           data: {
             barcode: String(product.barcode),
             name: product.name || `Imported ${product.barcode}`,
-            clientPrice: product.clientPrice || 0,
+            clientPrice: 0, // Always 0 on create
+            deliveryPrice: deliveryPrice,
             quantity: product.quantity,
           },
         });
       } else {
         const updateData = {
-          quantity: { increment: product.quantity },
+          name: product.name,
+          deliveryPrice: deliveryPrice,
+          // Do NOT update clientPrice
         };
-
+        updateData.quantity = { increment: product.quantity };
         if (product.shouldActivate) {
           updateData.active = true;
         }
-        // Increment the global product quantity by the XML quantity
+        console.log('[IMPORT-XML][STAND] Updating product with:', updateData);
         dbProduct = await prisma.product.update({
           where: { id: dbProduct.id },
           data: updateData,

@@ -1,112 +1,343 @@
-
-import Link from "next/link";
-import { getAllStands } from '@/lib/stands/stand';
-import { getAllPartners } from '@/lib/partners/partner';
-import { getAllProducts } from '@/lib/products/product';
-import { getAllStores } from '@/lib/stores/store';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import DashboardStatsChart from '@/components/dashboard-stats-chart';
+"use client";
+import React, { useEffect, useState } from "react";
+import {
+  Store,
+  Building,
+  Package,
+  DollarSign,
+  RefreshCw,
+  TrendingUp,
+  BarChart3,
+  Bell,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useSession, signOut } from "next-auth/react";
 import BasicHeader from "@/components/BasicHeader";
-import { useSession } from "next-auth/react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import Link from "next/link";
 
-export default async function DashboardHome() {
-    const stands = await getAllStands();
-    const partners = await getAllPartners();
-    const products = await getAllProducts();
-    const stores = await getAllStores();
+export default function DashboardHome() {
+  const { data: session, status } = useSession();
+  const [adminStats, setAdminStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    const session = await getServerSession(authOptions);
-    
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      signOut({ callbackUrl: '/login', redirect: true });
+    }
+  }, [status]);
 
+  useEffect(() => {
+    if (session?.user?.role === "ADMIN") {
+      setLoading(true);
+      fetch('/api/dashboard')
+        .then(res => res.ok ? res.json() : Promise.reject(res))
+        .then(data => setAdminStats(data))
+        .catch(() => setError("Грешка при зареждане на статистиката"))
+        .finally(() => setLoading(false));
+    }
+  }, [session?.user?.role]);
 
+  const metrics = [
+    {
+      title: "Общо стелажи",
+      value: loading ? <span className="animate-pulse text-gray-400">...</span> : adminStats?.stands ?? '-',
+      icon: Store,
+      trend: "stable",
+      trendValue: 0,
+    },
+    {
+      title: "Общо магазини",
+      value: loading ? <span className="animate-pulse text-gray-400">...</span> : adminStats?.stores ?? '-',
+      icon: Building,
+      trend: "stable",
+      trendValue: 0,
+    },
+    {
+      title: "Продукти на стелажи",
+      value: loading ? <span className="animate-pulse text-gray-400">...</span> : adminStats?.products ?? '-',
+      icon: Package,
+      trend: "up",
+      trendValue: 0,
+    },
+    {
+      title: "Оборот",
+      value: loading ? <span className="animate-pulse text-gray-400">...</span> : adminStats?.grossIncome ?? '-',
+      icon: DollarSign,
+      trend: "up",
+      trendValue: 0,
+    },
+    {
+      title: "Стелажи за презареждане",
+      value: loading ? <span className="animate-pulse text-gray-400">...</span> : adminStats?.resupplyNeeds ?? '-',
+      icon: RefreshCw,
+      trend: "down",
+      trendValue: 0,
+    },
+  ];
 
+  const getTrendIcon = (trend, trendValue) => {
+    if (trendValue === null || trendValue === undefined) return <Minus className="h-3 w-3 text-gray-400" />;
+    switch (trend) {
+      case "up":
+        return <ArrowUp className="h-3 w-3 text-green-500" />;
+      case "down":
+        return <ArrowDown className="h-3 w-3 text-red-500" />;
+      default:
+        return <Minus className="h-3 w-3 text-gray-400" />;
+    }
+  };
 
-    // Dummy data for revisions (replace with real fetch if needed)
-    const revisions = [];
-    // Chart data
-    const chartData = [
-        { name: 'Щандове', value: stands.length },
-        { name: 'Продукти', value: products.length },
-        { name: 'Клиенти', value: partners.length },
-        { name: 'Магазини', value: stores.length },
-    ];
+  const getTrendColor = (trend) => {
+    switch (trend) {
+      case "up":
+        return "text-green-500";
+      case "down":
+        return "text-red-500";
+      default:
+        return "text-gray-400";
+    }
+  };
+
+  if (status === "loading") return null;
+
+  // USER DASHBOARD VIEW
+  if (session?.user?.role !== "ADMIN") {
     return (
-        <>
-            <BasicHeader title={`Здравей, ${session.user.name}`} 
-            subtitle={`Всичко важно за теб - на едно място.`}
-            />
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="max-w-xl w-full px-4 py-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Здравей, {session?.user?.name || ''}!</h1>
+          <p className="text-gray-600 mb-6">Тук можеш бързо да достъпиш своите стелажи, партньори, складове и продажби.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link href="/dashboard/stands">
+              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
+                <Store className="h-8 w-8 text-blue-600 mb-2" />
+                <span className="font-semibold text-gray-900">Моите стелажи</span>
+              </Card>
+            </Link>
+            <Link href="/dashboard/partners">
+              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
+                <Building className="h-8 w-8 text-green-600 mb-2" />
+                <span className="font-semibold text-gray-900">Моите партньори</span>
+              </Card>
+            </Link>
+            <Link href="/dashboard/storages">
+              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
+                <Package className="h-8 w-8 text-yellow-600 mb-2" />
+                <span className="font-semibold text-gray-900">Моите складове</span>
+              </Card>
+            </Link>
+            <Link href="/dashboard/revisions">
+              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
+                <TrendingUp className="h-8 w-8 text-purple-600 mb-2" />
+                <span className="font-semibold text-gray-900">Моите продажби</span>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-            {session.user.role === "ADMIN" && (
-                <>
-                                <div className="">
-            <div className="grid md:grid-cols-4 grid-cols-2 gap-6 mb-10">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-blue-700 text-3xl">{stands.length}</CardTitle>
-                        <CardDescription>Щандове</CardDescription>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-green-700 text-3xl">{partners.length}</CardTitle>
-                        <CardDescription>Клиенти (партньори)</CardDescription>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-purple-700 text-3xl">{products.length}</CardTitle>
-                        <CardDescription>Продукти</CardDescription>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-yellow-700 text-3xl">{stores.length}</CardTitle>
-                        <CardDescription>Магазини</CardDescription>
-                    </CardHeader>
-                </Card>
-            </div>
-            {/* <div className="bg-white rounded-xl border shadow p-6 mb-10">
-                <h2 className="text-xl font-semibold mb-4">Обобщение</h2>
-                <DashboardStatsChart data={chartData} />
-            </div> */}
-            <div className="flex w-full flex-wrap gap-4 justify-center">
-                <Link href="/dashboard/stands" className="px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 w-full transition">Виж всички щандове</Link>
-                <Link href="/dashboard/stands/create" className="px-6 py-3 rounded-lg bg-blue-50 text-blue-800 font-semibold shadow w-full hover:bg-blue-100 transition">+ Добави нов щанд</Link>
-                <Link href="/dashboard/products/create" className="px-6 py-3 rounded-lg bg-green-50 text-green-800 font-semibold shadow w-full hover:bg-green-100 transition">+ Добави нов продукт</Link>
-                <Link href="/dashboard/revisions" className="px-6 py-3 rounded-lg bg-yellow-50 text-yellow-800 font-semibold shadow w-full hover:bg-yellow-100 transition">Виж всички ревизии</Link>
-            </div>
-        </div>  
-                </>
-            )}
+  return (
+    <div className="min-h-screen ">
+      {/* Header */}
+      <BasicHeader title={`Здравей, ${session?.user?.name || ''}`} 
+      subtitle={`Всичко важно за теб - на едно място.`}
+      />
 
-            {session.user.role === "USER" && (
-                <div className="grid grid-cols-2 gap-3" >
-                    <Link href={'/dashboard/stands'}>
-                        <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
-                            Твоите щендери
+      {/* Main Content */}
+      <div className="">
+        <div className="space-y-4">
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {metrics.map((metric, index) => (
+              <Card key={index} className="bg-white border border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <metric.icon className="h-5 w-5 text-gray-600" />
+                    <div className="flex items-center space-x-1">
+                      {getTrendIcon(metric.trend, metric.trendValue)}
+                      {(metric.trendValue !== null && metric.trendValue !== undefined && metric.trendValue !== 0) && (
+                        <span className={`text-xs font-medium ${getTrendColor(metric.trend)}`}>
+                          {metric.trendValue > 0 ? "+" : ""}
+                          {metric.trendValue}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
+                    <p className="text-xs text-gray-600 mt-1">{metric.title}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Sales by Stand */}
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center">
+                  <BarChart3 className="h-4 w-4 mr-2 text-gray-600" />
+                  Продажби по стелаж
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {adminStats?.salesByStand && adminStats.salesByStand.length > 0 ? (
+                    adminStats.salesByStand.map((item, index) => {
+                      const maxValue = Math.max(...(adminStats?.salesByStand ? adminStats.salesByStand.map(i => i.value) : [1]));
+                      const widthPercent = (item.value / maxValue) * 100;
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">{item.name}</span>
+                            <span className="font-medium text-gray-900">{item.value}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${widthPercent}%` }}
+                            ></div>
+                          </div>
                         </div>
-                    </Link>
-                    <Link href={'/dashboard/partners'}>
-                    <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
-                    Твоите партньори
-                        </div>
-                    </Link>
-                    <Link href={'/dashboard/storages'}>
-                    <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
-                    Твоите складове
-                        </div>
-                    </Link>
-                    <Link href={'/dashboard/revisions'}>
-                    <div className="border rounded-md text-center bg-gray-100 aspect-square flex items-center justify-center">
-                    Твоите продажби
-                        </div>
-                    </Link>
+                      );
+                    })
+                  ) : (
+                    <div className="text-gray-400 text-center py-4">Няма данни</div>
+                  )}
                 </div>
-            )} 
+              </CardContent>
+            </Card>
 
+            {/* Top Products */}
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center">
+                  <TrendingUp className="h-4 w-4 mr-2 text-gray-600" />
+                  Топ продукти
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {adminStats?.topProducts && adminStats.topProducts.length > 0 ? (
+                    adminStats.topProducts.map((item, index) => {
+                      const maxValue = Math.max(...(adminStats?.topProducts ? adminStats.topProducts.map(i => i.value) : [1]));
+                      const widthPercent = (item.value / maxValue) * 100;
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 truncate pr-2">{item.name}</span>
+                            <span className="font-medium text-gray-900 whitespace-nowrap">{item.value}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${widthPercent}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-gray-400 text-center py-4">Няма данни</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-        </>
-    )
+            {/* Sales Trend */}
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center">
+                  <TrendingUp className="h-4 w-4 mr-2 text-gray-600" />
+                  Тренд на продажбите
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-32 flex items-end justify-between space-x-1">
+                  {(!adminStats?.salesTrend || adminStats.salesTrend.length === 0 || adminStats.salesTrend.every(i => i.value === 0)) ? (
+                    <div className="w-full text-center text-gray-400 text-sm flex items-center justify-center h-full">Няма данни за този период</div>
+                  ) : (
+                    adminStats.salesTrend.map((item, index) => {
+                      const maxValue = Math.max(...(adminStats?.salesTrend ? adminStats.salesTrend.map(i => i.value) : [1]));
+                      const safeMax = maxValue === 0 ? 1 : maxValue;
+                      const heightPercent = (item.value / safeMax) * 100;
+                      // Try to format the label as dd.MM or dd.MM.yy if possible
+                      let label = item.name;
+                      if (/\d{4}-\d{2}-\d{2}/.test(item.name)) {
+                        const d = new Date(item.name);
+                        label = d.toLocaleDateString('bg-BG', { day: '2-digit', month: '2-digit' });
+                      }
+                      return (
+                        <div key={index} className="flex-1 flex flex-col items-center">
+                          <div
+                            className="w-full bg-blue-500 rounded-t transition-all duration-300"
+                            style={{ height: `${heightPercent}%` }}
+                          ></div>
+                          <span className="text-xs text-gray-500 mt-2 transform -rotate-45 origin-center">
+                            {label}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Operational Notifications */}
+            <Card className="bg-white border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center">
+                  <Bell className="h-4 w-4 mr-2 text-gray-600" />
+                  Оперативни известия
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {/* TODO: Replace with real notifications if available */}
+                  <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="h-2 w-2 rounded-full mt-2 bg-yellow-500"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">Нисък инвентар</p>
+                      <p className="text-sm text-gray-600 mt-1">Стелаж #3 има нужда от презареждане</p>
+                      <p className="text-xs text-gray-500 mt-1">Преди 2 часа</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs border-yellow-200 text-yellow-700">Внимание</Badge>
+                  </div>
+                  <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="h-2 w-2 rounded-full mt-2 bg-green-500"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">Нова продажба</p>
+                      <p className="text-sm text-gray-600 mt-1">Продажба #19 завършена успешно</p>
+                      <p className="text-xs text-gray-500 mt-1">Преди 1 час</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs border-green-200 text-green-700">Успех</Badge>
+                  </div>
+                  <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="h-2 w-2 rounded-full mt-2 bg-blue-500"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">Системно съобщение</p>
+                      <p className="text-sm text-gray-600 mt-1">Планирана поддръжка утре в 02:00</p>
+                      <p className="text-xs text-gray-500 mt-1">Преди 30 мин</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs border-blue-200 text-blue-700">Инфо</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -13,7 +13,8 @@ export async function GET(req, { params }) {
         user: true,
         missingProducts: {
           include: { product: true }
-        }
+        },
+        // status is a scalar, included by default
       }
     });
     if (!revision) return NextResponse.json({ error: 'Not found' }, { status: 404 });

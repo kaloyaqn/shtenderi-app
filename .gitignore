@@ -20,6 +20,10 @@
 # production
 /build
 
+# database
+prod_dump.dump
+.sql
+
 # misc
 .DS_Store
 *.pem

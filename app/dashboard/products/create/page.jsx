@@ -28,6 +28,7 @@ export default function CreateProductPage() {
       name: formData.get('name')?.trim(),
       barcode: formData.get('barcode')?.trim(),
       clientPrice: parseFloat(formData.get('clientPrice')),
+      deliveryPrice: parseFloat(formData.get('deliveryPrice')),
       pcd: formData.get('pcd')?.trim() || null,
       quantity: parseInt(formData.get('quantity'), 10) || 0,
     }
@@ -82,6 +83,11 @@ export default function CreateProductPage() {
                 <div className="grid gap-2">
                   <Label htmlFor="clientPrice">Клиентска цена *</Label>
                   <Input id="clientPrice" name="clientPrice" type="number" step="0.01" required placeholder="0.00" />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="deliveryPrice">Цена на доставка *</Label>
+                  <Input id="deliveryPrice" name="deliveryPrice" type="number" step="0.01" required placeholder="0.00" />
                 </div>
 
                 <div className="grid gap-2">
