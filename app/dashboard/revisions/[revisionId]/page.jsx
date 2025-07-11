@@ -521,6 +521,12 @@ export default function RevisionDetailPage() {
 
   // Calculate total paid for this revision
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  // Calculate total price of revision
+  const totalRevisionPrice = revision?.missingProducts?.reduce((sum, mp) => sum + (mp.missingQuantity * (mp.priceAtSale ?? mp.product?.clientPrice ?? 0)), 0) || 0;
+  // Overpayment check
+  const enteredAmount = parseFloat(amount) || 0;
+  const willOverpay = enteredAmount + totalPaid > totalRevisionPrice;
+  const isFullyPaid = totalPaid >= totalRevisionPrice;
 
   const columns = [
     {
@@ -562,9 +568,6 @@ export default function RevisionDetailPage() {
   const totalValue = revision.missingProducts.reduce((sum, mp) => sum + (mp.missingQuantity * (mp.product?.clientPrice || 0)), 0);
   const adminName = revision.user?.name || revision.user?.email || '';
 
-  // Calculate total price of revision
-  const totalRevisionPrice = revision?.missingProducts?.reduce((sum, mp) => sum + (mp.missingQuantity * (mp.priceAtSale ?? mp.product?.clientPrice ?? 0)), 0) || 0;
-
   async function handlePayment(e) {
     e.preventDefault();
     setPaymentLoading(true);
@@ -584,6 +587,8 @@ export default function RevisionDetailPage() {
     setAmount('');
     fetchPayments(); // refetch payments after new payment
   }
+
+  const isAmountInvalid = isNaN(parseFloat(amount)) || parseFloat(amount) <= 0;
 
   return (
     <div className="container mx-auto">
@@ -701,9 +706,15 @@ export default function RevisionDetailPage() {
                       <h3 className="font-semibold mb-2">Добави плащане към тази продажба</h3>
                       <div className="mb-2 flex items-center gap-2">
                         <label className="block mb-1">Сума</label>
-                        <span className="text-xs text-gray-500">{totalPaid}/{totalRevisionPrice}</span>
+                        <span className="text-xs text-gray-500">{totalPaid.toFixed(2)}/{totalRevisionPrice.toFixed(2)}</span>
                       </div>
-                      <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                      <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required min="0.01" disabled={isFullyPaid} />
+                      {isAmountInvalid && (
+                        <div className="text-red-600 text-xs mt-1">Сумата трябва да е положително число!</div>
+                      )}
+                      {isFullyPaid && (
+                        <div className="text-green-700 text-xs mt-1">Продажбата е напълно платена.</div>
+                      )}
                       <div className="mb-2">
                         <label className="block mb-1">Метод</label>
                         <Select value={method} onValueChange={setMethod}>
@@ -726,7 +737,7 @@ export default function RevisionDetailPage() {
                         </Select>
                       </div>
                       <div className="flex gap-2 mt-4">
-                        <Button type="submit" disabled={paymentLoading}>
+                        <Button type="submit" disabled={paymentLoading || willOverpay || isAmountInvalid || isFullyPaid}>
                           {paymentLoading ? 'Обработка...' : 'Добави плащане'}
                         </Button>
                       </div>
@@ -986,7 +997,7 @@ export default function RevisionDetailPage() {
                   <td className="px-2 py-1 border">{new Date(p.createdAt).toLocaleString('bg-BG')}</td>
                   <td className="px-2 py-1 border">{p.amount.toFixed(2)} лв.</td>
                   <td className="px-2 py-1 border">{p.method === 'CASH' ? 'В брой' : 'Банка'}</td>
-                  <td className="px-2 py-1 border">{p.cashRegisterId || '-'}</td>
+                  <td className="px-2 py-1 border">{p.cashRegister?.storage?.name || p.cashRegister?.name || '-'}</td>
                   <td className="px-2 py-1 border">{p.user?.name || p.user?.email || '-'}</td>
                 </tr>
               ))}

@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-export async function GET(req, { params }) {
-  const { revisionId } = params;
+export async function GET(req, context) {
+  const { revisionId } = await context.params;
   if (!revisionId) {
     return NextResponse.json({ error: 'Missing revisionId' }, { status: 400 });
   }
@@ -10,7 +10,7 @@ export async function GET(req, { params }) {
     where: { revisionId },
     include: {
       user: true,
-      cashRegister: true,
+      cashRegister: { include: { storage: true } },
     },
     orderBy: { createdAt: 'asc' },
   });

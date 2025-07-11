@@ -47,6 +47,13 @@ export async function POST(req) {
       },
     });
 
+    // Create a cash register for this storage
+    await prisma.cashRegister.create({
+      data: {
+        storageId: storage.id,
+      },
+    });
+
     return NextResponse.json(storage);
   } catch (error) {
     console.error('[STORAGES_POST]', error);
