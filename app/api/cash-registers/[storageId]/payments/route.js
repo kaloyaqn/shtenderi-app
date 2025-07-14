@@ -44,6 +44,48 @@ export async function POST(req, { params }) {
     console.error('Error creating payment:', err);
     return NextResponse.json({ error: err.message, details: err }, { status: 500 });
   }
+
+  // Check if revision is now fully paid and update status if needed
+  try {
+    // 1. Get all payments for this revision
+    const payments = await prisma.payment.findMany({
+      where: { revisionId },
+      select: { amount: true },
+    });
+    const totalPayments = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // 2. Get all missingProducts for this revision (with priceAtSale and product.clientPrice)
+    const revision = await prisma.revision.findUnique({
+      where: { id: revisionId },
+      include: {
+        missingProducts: {
+          include: { product: true },
+        },
+      },
+    });
+    let totalSale = 0;
+    for (const mp of revision.missingProducts) {
+      const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+      totalSale += mp.missingQuantity * price;
+    }
+
+    // 3. If fully paid, update status
+    if (totalPayments >= totalSale && revision.status !== 'PAID') {
+      await prisma.revision.update({
+        where: { id: revisionId },
+        data: { status: 'PAID' },
+      });
+    } else if (totalPayments < totalSale && revision.status !== 'NOT_PAID') {
+      // Optionally, revert to NOT_PAID if payments are less than sale
+      await prisma.revision.update({
+        where: { id: revisionId },
+        data: { status: 'NOT_PAID' },
+      });
+    }
+  } catch (err) {
+    console.error('Error updating revision status after payment:', err);
+    // Don't block payment creation if this fails
+  }
   // Removed status update: handled by DB trigger
   // If cash, update cash balance
   if (method === 'CASH') {

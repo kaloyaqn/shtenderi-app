@@ -348,15 +348,15 @@ export default function StandRevisionPage({ params }) {
 <div className="lg:col-span-1">
 
 {!finished && (
-        <Card>
-          <CardContent>
-            <CardTitle className='mb-2'>Сканиране</CardTitle>
+        <div>
+          <div>
+            <div className='mb-2'><b>Сканиране</b></div>
             <form onSubmit={handleScan} className="mb-2 flex flex-col gap-2 items-stretch relative">
             <Input
               name="barcode"
               ref={inputRef}
               placeholder="Сканирай или въведи баркод..."
-              className=""
+              className="h-15"
               autoComplete="off"
               inputMode="numeric"
               pattern="[0-9]*"
@@ -365,27 +365,23 @@ export default function StandRevisionPage({ params }) {
             />
             <Button type="submit" className=""> <PlusIcon /> Добави</Button>
           </form>
-          <div className="text-center p-4 bg-blue-50 rounded-lg text-sm text-blue-700">
-            <b>Съвет:</b> <br />
-            Можеш да сканираш нови продукти и да въвеждаш ръчно баркод
           </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 </div>
 
 <div className="lg:col-span-2 gap-4 w-full">
   {/* Switch order: show Непродадени продукти first */}
-  <Card className='mb-2'>
-      <CardContent>
-      <CardTitle className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/> Непродадени продукти</CardTitle>
+  <div className='mb-2'>
+      <div>
+      <div className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/>Наличност на стелаж/щендер</div>
       <div className="grid gap-2 mb-6 sm:grid-cols-2">
         {checked.length === 0 && <div className="text-muted-foreground text-sm">Няма непродадени продукти.</div>}
         {checked.map(p => (
-          <div key={p.barcode} className='rounded-sm border border-green-200 bg-green-50 p-3 flex flex-col justify-between text-green-900'>
+          <div key={p.barcode} className='rounded-sm border p-2 border-green-200 bg-green-50 flex flex-col justify-between text-green-900'>
             <h3 className='text-sm leading-[110%]'>{p.name}</h3>
             <div className='w-full flex justify-between items-end'>
-              <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-green-100 border border-green-300 text-gray-600 rounded-[2px]'>
+              <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-green-100 text-gray-600 rounded-[2px]'>
                 <Barcode size={12} />
                 <span className='leading-tight'>{p.barcode}</span>
               </div>
@@ -394,16 +390,16 @@ export default function StandRevisionPage({ params }) {
           </div>
         ))}
       </div>
-      </CardContent>
-  </Card>
+      </div>
+  </div>
 
-  <Card>
+  <div>
   {!finished && (
-        <CardContent>
-          <CardTitle className="text-base font-semibold mb-2  flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</CardTitle>
+        <div>
+          <div className="text-base font-semibold mb-2  flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</div>
           <div className="grid gap-2 mb-6 sm:grid-cols-2">
             {allProducts.filter(p => p.quantity > 0).map(p => (
-              <div key={p.barcode} className={`rounded-sm border border-[1px] flex flex-col justify-between p-3 ${p.isPending ? 'bg-yellow-100 border-yellow-400' : ''}`}>
+              <div key={p.barcode} className={`rounded-sm border p-2 flex flex-col justify-between ${p.isPending ? 'bg-yellow-100 border-yellow-400' : 'border-gray-200'}`}>
                 <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
                 <div className='w-full flex justify-between items-end'>
                   <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
@@ -415,9 +411,9 @@ export default function StandRevisionPage({ params }) {
               </div>
             ))}
           </div>
-        </CardContent>
+        </div>
       )}
-  </Card>
+  </div>
 
 </div>
 </div>
