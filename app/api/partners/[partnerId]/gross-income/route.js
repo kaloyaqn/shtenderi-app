@@ -12,12 +12,12 @@ function getPeriodDates(period) {
     start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     end = new Date(now.getFullYear(), now.getMonth(), 1);
   } else if (period === 'this_week') {
-    const day = now.getDay() || 7;
+    // Rolling last 7 days including today
+    end = new Date(now);
+    end.setHours(23, 59, 59, 999);
     start = new Date(now);
+    start.setDate(now.getDate() - 6); // 6 days ago + today = 7 days
     start.setHours(0, 0, 0, 0);
-    start.setDate(now.getDate() - day + 1);
-    end = new Date(start);
-    end.setDate(start.getDate() + 7);
   }
   return { start, end };
 }

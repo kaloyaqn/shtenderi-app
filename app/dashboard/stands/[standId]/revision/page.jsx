@@ -374,7 +374,7 @@ export default function StandRevisionPage({ params }) {
   {/* Switch order: show Непродадени продукти first */}
   <div className='mb-2'>
       <div>
-      <div className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/>Налични продукти</div>
+      <div className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/>Наличност на стелаж/щендер</div>
       <div className="grid gap-2 mb-6 sm:grid-cols-2">
         {checked.length === 0 && <div className="text-muted-foreground text-sm">Няма непродадени продукти.</div>}
         {checked.map(p => (
