@@ -367,6 +367,7 @@ export default function ProductsPage() {
         if (!row) return null;
         return (
           <EditableCell
+          type="number"
             value={row.original.deliveryPrice}
             onSave={val => handleUpdateProductField(row.original.id, 'deliveryPrice', val)}
           />
@@ -380,6 +381,7 @@ export default function ProductsPage() {
         if (!row) return null;
         return (
           <EditableCell
+          type="number"
             value={row.original.clientPrice}
             onSave={val => handleUpdateProductField(row.original.id, 'clientPrice', val)}
           />
@@ -393,6 +395,7 @@ export default function ProductsPage() {
         if (!row) return null;
         return (
           <EditableCell
+          type="number"
             value={row.original.pcd}
             onSave={val => handleUpdateProductField(row.original.id, 'pcd', val)}
           />
