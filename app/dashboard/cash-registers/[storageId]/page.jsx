@@ -112,7 +112,7 @@ export default function CashRegisterDetailPage() {
     { accessorKey: 'reason', header: 'Основание', cell: ({ row }) =>
       row.original.type === 'payment'
         ? (row.original.revision && row.original.revision.number
-            ? <TableLink href={`/dashboard/revisions/${row.original.revisionId}`}>{row.original.revision.number}</TableLink>
+            ? <TableLink href={`/dashboard/revisions/${row.original.revisionId}`}> Продажба №{row.original.revision.number}</TableLink>
             : '-')
         : (row.original.reason || '-')
     },
