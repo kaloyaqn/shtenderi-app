@@ -34,7 +34,11 @@ function EditableCell({ value, onSave, type = 'text', min, max }) {
   const inputRef = useRef();
 
   useEffect(() => {
+    if (inputValue === 0) {
+      setInputValue("")
+    } else {
     setInputValue(value ?? '');
+    }
   }, [value]);
 
   useEffect(() => {
@@ -44,14 +48,20 @@ function EditableCell({ value, onSave, type = 'text', min, max }) {
   }, [editing]);
 
   const handleSave = async () => {
-    if (inputValue === value) {
+    let toSave = inputValue;
+    // If the field is numeric and input is empty or 0, set to 0
+    if ((type === 'number' || type === 'numeric') && (inputValue === '' || inputValue === null || Number(inputValue) === 0)) {
+      toSave = 0;
+      setInputValue(0);
+    }
+    if (toSave === value) {
       setEditing(false);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      await onSave(inputValue);
+      await onSave(toSave);
       setEditing(false);
     } catch (err) {
       setError('Грешка при запис');
@@ -72,18 +82,30 @@ function EditableCell({ value, onSave, type = 'text', min, max }) {
   if (editing) {
     return (
       <div>
-        <input
-          ref={inputRef}
-          type={type}
-          min={min}
-          max={max}
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          className="border rounded px-2 py-1 w-20 text-sm"
-          disabled={loading}
-        />
+<input
+  ref={inputRef}
+  type={type}
+  min={min}
+  max={max}
+  value={inputValue}
+  onChange={e => setInputValue(e.target.value)}
+  onFocus={() => {
+    if ((type === 'number' || type === 'numeric') && (inputValue === 0 || inputValue === '0')) {
+      setInputValue('');
+    }
+  }}
+  onBlur={() => {
+    if ((type === 'number' || type === 'numeric') && (inputValue === '' || inputValue === null)) {
+      setInputValue(0);
+      handleSave(0); // Save 0 if blurred empty
+    } else {
+      handleSave();
+    }
+  }}
+  onKeyDown={handleKeyDown}
+  className="border rounded px-2 py-1 w-20 text-sm"
+  disabled={loading}
+/>
         {error && <div className="text-xs text-red-500">{error}</div>}
       </div>
     );
