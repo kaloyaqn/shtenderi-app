@@ -53,6 +53,9 @@ export default function StorageDetailPage({ params }) {
   const [refundProducts, setRefundProducts] = useState([]); // [{product, quantity}]
   const [barcodeInput, setBarcodeInput] = useState("");
   const [refundLoading, setRefundLoading] = useState(false);
+  const [priceChanges, setPriceChanges] = useState([]);
+  const [showPriceDialog, setShowPriceDialog] = useState(false);
+  const [updatingPrices, setUpdatingPrices] = useState(false);
 
   // Focus input for barcode scanning
   const barcodeInputRef = useRef(null);
@@ -147,19 +150,25 @@ export default function StorageDetailPage({ params }) {
             body: JSON.stringify({ products, fileName: file.name })
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            const err = await response.json();
             // Check for duplicate file name error
-            if (err && err.includes && err.includes('file with this name')) {
+            if (data && data.includes && data.includes('file with this name')) {
                 toast.error('Файл с това име е импортиран наскоро. Моля, преименувайте файла и опитайте отново.', { id: toastId });
             } else {
-                throw new Error(err.error || 'Import failed');
+                throw new Error(data.error || 'Import failed');
             }
             return;
         }
 
-        toast.success('Продуктите са импортирани успешно!', { id: toastId });
-        await fetchData();
+        if (data.priceChanges && data.priceChanges.length > 0) {
+            setPriceChanges(data.priceChanges);
+            setShowPriceDialog(true);
+        } else {
+            toast.success('Продуктите са импортирани успешно!', { id: toastId });
+            await fetchData();
+        }
 
     } catch (err) {
         toast.error(err.message || 'Възникна грешка при импортиране', { id: toastId });
@@ -388,6 +397,53 @@ export default function StorageDetailPage({ params }) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {/* Price Change Dialog */}
+        <AlertDialog open={showPriceDialog} onOpenChange={setShowPriceDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Открити са продукти с различна доставна цена</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div>
+                  Следните продукти имат различна доставна цена в системата и в XML файла:
+                  <ul className="mt-2 list-disc list-inside text-sm">
+                    {priceChanges.map(p => (
+                      <li key={p.barcode}>
+                        {p.name} ({p.barcode}): <b>{Number(p.oldPrice).toFixed(2)} → {Number(p.newPrice).toFixed(2)} лв.</b>
+                      </li>
+                    ))}
+                  </ul>
+                  Искате ли да обновите доставната цена на тези продукти с новата стойност?
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <Button variant="outline" onClick={async () => {
+                setShowPriceDialog(false);
+                toast.success('Продуктите са импортирани успешно!');
+                await fetchData();
+              }}>
+                Не, запази старите цени
+              </Button>
+              <Button
+                disabled={updatingPrices}
+                onClick={async () => {
+                  setUpdatingPrices(true);
+                  await fetch('/api/products/batch-update-delivery-price', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: priceChanges.map(p => ({ barcode: p.barcode, deliveryPrice: p.newPrice })) }),
+                  });
+                  setUpdatingPrices(false);
+                  setShowPriceDialog(false);
+                  toast.success('Доставните цени са обновени!');
+                  await fetchData();
+                }}
+              >
+                {updatingPrices ? 'Обновяване...' : 'Да, обнови цените'}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -516,6 +572,53 @@ export default function StorageDetailPage({ params }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Price Change Dialog */}
+      <AlertDialog open={showPriceDialog} onOpenChange={setShowPriceDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Открити са продукти с различна доставна цена</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                Следните продукти имат различна доставна цена в системата и в XML файла:
+                <ul className="mt-2 list-disc list-inside text-sm">
+                  {priceChanges.map(p => (
+                    <li key={p.barcode}>
+                      {p.name} ({p.barcode}): <b>{Number(p.oldPrice).toFixed(2)} → {Number(p.newPrice).toFixed(2)} лв.</b>
+                    </li>
+                  ))}
+                </ul>
+                Искате ли да обновите доставната цена на тези продукти с новата стойност?
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={async () => {
+              setShowPriceDialog(false);
+              toast.success('Продуктите са импортирани успешно!');
+              await fetchData();
+            }}>
+              Не, запази старите цени
+            </Button>
+            <Button
+              disabled={updatingPrices}
+              onClick={async () => {
+                setUpdatingPrices(true);
+                await fetch('/api/products/batch-update-delivery-price', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ updates: priceChanges.map(p => ({ barcode: p.barcode, deliveryPrice: p.newPrice })) }),
+                });
+                setUpdatingPrices(false);
+                setShowPriceDialog(false);
+                toast.success('Доставните цени са обновени!');
+                await fetchData();
+              }}
+            >
+              {updatingPrices ? 'Обновяване...' : 'Да, обнови цените'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

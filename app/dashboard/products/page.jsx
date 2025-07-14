@@ -231,6 +231,9 @@ export default function ProductsPage() {
   const [pendingProducts, setPendingProducts] = useState(null);
   const [activationPrompt, setActivationPrompt] = useState({ open: false, inactiveProducts: [] });
   const [quantityPrompt, setQuantityPrompt] = useState(false);
+  const [priceChanges, setPriceChanges] = useState([]);
+  const [showPriceDialog, setShowPriceDialog] = useState(false);
+  const [updatingPrices, setUpdatingPrices] = useState(false);
 
   const fetchProducts = async () => {
     setLoading(true)
@@ -365,16 +368,23 @@ export default function ProductsPage() {
 
     await toast.promise(
         (async () => {
+            // Use the correct endpoint for stand or storage import as needed
             const response = await fetch('/api/products/import-xml', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ products: productsToSend, updateQuantities })
             });
+            const data = await response.json();
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Import failed');
+                throw new Error(data.error || 'Import failed');
             }
-            await fetchProducts();
+            // Handle price changes dialog
+            if (data.priceChanges && data.priceChanges.length > 0) {
+                setPriceChanges(data.priceChanges);
+                setShowPriceDialog(true);
+            } else {
+                await fetchProducts();
+            }
         })(),
         {
             loading: 'Импортиране... Моля, изчакайте',
@@ -677,6 +687,53 @@ export default function ProductsPage() {
                   </Button>
               </AlertDialogFooter>
           </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Price Change Dialog */}
+      <AlertDialog open={showPriceDialog} onOpenChange={setShowPriceDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Открити са продукти с различна доставна цена</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                Следните продукти имат различна доставна цена в системата и в XML файла:
+                <ul className="mt-2 list-disc list-inside text-sm">
+                  {priceChanges.map(p => (
+                    <li key={p.barcode}>
+                      {p.name} ({p.barcode}): <b>{Number(p.oldPrice).toFixed(2)} → {Number(p.newPrice).toFixed(2)} лв.</b>
+                    </li>
+                  ))}
+                </ul>
+                Искате ли да обновите доставната цена на тези продукти с новата стойност?
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={async () => {
+              setShowPriceDialog(false);
+              await fetchProducts();
+            }}>
+              Не, запази старите цени
+            </Button>
+            <Button
+              disabled={updatingPrices}
+              onClick={async () => {
+                setUpdatingPrices(true);
+                await fetch('/api/products/batch-update-delivery-price', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ updates: priceChanges.map(p => ({ barcode: p.barcode, deliveryPrice: p.newPrice })) }),
+                });
+                setUpdatingPrices(false);
+                setShowPriceDialog(false);
+                toast.success('Доставните цени са обновени!');
+                await fetchProducts();
+              }}
+            >
+              {updatingPrices ? 'Обновяване...' : 'Да, обнови цените'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   )
