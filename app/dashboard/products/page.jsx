@@ -145,6 +145,57 @@ const BarcodeWithStoragesTooltip = ({ product }) => {
   );
 };
 
+// New component for unassigned quantity tooltip
+const UnassignedQuantityTooltip = ({ product, unassignedQuantity }) => {
+  const [open, setOpen] = useState(false);
+  const [storages, setStorages] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchStorages = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/products/${product.id}/storages`);
+      if (!res.ok) throw new Error('Failed to fetch storages');
+      const data = await res.json();
+      setStorages(data);
+    } catch (e) {
+      setStorages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip open={open} onOpenChange={o => {
+        setOpen(o);
+        if (o && storages === null) fetchStorages();
+      }}>
+        <TooltipTrigger asChild>
+          <span className="underline decoration-dotted cursor-pointer">{unassignedQuantity}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="min-w-[220px]">
+          <div className="font-semibold mb-1">Складови наличности</div>
+          {loading ? (
+            <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="animate-spin w-4 h-4" /> Зареждане...</div>
+          ) : storages && storages.length > 0 ? (
+            <ul className="text-sm">
+              {storages.map(s => (
+                <li key={s.storage.id} className="flex justify-between">
+                  <span>{s.storage.name}</span>
+                  <span className="font-mono">{s.quantity}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-sm text-muted-foreground">Няма наличности в складове</div>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
 export default function ProductsPage() {
   const router = useRouter()
   const [data, setData] = useState([])
@@ -358,7 +409,7 @@ export default function ProductsPage() {
     {
       accessorKey: "barcode",
       header: "Баркод",
-      cell: ({ row }) => <BarcodeWithStoragesTooltip product={row.original} />,
+      cell: ({ row }) => row.original.barcode,
     },
     {
       accessorKey: "deliveryPrice",
@@ -367,6 +418,7 @@ export default function ProductsPage() {
         if (!row) return null;
         return (
           <EditableCell
+          type="number"
             value={row.original.deliveryPrice}
             onSave={val => handleUpdateProductField(row.original.id, 'deliveryPrice', val)}
           />
@@ -380,6 +432,7 @@ export default function ProductsPage() {
         if (!row) return null;
         return (
           <EditableCell
+          type="number"
             value={row.original.clientPrice}
             onSave={val => handleUpdateProductField(row.original.id, 'clientPrice', val)}
           />
@@ -393,6 +446,7 @@ export default function ProductsPage() {
         if (!row) return null;
         return (
           <EditableCell
+          type="number"
             value={row.original.pcd}
             onSave={val => handleUpdateProductField(row.original.id, 'pcd', val)}
           />
@@ -448,7 +502,7 @@ export default function ProductsPage() {
         if (!product || !Array.isArray(product.standProducts)) return null;
         const assignedQuantity = product.standProducts.reduce((sum, sp) => sum + sp.quantity, 0);
         const unassignedQuantity = product.quantity - assignedQuantity;
-        return unassignedQuantity;
+        return <UnassignedQuantityTooltip product={product} unassignedQuantity={unassignedQuantity} />;
       },
     },
     {
