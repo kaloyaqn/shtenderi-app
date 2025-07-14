@@ -108,10 +108,12 @@ export default function PaymentsPage() {
     { accessorKey: 'reason', header: 'Основание', cell: ({ row }) =>
       row.original.type === 'payment'
         ? (row.original.revision && row.original.revision.number
-            ? <TableLink href={`/dashboard/revisions/${row.original.revisionId}`}>{row.original.revision.number}</TableLink>
+            ? <TableLink href={`/dashboard/revisions/${row.original.revisionId}`}> Продажба  №{row.original.revision.number}</TableLink>
             : '-')
         : (row.original.reason || '-')
     },
+    { accessorKey: 'method', header: 'Метод'},
+
     { accessorKey: 'user', header: 'Потребител', cell: ({ row }) => row.original.user?.name || row.original.user?.email || '-' },
     { accessorKey: 'invoiceId', header: 'Фактура', cell: ({ row }) => {
       // Find invoice by revision number
