@@ -21,6 +21,7 @@ export async function POST(req, { params }) {
 
   try {
     const importedProductIds = [];
+    const priceChanges = [];
     for (const product of productsFromXml) {
       if (!product.barcode || typeof product.quantity !== 'number') {
         console.warn('Skipping product with invalid data:', product);
@@ -43,6 +44,16 @@ export async function POST(req, { params }) {
       let dbProduct = await prisma.product.findUnique({
         where: { barcode: product.barcode },
       });
+
+      // Detect delivery price change
+      if (dbProduct && typeof dbProduct.deliveryPrice === 'number' && dbProduct.deliveryPrice !== deliveryPrice) {
+        priceChanges.push({
+          barcode: dbProduct.barcode,
+          name: dbProduct.name,
+          oldPrice: dbProduct.deliveryPrice,
+          newPrice: deliveryPrice
+        });
+      }
 
       if (dbProduct) {
         // Increment the global product quantity
@@ -138,7 +149,7 @@ export async function POST(req, { params }) {
       });
     }
 
-    return NextResponse.json({ success: true, message: 'Products imported successfully.' });
+    return NextResponse.json({ success: true, message: 'Products imported successfully.', priceChanges });
 
   } catch (error) {
     if (error.code === 'P2002' && error.meta?.target?.includes('fileName')) {

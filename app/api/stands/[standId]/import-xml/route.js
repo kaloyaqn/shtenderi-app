@@ -21,6 +21,7 @@ export async function POST(req, context) {
     }
 
     const importedProductIds = [];
+    const priceChanges = [];
     for (const product of products) {
       if (!product.barcode || typeof product.quantity !== 'number') continue;
 
@@ -37,6 +38,16 @@ export async function POST(req, context) {
       let dbProduct = await prisma.product.findUnique({
         where: { barcode: String(product.barcode) },
       });
+
+      // Detect delivery price change
+      if (dbProduct && typeof dbProduct.deliveryPrice === 'number' && dbProduct.deliveryPrice !== deliveryPrice) {
+        priceChanges.push({
+          barcode: dbProduct.barcode,
+          name: dbProduct.name,
+          oldPrice: dbProduct.deliveryPrice,
+          newPrice: deliveryPrice
+        });
+      }
 
       if (!dbProduct) {
         console.log('[IMPORT-XML][STAND] Creating product with:', {
@@ -142,7 +153,7 @@ export async function POST(req, context) {
       });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, priceChanges });
   } catch (err) {
     if (err.code === 'P2002' && err.meta?.target?.includes('fileName')) {
       console.warn('[IMPORT] Duplicate fileName error:', fileName);
