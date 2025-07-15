@@ -115,6 +115,7 @@ export default function CreatePaymentRevisionForm({ revision, revisionId, totalP
                         required
                         min="0.01"
                         disabled={isFullyPaid}
+                        placeholder= {(totalRevisionPrice - totalPaid).toFixed(2)}
                       />
                   </div>
                       <div className="w-full">
@@ -151,6 +152,7 @@ export default function CreatePaymentRevisionForm({ revision, revisionId, totalP
                       </div>
                       <div className="flex gap-2 mt-4">
                         <Button
+                          className='md:w-auto w-full'
                           type="submit"
                           disabled={
                             paymentLoading ||
