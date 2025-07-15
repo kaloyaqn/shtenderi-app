@@ -386,8 +386,9 @@ export default function StandRevisionPage({ params, searchParams }) {
   const [storages, setStorages] = useState([]);
   const [selectedStorage, setSelectedStorage] = useState('');
   const [transferLoading, setTransferLoading] = useState(false);
+  const saleInputRef = useRef();
 
-  // Fetch storages for the stand/partner when entering sale mode
+  // When entering sale mode, load only missing products from the check
   useEffect(() => {
     if (mode === 'sale' && checkId) {
       setSaleLoading(true);
@@ -402,6 +403,7 @@ export default function StandRevisionPage({ params, searchParams }) {
               remaining: cp.quantity,
               productId: cp.product.id,
               clientPrice: cp.product.clientPrice,
+              maxQuantity: cp.quantity, // Track original quantity
             }))
           );
           setSaleChecked([]);
@@ -415,10 +417,36 @@ export default function StandRevisionPage({ params, searchParams }) {
     }
   }, [mode, checkId, standId]);
 
+  // Auto-select storage for non-admins if only one assigned
+  useEffect(() => {
+    if (mode === 'sale' && session?.user?.role !== 'ADMIN' && storages.length === 1) {
+      setSelectedStorage(storages[0].id);
+    }
+  }, [mode, session?.user?.role, storages]);
+
   // Sale scan handler
   const handleSaleScan = (barcode) => {
-    const prod = saleUnchecked.find(p => p.barcode === barcode);
-    if (!prod) return false;
+    const uncheckedProd = saleUnchecked.find(p => p.barcode === barcode);
+    if (!uncheckedProd) {
+      // Check if product exists in the original sale list (checked or all products)
+      const wasInSale = saleChecked.find(p => p.barcode === barcode) || products.find(p => p.product.barcode === barcode);
+      if (wasInSale) {
+        toast.warning('Надвишено количество');
+        try { new Audio('/error.mp3').play(); } catch {}
+        setTimeout(() => saleInputRef.current?.focus(), 100);
+        return false;
+      }
+      toast.error('Продукт с този баркод не е намерен.');
+      try { new Audio('/error.mp3').play(); } catch {}
+      setTimeout(() => saleInputRef.current?.focus(), 100);
+      return false;
+    }
+    if (uncheckedProd.remaining <= 0) {
+      toast.warning('Надвишено количество');
+      try { new Audio('/error.mp3').play(); } catch {}
+      setTimeout(() => saleInputRef.current?.focus(), 100);
+      return false;
+    }
     setSaleUnchecked(prev => prev.map(p =>
       p.barcode === barcode && p.remaining > 0
         ? { ...p, remaining: p.remaining - 1 }
@@ -429,9 +457,11 @@ export default function StandRevisionPage({ params, searchParams }) {
       if (idx !== -1) {
         return prev.map((p, i) => i === idx ? { ...p, checked: p.checked + 1 } : p);
       } else {
-        return [...prev, { barcode, name: prod.name, checked: 1, productId: prod.productId, clientPrice: prod.clientPrice }];
+        return [...prev, { barcode: uncheckedProd.barcode, name: uncheckedProd.name, checked: 1, productId: uncheckedProd.productId, clientPrice: uncheckedProd.clientPrice, maxQuantity: uncheckedProd.maxQuantity }];
       }
     });
+    try { new Audio('/success.mp3').play(); } catch {}
+    setTimeout(() => saleInputRef.current?.focus(), 100);
     return true;
   };
 
@@ -452,15 +482,25 @@ export default function StandRevisionPage({ params, searchParams }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storageId: selectedStorage,
-          products: saleChecked.map(p => ({ productId: p.productId, quantity: p.checked })),
+          products: saleChecked.map(p => ({ productId: p.productId, quantity: p.checked, name: p.name })),
         }),
       });
+      if (transferRes.status === 409) {
+        const data = await transferRes.json();
+        const errorList = (data.insufficient || []).map(e => `${e.productName}: нужно ${e.needed}, налично ${e.available}`).join('\n');
+        toast.error(`Недостатъчни количества в склада за:\n${errorList}`);
+        try { new Audio('/error.mp3').play(); } catch {}
+        setTransferLoading(false);
+        setFinishing(false);
+        return;
+      }
       if (!transferRes.ok) {
         const errorText = await transferRes.text();
         throw new Error(errorText || 'Грешка при трансфер от склада');
       }
     } catch (err) {
       toast.error(err.message);
+      try { new Audio('/error.mp3').play(); } catch {}
       setTransferLoading(false);
       setFinishing(false);
       return;
@@ -490,6 +530,7 @@ export default function StandRevisionPage({ params, searchParams }) {
       router.push(`/dashboard/revisions/${data.id}`);
     } catch (err) {
       toast.error(err.message);
+      try { new Audio('/error.mp3').play(); } catch {}
     } finally {
       setFinishing(false);
     }
@@ -548,10 +589,30 @@ export default function StandRevisionPage({ params, searchParams }) {
             {finishing || transferLoading ? <span className="flex items-center gap-2"><span className="loader mr-2 w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Обработка...</span> : <><CheckCircle />  Приключи продажба</>}
           </Button>
         </BasicHeader>
+        <form onSubmit={e => {
+          e.preventDefault();
+          const barcode = e.target.barcode.value.trim();
+          if (barcode) {
+            handleSaleScan(barcode);
+            e.target.reset();
+          }
+          setTimeout(() => saleInputRef.current?.focus(), 100);
+        }} className="mb-4 flex flex-col gap-2 items-stretch relative">
+          <Input
+            name="barcode"
+            ref={saleInputRef}
+            placeholder="Сканирай или въведи баркод..."
+            className="h-15"
+            autoComplete="off"
+            inputMode="numeric"
+            pattern="[0-9]*"
+          />
+          <Button type="submit"> <PlusIcon /> Добави</Button>
+        </form>
         <div className="mb-4">
           <label className="block mb-2 font-medium">Изберете склад за зареждане:</label>
           <Select onValueChange={setSelectedStorage} value={selectedStorage}>
-            <SelectTrigger>
+            <SelectTrigger className={'w-full'}>
               <SelectValue placeholder="Избери склад..." />
             </SelectTrigger>
             <SelectContent>
@@ -599,24 +660,6 @@ export default function StandRevisionPage({ params, searchParams }) {
             </div>
           </div>
         </div>
-        <form onSubmit={e => {
-          e.preventDefault();
-          const barcode = e.target.barcode.value.trim();
-          if (barcode) {
-            handleSaleScan(barcode);
-            e.target.reset();
-          }
-        }} className="mb-2 flex flex-col gap-2 items-stretch relative">
-          <Input
-            name="barcode"
-            placeholder="Сканирай или въведи баркод..."
-            className="h-15"
-            autoComplete="off"
-            inputMode="numeric"
-            pattern="[0-9]*"
-          />
-          <Button type="submit"> <PlusIcon /> Добави</Button>
-        </form>
       </div>
     );
   }

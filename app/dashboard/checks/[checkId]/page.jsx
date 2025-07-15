@@ -13,6 +13,7 @@ import BasicHeader from '@/components/BasicHeader';
 import { BadgeDollarSignIcon, Printer, ScaleIcon, Truck } from 'lucide-react';
 import RevisionProductsTable from '@/app/dashboard/revisions/[revisionId]/_components/RevisionProductsTable';
 import { DataTable } from '@/components/ui/data-table';
+import { useSession } from 'next-auth/react';
 
 export default function CheckIdPage() {
   const params = useParams();
@@ -27,6 +28,7 @@ export default function CheckIdPage() {
   const router = useRouter();
   const contentRef = useRef(null);
   const reactToPrintFn = useReactToPrint({ content: () => contentRef.current });
+  const { data: session } = useSession();
 
   useEffect(() => {
     if (checkId) {
@@ -122,17 +124,19 @@ export default function CheckIdPage() {
         <Button variant="outline" onClick={handlePrint}>
           <Printer /> Принтирай
         </Button>
-        <Button
-         variant="outline" onClick={() => setResupplyDialogOpen(true)}>
-          <Truck /> Зареди от склад
-        </Button>
+        {session?.user?.role === 'ADMIN' && (
+          <Button
+            variant="outline"
+            onClick={() => setResupplyDialogOpen(true)}
+          >
+            <Truck /> Зареди от склад
+          </Button>
+        )}
         <div className="h-6 w-px bg-gray-300"></div>
-
         <Button
-
           onClick={() => router.push(`/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`)}
         >
-         <BadgeDollarSignIcon /> Превърни в продажба
+          <BadgeDollarSignIcon /> Превърни в продажба
         </Button>
       </BasicHeader>
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-2">

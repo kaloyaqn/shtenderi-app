@@ -289,7 +289,10 @@ export default function StorageDetailPage({ params }) {
         <BasicHeader
           title={storage ? `Склад: ${storage.name}` : 'Зареждане...'}
           subtitle={"Упраялавай стоката в склада"}
-        />
+        >
+          
+        </BasicHeader>
+
         <div className="flex flex-col gap-2 mt-4">
           {productsInStorage.map((item) => (
             <div key={item.id} className="border rounded-lg p-3 flex flex-col gap-1 bg-white shadow-sm">
