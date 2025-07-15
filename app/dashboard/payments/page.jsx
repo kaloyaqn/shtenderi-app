@@ -6,17 +6,33 @@ import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import TableLink from '@/components/ui/table-link';
 import { Input } from '@/components/ui/input';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function PaymentsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Read from URL or fallback to today
+  const initialFrom = searchParams.get('from') || new Date().toISOString().slice(0, 10);
+  const initialTo = searchParams.get('to') || new Date().toISOString().slice(0, 10);
+
+  const [fromDate, setFromDate] = useState(initialFrom);
+  const [toDate, setToDate] = useState(initialTo);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [fromDate, setFromDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [invoices, setInvoices] = useState({});
   const [amountGt, setAmountGt] = useState('');
   const [amountLt, setAmountLt] = useState('');
   const [partnerFilter, setPartnerFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (fromDate) params.set('from', fromDate); else params.delete('from');
+    if (toDate) params.set('to', toDate); else params.delete('to');
+    router.replace(`?${params.toString()}`, { shallow: true });
+  }, [fromDate, toDate]);
 
   useEffect(() => {
     async function fetchActivity() {

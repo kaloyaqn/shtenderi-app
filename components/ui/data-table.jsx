@@ -95,8 +95,8 @@ export function DataTable({
   if (isMobileState) {
     return (
       <div>
-        <Card className="flex flex-col gap-2 w-full mb-2 mt-2">
-          <CardContent>
+        <div className="flex w-full flex-col gap-2 mb-2 mt-2">
+          <div className="w-full">
             {searchKey && (
               <Input
                 placeholder="Потърси..."
@@ -113,11 +113,11 @@ export function DataTable({
                 onChange={(event) =>
                   table.getColumn(column.id)?.setFilterValue(event.target.value)
                 }
-                className="max-w-sm text-xs mb-2"
+                className="max-w-sm text-xs mb-2 w-full"
               />
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
         <div className="flex flex-col gap-2">
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
@@ -220,7 +220,7 @@ export function DataTable({
   return (
     <div>
       {!noFilters && (
-        <Card className="flex px-4 items-center md:flex-row flex-col gap-4 py-4 mb-2 md:w-auto w-full">
+        <Card className="flex px-4 items-center md:flex-row flex-col gap-4 mb-2 md:w-auto w-full ">
           {searchKey && (
             <div className="relative w-full md:mb-0 mb-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

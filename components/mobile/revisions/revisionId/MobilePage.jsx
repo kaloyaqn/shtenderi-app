@@ -35,7 +35,7 @@ export default function MobilePageRevisionId({
   fetchPayments,
   revisionId,
   handleSendToClient,
-  payments
+  payments,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllActions, setShowAllActions] = useState(false);
@@ -226,7 +226,7 @@ export default function MobilePageRevisionId({
             {/* Products List */}
             <div className="space-y-2 p-0">
               {filteredProducts.map((mp) => (
-                    <MobileProductCard key={mp.id} mp={mp} />
+                <MobileProductCard key={mp.id} mp={mp} />
               ))}
               {filteredProducts.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
@@ -236,25 +236,27 @@ export default function MobilePageRevisionId({
             </div>
           </div>
         </div>
-        
+
         {/* Payments Section */}
-        <CreatePaymentRevisionForm 
-        totalPaid={totalPaid} totalRevisionPrice={totalRevisionPrice} fetchPayments={fetchPayments} revisionId={revisionId} revision={revision}
+        <CreatePaymentRevisionForm
+          totalPaid={totalPaid}
+          totalRevisionPrice={totalRevisionPrice}
+          fetchPayments={fetchPayments}
+          revisionId={revisionId}
+          revision={revision}
         />
 
         <div>
-        <span className="text- font-semibold">Плащания към тази продажба</span>
-            
-            <div className="flex flex-col gap-1">
+          <span className="text- font-semibold mb-2">
+            Плащания към тази продажба
+          </span>
 
-        {payments.map((payment) => (
-            <PaymentsCardMobile key={payment.id} payment={payment}/>
-        ))}
-            </div>
+          <div className="flex flex-col gap-1">
+            {payments.map((payment) => (
+              <PaymentsCardMobile key={payment.id} payment={payment} />
+            ))}
+          </div>
         </div>
-
-        
-
 
         {/* Printable Stock Table (always rendered, hidden except for print) */}
         <div

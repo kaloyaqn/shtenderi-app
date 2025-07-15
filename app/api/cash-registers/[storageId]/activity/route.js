@@ -8,6 +8,7 @@ export async function GET(req, { params }) {
   const dateParam = url.searchParams.get('date');
   const fromParam = url.searchParams.get('from');
   const toParam = url.searchParams.get('to');
+  const typeParam = url.searchParams.get('type');
 
   // Find the cash register for this storage
   const cashRegister = await prisma.cashRegister.findUnique({
@@ -40,28 +41,71 @@ export async function GET(req, { params }) {
     to = endOfDay(now);
   }
 
-  // Fetch payments
-  const payments = await prisma.payment.findMany({
-    where: {
-      cashRegisterId: cashRegister.id,
-      createdAt: { gte: from, lte: to },
-    },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-      revision: { select: { id: true, number: true } },
-      invoice: { select: { id: true, invoiceNumber: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-  // Fetch cash movements
-  const cashMovements = await prisma.cashMovement.findMany({
-    where: {
-      cashRegisterId: cashRegister.id,
-      createdAt: { gte: from, lte: to },
-    },
-    include: { user: { select: { id: true, name: true, email: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  // Fetch payments and cash movements based on typeParam
+  let payments = [];
+  let cashMovements = [];
+  if (!typeParam || typeParam === 'all' || typeParam === 'cash_movement') {
+    // Default: show all
+    payments = await prisma.payment.findMany({
+      where: {
+        cashRegisterId: cashRegister.id,
+        createdAt: { gte: from, lte: to },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        revision: { select: { id: true, number: true } },
+        invoice: { select: { id: true, invoiceNumber: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    cashMovements = await prisma.cashMovement.findMany({
+      where: {
+        cashRegisterId: cashRegister.id,
+        createdAt: { gte: from, lte: to },
+      },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+  if (typeParam === 'payment') {
+    payments = await prisma.payment.findMany({
+      where: {
+        cashRegisterId: cashRegister.id,
+        createdAt: { gte: from, lte: to },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        revision: { select: { id: true, number: true } },
+        invoice: { select: { id: true, invoiceNumber: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    cashMovements = [];
+  }
+  if (typeParam === 'deposit') {
+    cashMovements = await prisma.cashMovement.findMany({
+      where: {
+        cashRegisterId: cashRegister.id,
+        createdAt: { gte: from, lte: to },
+        type: 'DEPOSIT',
+      },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    payments = [];
+  }
+  if (typeParam === 'withdrawal') {
+    cashMovements = await prisma.cashMovement.findMany({
+      where: {
+        cashRegisterId: cashRegister.id,
+        createdAt: { gte: from, lte: to },
+        type: 'WITHDRAWAL',
+      },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    payments = [];
+  }
 
   // Merge and sort
   const all = [
