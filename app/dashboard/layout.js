@@ -30,7 +30,7 @@ export default async function DashboardLayout({ children }) {
         <AppSidebar variant="inset" />
         <SidebarInset className="md:p-4 p-1 pb-4">
           <Toaster position="top-center" />
-          <AnnouncementModal />
+          {/* <AnnouncementModal /> */}
           <ErrorBoundary>
             <div className="md:pb-0 pb-[84px]">
             {children}

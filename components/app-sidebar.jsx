@@ -17,6 +17,7 @@ import {
 } from "@tabler/icons-react"
 import {
     BoxIcon,
+    CheckCheckIcon,
     CircleDollarSignIcon,
     FileMinus,
     HomeIcon,
@@ -68,6 +69,7 @@ const groupedDocuments = {
   ],
   "Справки и счетоводни документи": [
     { name: "Импорти", url: "/dashboard/imports", icon: ImportIcon, adminOnly: true },
+    { name: "Проверки", url: "/dashboard/checks", icon: CheckCheckIcon, adminOnly: false },
 
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },

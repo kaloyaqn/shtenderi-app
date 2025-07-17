@@ -12,14 +12,19 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import BasicHeader from '@/components/BasicHeader';
+import LoadingScreen from '@/components/LoadingScreen';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
   { ssr: false }
 );
 
-export default function StandRevisionPage({ params }) {
+export default function StandRevisionPage({ params, searchParams }) {
   const { standId } = use(params);
+  const checkIdFromParams = searchParams?.checkId || null;
+  const [mode, setMode] = useState(checkIdFromParams ? 'sale' : 'check');
+  const [checkId, setCheckId] = useState(checkIdFromParams);
   const [products, setProducts] = useState([]); // [{product, quantity}]
   const [remaining, setRemaining] = useState([]); // [{barcode, name, remaining}]
   const [checked, setChecked] = useState([]); // [{barcode, name, checked}]
@@ -36,6 +41,7 @@ export default function StandRevisionPage({ params }) {
   const [finishing, setFinishing] = useState(false); // loading state for finish button
   const { data: session } = useSession();
   const userId = session?.user?.id || null;
+  const router = useRouter();
 
   // Detect mobile
   useEffect(() => {
@@ -71,6 +77,30 @@ export default function StandRevisionPage({ params }) {
     };
     fetchStand();
   }, [standId]);
+
+  // If checkIdFromParams, fetch check and set missing products for sale mode
+  useEffect(() => {
+    if (checkIdFromParams && mode === 'sale') {
+      fetch(`/api/stands/${standId}/checks/${checkIdFromParams}`)
+        .then(res => res.json())
+        .then(check => {
+          // Set up missing products for sale mode
+          setRemaining(
+            check.checkedProducts.map(cp => ({
+              barcode: cp.product.barcode,
+              name: cp.product.name,
+              remaining: cp.quantity,
+            }))
+          );
+          setProducts(
+            check.checkedProducts.map(cp => ({
+              product: cp.product,
+              quantity: cp.quantity,
+            }))
+          );
+        });
+    }
+  }, [checkIdFromParams, mode, standId]);
 
   useEffect(() => {
     if (!scannerOpen) return;
@@ -231,55 +261,82 @@ export default function StandRevisionPage({ params }) {
     setFinished(true);
     const missing = remaining.filter(p => p.remaining > 0);
     setReport(missing);
-    // Add pending products to stand with quantity 0
-    const pendingBarcodes = Object.keys(pendingProducts);
-    for (const barcode of pendingBarcodes) {
-      const { product } = pendingProducts[barcode];
-      // Call API to add to standProducts if not already present
-      await fetch(`/api/stands/${standId}/products`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, quantity: 0 }),
-      });
-    }
-    // Build missingProducts: original missing + all pending products
-    const missingProducts = [
-      ...missing.map(m => {
+    if (mode === 'check') {
+      // Create a check
+      const checkedProducts = remaining.map(m => {
         const prod = products.find(p => p.product.barcode === m.barcode)?.product;
         return prod ? {
           productId: prod.id,
-          missingQuantity: m.remaining,
-          clientPrice: prod.clientPrice,
+          quantity: m.remaining,
+          status: m.remaining > 0 ? 'missing' : 'ok',
         } : null;
-      }).filter(mp => mp && mp.productId),
-      ...pendingBarcodes.map(barcode => {
-        const prod = pendingProducts[barcode].product;
-        return {
-          productId: prod.id,
-          missingQuantity: pendingProducts[barcode].quantity,
-          clientPrice: prod.clientPrice,
-        };
-      }),
-    ];
-    // Always create a revision, even if there are no missing products
-    try {
-      const res = await fetch('/api/revisions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          standId,
-          userId,
-          missingProducts,
+      }).filter(Boolean);
+      try {
+        const res = await fetch(`/api/stands/${standId}/checks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, checkedProducts }),
+        });
+        if (!res.ok) throw new Error('Грешка при запис на проверката');
+        const data = await res.json();
+        setCheckId(data.id);
+        toast.success('Проверката е записана успешно!');
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        setFinishing(false);
+      }
+    } else if (mode === 'sale') {
+      // Add pending products to stand with quantity 0
+      const pendingBarcodes = Object.keys(pendingProducts);
+      for (const barcode of pendingBarcodes) {
+        const { product } = pendingProducts[barcode];
+        // Call API to add to standProducts if not already present
+        await fetch(`/api/stands/${standId}/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: product.id, quantity: 0 }),
+        });
+      }
+      // Build missingProducts: original missing + all pending products
+      const missingProducts = [
+        ...missing.map(m => {
+          const prod = products.find(p => p.product.barcode === m.barcode)?.product;
+          return prod ? {
+            productId: prod.id,
+            missingQuantity: m.remaining,
+            clientPrice: prod.clientPrice,
+          } : null;
+        }).filter(mp => mp && mp.productId),
+        ...pendingBarcodes.map(barcode => {
+          const prod = pendingProducts[barcode].product;
+          return {
+            productId: prod.id,
+            missingQuantity: pendingProducts[barcode].quantity,
+            clientPrice: prod.clientPrice,
+          };
         }),
-      });
-      if (!res.ok) throw new Error('Грешка при запис на продажбата');
-      const data = await res.json();
-      setRevisionId(data.id);
-      toast.success('Продажбата е записана успешно!');
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setFinishing(false);
+      ];
+      // Always create a revision, even if there are no missing products
+      try {
+        const res = await fetch('/api/revisions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            standId,
+            userId,
+            missingProducts,
+          }),
+        });
+        if (!res.ok) throw new Error('Грешка при запис на продажбата');
+        const data = await res.json();
+        setRevisionId(data.id);
+        toast.success('Продажбата е записана успешно!');
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        setFinishing(false);
+      }
     }
   };
 
@@ -321,6 +378,295 @@ export default function StandRevisionPage({ params }) {
       isPending: true,
     })),
   ];
+
+  // --- SALE MODE STATE ---
+  const [saleChecked, setSaleChecked] = useState([]); // [{barcode, name, checked}]
+  const [saleUnchecked, setSaleUnchecked] = useState([]); // [{barcode, name, remaining}]
+  const [saleLoading, setSaleLoading] = useState(false);
+  const [storages, setStorages] = useState([]);
+  const [selectedStorage, setSelectedStorage] = useState('');
+  const [transferLoading, setTransferLoading] = useState(false);
+  const saleInputRef = useRef();
+
+  // When entering sale mode, load only missing products from the check
+  useEffect(() => {
+    if (mode === 'sale' && checkId) {
+      setSaleLoading(true);
+      fetch(`/api/stands/${standId}/checks/${checkId}`)
+        .then(res => res.json())
+        .then(check => {
+          const missing = check.checkedProducts.filter(cp => cp.quantity > 0);
+          setSaleUnchecked(
+            missing.map(cp => ({
+              barcode: cp.product.barcode,
+              name: cp.product.name,
+              remaining: cp.quantity,
+              productId: cp.product.id,
+              clientPrice: cp.product.clientPrice,
+              maxQuantity: cp.quantity, // Track original quantity
+            }))
+          );
+          setSaleChecked([]);
+        })
+        .finally(() => setSaleLoading(false));
+      // Fetch storages for the stand
+      fetch('/api/storages')
+        .then(res => res.json())
+        .then(setStorages)
+        .catch(() => setStorages([]));
+    }
+  }, [mode, checkId, standId]);
+
+  // Auto-select storage for non-admins if only one assigned
+  useEffect(() => {
+    if (mode === 'sale' && session?.user?.role !== 'ADMIN' && storages.length === 1) {
+      setSelectedStorage(storages[0].id);
+    }
+  }, [mode, session?.user?.role, storages]);
+
+  // Sale scan handler
+  const handleSaleScan = (barcode) => {
+    const uncheckedProd = saleUnchecked.find(p => p.barcode === barcode);
+    if (!uncheckedProd) {
+      // Check if product exists in the original sale list (checked or all products)
+      const wasInSale = saleChecked.find(p => p.barcode === barcode) || products.find(p => p.product.barcode === barcode);
+      if (wasInSale) {
+        toast.warning('Надвишено количество');
+        try { new Audio('/error.mp3').play(); } catch {}
+        setTimeout(() => saleInputRef.current?.focus(), 100);
+        return false;
+      }
+      toast.error('Продукт с този баркод не е намерен.');
+      try { new Audio('/error.mp3').play(); } catch {}
+      setTimeout(() => saleInputRef.current?.focus(), 100);
+      return false;
+    }
+    if (uncheckedProd.remaining <= 0) {
+      toast.warning('Надвишено количество');
+      try { new Audio('/error.mp3').play(); } catch {}
+      setTimeout(() => saleInputRef.current?.focus(), 100);
+      return false;
+    }
+    setSaleUnchecked(prev => prev.map(p =>
+      p.barcode === barcode && p.remaining > 0
+        ? { ...p, remaining: p.remaining - 1 }
+        : p
+    ).filter(p => p.remaining > 0));
+    setSaleChecked(prev => {
+      const idx = prev.findIndex(p => p.barcode === barcode);
+      if (idx !== -1) {
+        return prev.map((p, i) => i === idx ? { ...p, checked: p.checked + 1 } : p);
+      } else {
+        return [...prev, { barcode: uncheckedProd.barcode, name: uncheckedProd.name, checked: 1, productId: uncheckedProd.productId, clientPrice: uncheckedProd.clientPrice, maxQuantity: uncheckedProd.maxQuantity }];
+      }
+    });
+    try { new Audio('/success.mp3').play(); } catch {}
+    setTimeout(() => saleInputRef.current?.focus(), 100);
+    return true;
+  };
+
+  // On finish in sale mode, first create a transfer, then the revision
+  const handleFinishSale = async () => {
+    setFinishing(true);
+    setFinished(true);
+    if (!selectedStorage) {
+      toast.error('Моля, изберете склад.');
+      setFinishing(false);
+      return;
+    }
+    // 1. Create transfer from storage to stand
+    setTransferLoading(true);
+    try {
+      const transferRes = await fetch(`/api/stands/${standId}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storageId: selectedStorage,
+          products: saleChecked.map(p => ({ productId: p.productId, quantity: p.checked, name: p.name })),
+        }),
+      });
+      if (transferRes.status === 409) {
+        const data = await transferRes.json();
+        if (data.insufficient && data.insufficient.length > 0) {
+          const errorList = data.insufficient.map(e => `${e.productName}: нужно ${e.needed}, налично ${e.available}`).join('\n');
+          toast.error(`Недостатъчни количества в склада за:\n${errorList}`);
+        } else {
+          toast.error('Недостатъчни количества в склада.');
+        }
+        try { new Audio('/error.mp3').play(); } catch {}
+        setTransferLoading(false);
+        setFinishing(false);
+        return;
+      }
+      if (!transferRes.ok) {
+        const errorText = await transferRes.text();
+        throw new Error(errorText || 'Грешка при трансфер от склада');
+      }
+    } catch (err) {
+      toast.error(err.message);
+      try { new Audio('/error.mp3').play(); } catch {}
+      setTransferLoading(false);
+      setFinishing(false);
+      return;
+    }
+    setTransferLoading(false);
+    // 2. Create the revision (sale)
+    const missingProducts = saleChecked.map(p => ({
+      productId: p.productId,
+      missingQuantity: p.checked,
+      clientPrice: p.clientPrice,
+    }));
+    try {
+      const res = await fetch('/api/revisions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          standId,
+          userId,
+          missingProducts,
+        }),
+      });
+      if (!res.ok) throw new Error('Грешка при запис на продажбата');
+      const data = await res.json();
+      setRevisionId(data.id);
+      toast.success('Продажбата е записана успешно!');
+      // Redirect to revision details page
+      router.push(`/dashboard/revisions/${data.id}`);
+    } catch (err) {
+      toast.error(err.message);
+      try { new Audio('/error.mp3').play(); } catch {}
+    } finally {
+      setFinishing(false);
+    }
+  };
+
+  // After finish in check mode, show two buttons
+  // - View Check (link to check details page)
+  // - Continue to Sale (switches to sale mode, loads missing products from check)
+  if (mode === 'check' && finished && checkId) {
+    return (
+      <div className="flex flex-col gap-2 mt-4">
+        <Button asChild>
+          <Link href={`/dashboard/checks/${checkId}`}>Виж проверка</Link>
+        </Button>
+        <Button
+          onClick={async () => {
+            setMode('sale');
+            setFinished(false);
+            // Fetch the check and reload missing products for sale mode
+            const res = await fetch(`/api/stands/${standId}/checks/${checkId}`);
+            const check = await res.json();
+            setRemaining(
+              check.checkedProducts.map(cp => ({
+                barcode: cp.product.barcode,
+                name: cp.product.name,
+                remaining: cp.quantity,
+              }))
+            );
+            setProducts(
+              check.checkedProducts.map(cp => ({
+                product: cp.product,
+                quantity: cp.quantity,
+              }))
+            );
+          }}
+          variant="secondary"
+        >
+          Продължи към продажба
+        </Button>
+      </div>
+    );
+  }
+
+  // In sale mode, render split UI
+  if (mode === 'sale') {
+    if (saleLoading) return <LoadingScreen />;
+    return (
+      <div className="pb-15">
+        <BasicHeader title={`Продажба след проверка`}>
+          <Button
+            onClick={handleFinishSale}
+            disabled={saleChecked.length === 0 || finishing || !selectedStorage || transferLoading}
+            size="lg"
+            className="w-full! h-15 mt-3 mb-4"
+          >
+            {finishing || transferLoading ? <span className="flex items-center gap-2"><span className="loader mr-2 w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Обработка...</span> : <><CheckCircle />  Приключи продажба</>}
+          </Button>
+        </BasicHeader>
+        <form onSubmit={e => {
+          e.preventDefault();
+          const barcode = e.target.barcode.value.trim();
+          if (barcode) {
+            handleSaleScan(barcode);
+            e.target.reset();
+          }
+          setTimeout(() => saleInputRef.current?.focus(), 100);
+        }} className="mb-4 flex flex-col gap-2 items-stretch relative">
+          <Input
+            name="barcode"
+            ref={saleInputRef}
+            placeholder="Сканирай или въведи баркод..."
+            className="h-15"
+            autoComplete="off"
+            inputMode="numeric"
+            pattern="[0-9]*"
+          />
+          <Button type="submit"> <PlusIcon /> Добави</Button>
+        </form>
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">Изберете склад за зареждане:</label>
+          <Select onValueChange={setSelectedStorage} value={selectedStorage}>
+            <SelectTrigger className={'w-full'}>
+              <SelectValue placeholder="Избери склад..." />
+            </SelectTrigger>
+            <SelectContent>
+              {storages.map(storage => (
+                <SelectItem key={storage.id} value={storage.id}>{storage.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-3">
+          <div>
+            <div className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/>Чекирани продукти (ще бъдат продадени)</div>
+            <div className="grid gap-2 mb-6">
+              {saleChecked.length === 0 && <div className="text-muted-foreground text-sm">Няма чекирани продукти.</div>}
+              {saleChecked.map(p => (
+                <div key={p.barcode} className='rounded-sm border p-2 border-green-200 bg-green-50 flex flex-col justify-between text-green-900'>
+                  <h3 className='text-sm leading-[110%]'>{p.name}</h3>
+                  <div className='w-full flex justify-between items-end'>
+                    <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-green-100 text-gray-600 rounded-[2px]'>
+                      <Barcode size={12} />
+                      <span className='leading-tight'>{p.barcode}</span>
+                    </div>
+                    <h6 className='font-bold text-base'>{p.checked}</h6>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-base font-semibold mb-2 flex items-center gap-2"><Package size={20}/> Непродадени продукти (очакват сканиране)</div>
+            <div className="grid gap-2 mb-6">
+              {saleUnchecked.length === 0 && <div className="text-muted-foreground text-sm">Всички продукти са чекирани.</div>}
+              {saleUnchecked.map(p => (
+                <div key={p.barcode} className='rounded-sm border p-2 flex flex-col justify-between border-gray-200'>
+                  <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
+                  <div className='w-full flex justify-between items-end'>
+                    <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
+                      <Barcode size={12} />
+                      <span className='leading-tight'>{p.barcode}</span>
+                    </div>
+                    <h6 className='font-bold text-base gray-900'>{p.remaining}</h6>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-15">

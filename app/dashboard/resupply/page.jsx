@@ -1,15 +1,21 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useRef } from "react"
-import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { toast } from "sonner"
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 import {
   Barcode,
   CheckCircle,
@@ -21,213 +27,246 @@ import {
   Scan,
   ArrowLeftRight,
   Loader2,
-} from "lucide-react"
-import { useSession } from "next-auth/react"
-import BasicHeader from "@/components/BasicHeader"
+} from "lucide-react";
+import { useSession } from "next-auth/react";
+import BasicHeader from "@/components/BasicHeader";
 
 export default function GeneralResupplyPage() {
-  const router = useRouter()
-  const { data: session } = useSession()
-  const [mode, setMode] = useState("") // No default selection
-  const [allStands, setAllStands] = useState([])
-  const [allStorages, setAllStorages] = useState([])
-  const [sourceId, setSourceId] = useState("")
-  const [destinationId, setDestinationId] = useState("")
-  const [productsInSource, setProductsInSource] = useState([])
-  const [selectedProducts, setSelectedProducts] = useState([])
-  const [barcodeInput, setBarcodeInput] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [showCheck, setShowCheck] = useState(false)
-  const [showError, setShowError] = useState(false)
-  const barcodeInputRef = useRef()
-  const [isMobile, setIsMobile] = useState(false)
-  const [step, setStep] = useState(1)
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [mode, setMode] = useState(""); // No default selection
+  const [allStands, setAllStands] = useState([]);
+  const [allStorages, setAllStorages] = useState([]);
+  const [sourceId, setSourceId] = useState("");
+  const [destinationId, setDestinationId] = useState("");
+  const [productsInSource, setProductsInSource] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showCheck, setShowCheck] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const barcodeInputRef = useRef();
+  const [isMobile, setIsMobile] = useState(false);
+  const [step, setStep] = useState(1);
 
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setIsMobile(window.innerWidth <= 768)
+      setIsMobile(window.innerWidth <= 768);
     }
 
     handleMode();
-  }, [])
+  }, []);
 
   // Fetch all stands and storages on mount
   useEffect(() => {
-    setLoading(true)
-    Promise.all([fetch("/api/stands").then((res) => res.json()), fetch("/api/storages").then((res) => res.json())])
+    setLoading(true);
+    Promise.all([
+      fetch("/api/stands").then((res) => res.json()),
+      fetch("/api/storages").then((res) => res.json()),
+    ])
       .then(([standsData, storagesData]) => {
-        setAllStands(standsData)
-        setAllStorages(storagesData)
+        setAllStands(standsData);
+        setAllStorages(storagesData);
       })
       .catch(() => toast.error("Грешка при зареждане на данни."))
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   // Fetch products for the selected source
   useEffect(() => {
-    if (!sourceId || !mode) return
-    setProductsInSource([])
-    setSelectedProducts([])
-    setLoading(true)
+    if (!sourceId || !mode) return;
+    setProductsInSource([]);
+    setSelectedProducts([]);
+    setLoading(true);
 
-    let url = ""
-    if (mode === "stand-to-stand") url = `/api/stands/${sourceId}/products`
-    if (mode === "storage-to-storage" || mode === "storage-to-stand") url = `/api/storages/${sourceId}/products`
+    let url = "";
+    if (mode === "stand-to-stand") url = `/api/stands/${sourceId}/products`;
+    if (mode === "storage-to-storage" || mode === "storage-to-stand")
+      url = `/api/storages/${sourceId}/products`;
 
-    if (!url) return
+    if (!url) return;
 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        setProductsInSource(data)
+        setProductsInSource(data);
         setTimeout(() => {
-          barcodeInputRef.current?.focus()
-        }, 100)
+          barcodeInputRef.current?.focus();
+        }, 100);
       })
       .catch(() => toast.error("Грешка при зареждане на продукти"))
-      .finally(() => setLoading(false))
-  }, [sourceId, mode])
-
+      .finally(() => setLoading(false));
+  }, [sourceId, mode]);
 
   const handleMode = () => {
-    let source = searchParams.get('source');
-    let storage_from = searchParams.get('storage_from_id');
+    let source = searchParams.get("source");
+    let storage_from = searchParams.get("storage_from_id");
 
-    if (source === 'stand') {
-        setMode('stand-to-stand')
-    } else if (source === 'storage') {
-        setMode("storage-to-stand")
+    if (source === "stand") {
+      setMode("stand-to-stand");
+    } else if (source === "storage") {
+      setMode("storage-to-stand");
 
-        if (storage_from) {
-            setSourceId(storage_from)
-        }
+      if (storage_from) {
+        setSourceId(storage_from);
+      }
     }
-
-
-
-  }
+  };
 
   // Handle barcode scan
   const handleBarcodeScanned = (e) => {
     if (e.key === "Enter" && barcodeInput) {
-      e.preventDefault()
-      const productInSource = productsInSource.find((p) => (p.product?.barcode || p.barcode) === barcodeInput)
+      e.preventDefault();
+      const productInSource = productsInSource.find(
+        (p) => (p.product?.barcode || p.barcode) === barcodeInput
+      );
 
       if (!productInSource) {
-        toast.error("Продукт с този баркод не е намерен в източника.")
-        setShowError(true)
+        toast.error("Продукт с този баркод не е намерен в източника.");
+        setShowError(true);
         try {
-          new Audio("/error.mp3").play()
+          new Audio("/error.mp3").play();
         } catch {}
-        setTimeout(() => setShowError(false), 1200)
-        setBarcodeInput("")
-        return
+        setTimeout(() => setShowError(false), 1200);
+        setBarcodeInput("");
+        return;
       }
 
-      const productId = productInSource.product?.id || productInSource.id
-      const existingProduct = selectedProducts.find((p) => p.productId === productId)
-      const currentQuantity = existingProduct?.quantity || 0
-      const maxQty = productInSource.quantity || productInSource.maxQuantity || 0
+      const productId = productInSource.product?.id || productInSource.id;
+      const existingProduct = selectedProducts.find(
+        (p) => p.productId === productId
+      );
+      const currentQuantity = existingProduct?.quantity || 0;
+      const maxQty =
+        productInSource.quantity || productInSource.maxQuantity || 0;
 
       if (currentQuantity >= maxQty) {
         toast.warning(
-          `Достигнато е максималното налично количество за ${productInSource.product?.name || productInSource.name}.`,
-        )
-        setShowError(true)
+          `Достигнато е максималното налично количество за ${
+            productInSource.product?.name || productInSource.name
+          }.`
+        );
+        setShowError(true);
         try {
-          new Audio("/error.mp3").play()
+          new Audio("/error.mp3").play();
         } catch {}
-        setTimeout(() => setShowError(false), 1200)
+        setTimeout(() => setShowError(false), 1200);
       } else {
         handleProductQuantityChange(
           productId,
           String(currentQuantity + 1),
-          true, // moveToTop
-        )
-        setShowCheck(true)
+          true // moveToTop
+        );
+        setShowCheck(true);
         try {
-          new Audio("/success.mp3").play()
+          new Audio("/success.mp3").play();
         } catch {}
-        setTimeout(() => setShowCheck(false), 1200)
+        setTimeout(() => setShowCheck(false), 1200);
       }
 
-      setBarcodeInput("")
+      setBarcodeInput("");
     }
-  }
+  };
 
   // Move to top logic
-  const handleProductQuantityChange = (productId, newQuantity, moveToTop = false) => {
-    const product = productsInSource.find((p) => (p.product?.id || p.id) === productId)
-    if (!product) return
+  const handleProductQuantityChange = (
+    productId,
+    newQuantity,
+    moveToTop = false
+  ) => {
+    const product = productsInSource.find(
+      (p) => (p.product?.id || p.id) === productId
+    );
+    if (!product) return;
 
-    const maxQty = product.quantity || product.maxQuantity || 0
-    const existingIndex = selectedProducts.findIndex((p) => p.productId === productId)
-    const qty = Math.max(0, Math.min(Number.parseInt(newQuantity, 10) || 0, maxQty))
+    const maxQty = product.quantity || product.maxQuantity || 0;
+    const existingIndex = selectedProducts.findIndex(
+      (p) => p.productId === productId
+    );
+    const qty = Math.max(
+      0,
+      Math.min(Number.parseInt(newQuantity, 10) || 0, maxQty)
+    );
 
     if (qty === 0) {
-      setSelectedProducts((prev) => prev.filter((p) => p.productId !== productId))
-      return
+      setSelectedProducts((prev) =>
+        prev.filter((p) => p.productId !== productId)
+      );
+      return;
     }
 
     if (existingIndex > -1) {
-      let updated = [...selectedProducts]
-      updated[existingIndex].quantity = qty
+      let updated = [...selectedProducts];
+      updated[existingIndex].quantity = qty;
       if (moveToTop) {
-        const [item] = updated.splice(existingIndex, 1)
-        updated = [item, ...updated]
+        const [item] = updated.splice(existingIndex, 1);
+        updated = [item, ...updated];
       }
-      setSelectedProducts(updated)
+      setSelectedProducts(updated);
     } else {
       setSelectedProducts((prev) => [
-        { productId, name: product.product?.name || product.name, quantity: qty, maxQuantity: maxQty },
+        {
+          productId,
+          name: product.product?.name || product.name,
+          quantity: qty,
+          maxQuantity: maxQty,
+        },
         ...prev,
-      ])
+      ]);
     }
-  }
+  };
 
   // Sort products: selected first, then unselected
-  const selectedIds = selectedProducts.map((sp) => sp.productId)
+  const selectedIds = selectedProducts.map((sp) => sp.productId);
   const sortedProducts = [
-    ...productsInSource.filter((p) => selectedIds.includes(p.product?.id || p.id)),
-    ...productsInSource.filter((p) => !selectedIds.includes(p.product?.id || p.id)),
-  ]
+    ...productsInSource.filter((p) =>
+      selectedIds.includes(p.product?.id || p.id)
+    ),
+    ...productsInSource.filter(
+      (p) => !selectedIds.includes(p.product?.id || p.id)
+    ),
+  ];
 
   // Step 1: Pick mode (always visible, no default)
   const handleModeChange = (val) => {
-    setMode(val)
-    setSourceId("")
-    setDestinationId("")
-    setProductsInSource([])
-    setSelectedProducts([])
-    setBarcodeInput("")
-    setStep(1)
-  }
+    setMode(val);
+    setSourceId("");
+    setDestinationId("");
+    setProductsInSource([]);
+    setSelectedProducts([]);
+    setBarcodeInput("");
+    setStep(1);
+  };
 
   const getSourceName = () => {
     if (mode === "stand-to-stand") {
-      const stand = allStands.find((s) => s.id === sourceId)
-      return stand ? `${stand.name}${stand.store?.name ? ` — ${stand.store.name}` : ""}` : ""
+      const stand = allStands.find((s) => s.id === sourceId);
+      return stand
+        ? `${stand.name}${stand.store?.name ? ` — ${stand.store.name}` : ""}`
+        : "";
     }
     if (mode === "storage-to-storage" || mode === "storage-to-stand") {
-      const storage = allStorages.find((s) => s.id === sourceId)
-      return storage?.name || ""
+      const storage = allStorages.find((s) => s.id === sourceId);
+      return storage?.name || "";
     }
-    return ""
-  }
+    return "";
+  };
 
   const getDestinationName = () => {
     if (mode === "stand-to-stand" || mode === "storage-to-stand") {
-      const stand = allStands.find((s) => s.id === destinationId)
-      return stand ? `${stand.name}${stand.store?.name ? ` — ${stand.store.name}` : ""}` : ""
+      const stand = allStands.find((s) => s.id === destinationId);
+      return stand
+        ? `${stand.name}${stand.store?.name ? ` — ${stand.store.name}` : ""}`
+        : "";
     }
     if (mode === "storage-to-storage") {
-      const storage = allStorages.find((s) => s.id === destinationId)
-      return storage?.name || ""
+      const storage = allStorages.find((s) => s.id === destinationId);
+      return storage?.name || "";
     }
-    return ""
-  }
+    return "";
+  };
 
   const handleSubmit = async () => {
     if (!sourceId || !destinationId) {
@@ -240,19 +279,27 @@ export default function GeneralResupplyPage() {
     }
     setLoading(true);
     try {
-      let payload, url, method = "POST";
+      let payload,
+        url,
+        method = "POST";
       if (mode === "storage-to-stand") {
         payload = {
           sourceStorageId: sourceId,
           destinationStandId: destinationId,
-          products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+          products: selectedProducts.map(({ productId, quantity }) => ({
+            productId,
+            quantity,
+          })),
         };
         url = "/api/resupply";
       } else if (mode === "stand-to-stand") {
         payload = {
           sourceStandId: sourceId,
           destinationStandId: destinationId,
-          products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+          products: selectedProducts.map(({ productId, quantity }) => ({
+            productId,
+            quantity,
+          })),
         };
         url = "/api/stands/transfer";
       } else if (mode === "storage-to-storage") {
@@ -260,7 +307,10 @@ export default function GeneralResupplyPage() {
           sourceStorageId: sourceId,
           destinationId: destinationId,
           destinationType: "STORAGE",
-          products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+          products: selectedProducts.map(({ productId, quantity }) => ({
+            productId,
+            quantity,
+          })),
         };
         url = "/api/storages/transfer";
       } else {
@@ -297,7 +347,10 @@ export default function GeneralResupplyPage() {
     <div className="">
       {/* Header */}
 
-      <BasicHeader title={"Трансфер на продукти"} subtitle="Прехвърляне на продукти между щендери и складове" /> 
+      <BasicHeader
+        title={"Трансфер на продукти"}
+        subtitle="Прехвърляне на продукти между щендери и складове"
+      />
 
       {/* Main Content */}
       <div className="">
@@ -311,17 +364,30 @@ export default function GeneralResupplyPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={mode} className="w-full" onValueChange={handleModeChange}>
+              <Tabs
+                value={mode}
+                className="w-full"
+                onValueChange={handleModeChange}
+              >
                 <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 h-auto">
-                  <TabsTrigger value="stand-to-stand" className="flex items-center space-x-2 py-3">
+                  <TabsTrigger
+                    value="stand-to-stand"
+                    className="flex items-center space-x-2 py-3"
+                  >
                     <Store className="h-4 w-4" />
                     <span>Между щандове</span>
                   </TabsTrigger>
-                  <TabsTrigger value="storage-to-storage" className="flex items-center space-x-2 py-3">
+                  <TabsTrigger
+                    value="storage-to-storage"
+                    className="flex items-center space-x-2 py-3"
+                  >
                     <Warehouse className="h-4 w-4" />
                     <span>Между складове</span>
                   </TabsTrigger>
-                  <TabsTrigger value="storage-to-stand" className="flex items-center space-x-2 py-3">
+                  <TabsTrigger
+                    value="storage-to-stand"
+                    className="flex items-center space-x-2 py-3"
+                  >
                     <Package className="h-4 w-4" />
                     <span>Склад → Щанд</span>
                   </TabsTrigger>
@@ -335,31 +401,47 @@ export default function GeneralResupplyPage() {
               {/* Step 2: Source and Destination Selection */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Изберете източник и дестинация</CardTitle>
+                  <CardTitle className="text-lg">
+                    Изберете източник и дестинация
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex md:flex-row flex-col items-end justify-between w-full gap-4">
                     {/* Source Selection */}
                     <div className="w-full">
                       <label className="text-sm font-medium text-gray-700">
-                        {mode === "stand-to-stand" ? "Изходен щанд" : "Изходен склад"}
+                        {mode === "stand-to-stand"
+                          ? "Изходен щанд"
+                          : "Изходен склад"}
                       </label>
                       {mode === "stand-to-stand" && (
-                        <Select value={sourceId} onValueChange={setSourceId} className="w-full">
+                        <Select
+                          value={sourceId}
+                          onValueChange={setSourceId}
+                          className="w-full"
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете изходен щанд..." />
                           </SelectTrigger>
                           <SelectContent>
                             {allStands.map((stand) => (
                               <SelectItem key={stand.id} value={stand.id}>
-                                {stand.name} {stand.store?.name ? `— ${stand.store.name}` : ""}
+                                {stand.name}{" "}
+                                {stand.store?.name
+                                  ? `— ${stand.store.name}`
+                                  : ""}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       )}
-                      {(mode === "storage-to-storage" || mode === "storage-to-stand") && (
-                        <Select value={sourceId} onValueChange={setSourceId} className="w-full">
+                      {(mode === "storage-to-storage" ||
+                        mode === "storage-to-stand") && (
+                        <Select
+                          value={sourceId}
+                          onValueChange={setSourceId}
+                          className="w-full"
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете изходен склад..." />
                           </SelectTrigger>
@@ -382,10 +464,16 @@ export default function GeneralResupplyPage() {
                     {/* Destination Selection */}
                     <div className="w-full space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        {mode === "storage-to-storage" ? "Дестинация склад" : "Дестинация щанд"}
+                        {mode === "storage-to-storage"
+                          ? "Дестинация склад"
+                          : "Дестинация щанд"}
                       </label>
                       {mode === "stand-to-stand" && (
-                        <Select value={destinationId} onValueChange={setDestinationId} className="w-full">
+                        <Select
+                          value={destinationId}
+                          onValueChange={setDestinationId}
+                          className="w-full"
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете дестинация щанд..." />
                           </SelectTrigger>
@@ -394,14 +482,21 @@ export default function GeneralResupplyPage() {
                               .filter((s) => s.id !== sourceId)
                               .map((stand) => (
                                 <SelectItem key={stand.id} value={stand.id}>
-                                  {stand.name} {stand.store?.name ? `— ${stand.store.name}` : ""}
+                                  {stand.name}{" "}
+                                  {stand.store?.name
+                                    ? `— ${stand.store.name}`
+                                    : ""}
                                 </SelectItem>
                               ))}
                           </SelectContent>
                         </Select>
                       )}
                       {mode === "storage-to-storage" && (
-                        <Select value={destinationId} onValueChange={setDestinationId} className="w-full">
+                        <Select
+                          value={destinationId}
+                          onValueChange={setDestinationId}
+                          className="w-full"
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете дестинация склад..." />
                           </SelectTrigger>
@@ -417,14 +512,21 @@ export default function GeneralResupplyPage() {
                         </Select>
                       )}
                       {mode === "storage-to-stand" && (
-                        <Select value={destinationId} onValueChange={setDestinationId} className="w-full">
+                        <Select
+                          value={destinationId}
+                          onValueChange={setDestinationId}
+                          className="w-full"
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Изберете дестинация щанд..." />
                           </SelectTrigger>
                           <SelectContent>
                             {allStands.map((stand) => (
                               <SelectItem key={stand.id} value={stand.id}>
-                                {stand.name} {stand.store?.name ? `— ${stand.store.name}` : ""}
+                                {stand.name}{" "}
+                                {stand.store?.name
+                                  ? `— ${stand.store.name}`
+                                  : ""}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -444,7 +546,9 @@ export default function GeneralResupplyPage() {
                         <ArrowRight className="h-4 w-4 text-blue-600" />
                         <div className="flex items-center space-x-2">
                           <div className="font-medium text-blue-900">До:</div>
-                          <div className="text-blue-700">{getDestinationName()}</div>
+                          <div className="text-blue-700">
+                            {getDestinationName()}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -454,21 +558,24 @@ export default function GeneralResupplyPage() {
 
               {/* Step 3: Product Selection */}
               {sourceId && destinationId && (
-                <Card>
-                  <CardHeader>
+                <Card className='p-0 border-0'>
+                  <CardHeader className='px-0'>
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center text-lg">
                         <Scan className="h-5 w-5 mr-2 text-gray-700" />
                         Добавете продукти
                       </CardTitle>
                       {selectedProducts.length > 0 && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <Badge
+                          variant="outline"
+                          className="bg-green-50 text-green-700 border-green-200"
+                        >
                           {selectedProducts.length} избрани
                         </Badge>
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 p-0">
                     {/* Barcode Scanner */}
                     <div className="relative">
                       <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -489,7 +596,9 @@ export default function GeneralResupplyPage() {
                     {showCheck && (
                       <div className="flex items-center gap-2 text-green-600 p-3 bg-green-50 rounded-lg border border-green-200 animate-pulse">
                         <CheckCircle className="h-5 w-5" />
-                        <span className="font-medium">Успешно добавен продукт</span>
+                        <span className="font-medium">
+                          Успешно добавен продукт
+                        </span>
                       </div>
                     )}
 
@@ -507,9 +616,11 @@ export default function GeneralResupplyPage() {
                         <div className="text-sm font-medium text-gray-700">
                           Налични продукти ({productsInSource.length})
                         </div>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                        <div className="space-y-2">
                           {sortedProducts.map((p) => {
-                            const selected = selectedProducts.find((sp) => sp.productId === (p.product?.id || p.id))
+                            const selected = selectedProducts.find(
+                              (sp) => sp.productId === (p.product?.id || p.id)
+                            );
                             return (
                               <div
                                 key={p.product?.id || p.id}
@@ -536,7 +647,11 @@ export default function GeneralResupplyPage() {
                                         max={p.quantity || p.maxQuantity}
                                         value={selected?.quantity || ""}
                                         onChange={(e) =>
-                                          handleProductQuantityChange(p.product?.id || p.id, e.target.value, true)
+                                          handleProductQuantityChange(
+                                            p.product?.id || p.id,
+                                            e.target.value,
+                                            true
+                                          )
                                         }
                                         className="w-16 text-center text-sm"
                                         disabled={loading}
@@ -549,7 +664,7 @@ export default function GeneralResupplyPage() {
                                   </div>
                                 </div>
                               </div>
-                            )
+                            );
                           })}
                         </div>
                       </div>
@@ -561,7 +676,12 @@ export default function GeneralResupplyPage() {
                         <div className="text-sm text-gray-600">
                           {selectedProducts.length > 0 && (
                             <span>
-                              Общо {selectedProducts.reduce((sum, p) => sum + p.quantity, 0)} продукта за трансфер
+                              Общо{" "}
+                              {selectedProducts.reduce(
+                                (sum, p) => sum + p.quantity,
+                                0
+                              )}{" "}
+                              продукта за трансфер
                             </span>
                           )}
                         </div>
@@ -569,6 +689,7 @@ export default function GeneralResupplyPage() {
                           size="lg"
                           onClick={handleSubmit}
                           disabled={loading}
+                          className={'md:w-auto w-full'}
                         >
                           {loading ? (
                             <Loader2 className="animate-spin" />
@@ -587,5 +708,5 @@ export default function GeneralResupplyPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
