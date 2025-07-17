@@ -47,6 +47,7 @@
     "print-js": "^1.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-joyride": "^3.0.0-7",
     "react-qr-code": "^2.0.16",
     "react-to-print": "^3.1.0",
     "recharts": "^2.15.4",

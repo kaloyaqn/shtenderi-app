@@ -33,6 +33,7 @@ import { IconLayoutRows } from "@tabler/icons-react";
 import BasicHeader from "@/components/BasicHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import PageHelpTour from "@/components/help/PageHelpTour";
 
 export default function Stands() {
   const [stands, setStands] = useState([]);
@@ -194,6 +195,8 @@ export default function Stands() {
   if (isMobile) {
     return (
       <div className="">
+        <PageHelpTour />
+
         <BasicHeader
           title={isAdmin ? "Всички щендери" : "Твоите зачислени щендери"}
           subtitle={"Виж твоите зачислени щендери "}
@@ -205,8 +208,11 @@ export default function Stands() {
           )}
         </BasicHeader>
         <div className="space-y-3 mt-2">
+          {/* Visible filter/help section for Joyride */}
           {stands.map((stand) => (
             <Card
+            id="card"
+
               key={stand.id}
               className="border border-gray-200 shadow-sm py-0"
             >
@@ -217,12 +223,13 @@ export default function Stands() {
                       <Store className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-medium text-gray-900 text-sm whitespace-pre-line break-words">
+                      <h3 id="stand-name" className="font-medium text-gray-900 text-sm whitespace-pre-line break-words">
                         {stand.name}
                       </h3>
                     </div>
                   </div>
                   <Button
+                    id="stand-button"
                     variant="table"
                     size="sm"
                     className="shrink-0 w-10 h-10"
@@ -238,7 +245,9 @@ export default function Stands() {
                       <Building className="h-4 w-4 text-gray-400" />
                       <span className="text-gray-500">Партньор:</span>
                     </div>
-                    <span className="text-gray-900 font-medium">
+                    <span
+                    id="stand-partner"
+                    className="text-gray-900 font-medium">
                       {stand.store?.partner?.name || "-"}
                     </span>
                   </div>
@@ -248,7 +257,9 @@ export default function Stands() {
                       <Store className="h-4 w-4 text-gray-400" />
                       <span className="text-gray-500">Магазин:</span>
                     </div>
-                    <span className="text-gray-900 font-medium">
+                    <span
+                    id="stand-store"
+                    className="text-gray-900 font-medium">
                       {stand.store?.name || "-"}
                     </span>
                   </div>
@@ -256,10 +267,14 @@ export default function Stands() {
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center space-x-2">
                       <Package className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-500">Брой продукти:</span>
+                      <span
+                      className="text-gray-500">Брой продукти:</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-gray-900 font-bold">
+                      <span
+                      id="stand-products"
+                      
+                      className="text-gray-900 font-bold">
                         {stand._count?.standProducts ?? "-"}
                       </span>
                       {stand._count?.standProducts === 0 && (
