@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import LoadingScreen from '@/components/LoadingScreen';
 import BasicHeader from '@/components/BasicHeader';
-import { BadgeDollarSignIcon, Printer, ScaleIcon, Truck } from 'lucide-react';
+import { BadgeDollarSignIcon, Printer, ScaleIcon, Truck, ArrowLeft } from 'lucide-react';
 import RevisionProductsTable from '@/app/dashboard/revisions/[revisionId]/_components/RevisionProductsTable';
 import { DataTable } from '@/components/ui/data-table';
 import { useSession } from 'next-auth/react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import MobileProductCard from '@/components/mobile/revisions/revisionId/MobileProductCard';
 
 export default function CheckIdPage() {
   const params = useParams();
@@ -29,6 +31,7 @@ export default function CheckIdPage() {
   const contentRef = useRef(null);
   const reactToPrintFn = useReactToPrint({ content: () => contentRef.current });
   const { data: session } = useSession();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (checkId) {
@@ -101,14 +104,82 @@ export default function CheckIdPage() {
   if (loading) return <LoadingScreen />;
   if (!check) return <div>Проверката не е намерена.</div>;
 
+  // Only show missing products (quantity > 0)
+  const missingProducts = check.checkedProducts.filter(cp => cp.quantity > 0);
+
+  if (isMobile) {
+    // Mobile-only design mimicking MobilePageRevisionId
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <BasicHeader
+        hasBackButton
+        title={`Проверка #${check.id.slice(0, 8)}`}
+        subtitle="Всички данни за твоята проверка"
+      >
+        <Button className='w-full' variant="outline" onClick={handlePrint}>
+          <Printer /> Принтирай
+        </Button>
+        {session?.user?.role === 'ADMIN' && (
+          <Button
+            variant="outline"
+            className='w-full'
+            onClick={() => setResupplyDialogOpen(true)}
+          >
+            <Truck /> Зареди от склад
+          </Button>
+        )}
+        <Button
+          className='w-full'
+          onClick={() => router.push(`/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`)}
+        >
+          <BadgeDollarSignIcon /> Превърни в продажба
+        </Button>
+      </BasicHeader>
+        <div className="p-1 space-y-3">
+          <div className="rounded-lg border bg-white p-4 mb-2">
+            <div className="text-sm font-semibold mb-3">Информация за проверката</div>
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs text-gray-500">Щанд</span>
+                <p className="text-base">{check.stand?.name || 'N/A'}</p>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500">Потребител</span>
+                <p className="text-base">{check.user?.name || check.user?.email || 'N/A'}</p>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500">Дата</span>
+                <p className="text-base">{new Date(check.createdAt).toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+            <div className="flex items-center justify-between mb-3 mt-6">
+              <div className="text-base font-semibold">Проверени продукти</div>
+              <Badge variant="outline">{missingProducts.length} продукта</Badge>
+            </div>
+            <div className="space-y-2">
+              {missingProducts.map((cp) => (
+                <MobileProductCard key={cp.id} mp={{...cp, missingQuantity: cp.quantity}} />
+              ))}
+              {missingProducts.length === 0 && (
+                <div className="text-center text-gray-500 py-8">
+                  Няма намерени продукти.
+                </div>
+              )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Table columns for checked products
   const columns = [
     { accessorKey: 'name', header: 'Име', cell: ({ row }) => row.original.product?.name || '-' },
     { accessorKey: 'barcode', header: 'Баркод', cell: ({ row }) => row.original.product?.barcode || '-' },
     { accessorKey: 'quantity', header: 'Брой', cell: ({ row }) => row.original.quantity },
-    { accessorKey: 'status', header: 'Статус', cell: ({ row }) => row.original.status },
+    // { accessorKey: 'status', header: 'Статус', cell: ({ row }) => row.original.status },
   ];
-  const data = check.checkedProducts.map(cp => ({
+  const data = missingProducts.map(cp => ({
     ...cp,
     name: cp.product?.name || '-',
     barcode: cp.product?.barcode || '-',
@@ -172,7 +243,7 @@ export default function CheckIdPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base lg:text-lg">Проверени продукти</CardTitle>
-                <Badge variant="outline">{check.checkedProducts.length} продукта</Badge>
+                <Badge variant="outline">{missingProducts.length} продукта</Badge>
               </div>
             </CardHeader>
             <CardContent>

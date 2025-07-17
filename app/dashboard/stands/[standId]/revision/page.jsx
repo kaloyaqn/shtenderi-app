@@ -487,8 +487,12 @@ export default function StandRevisionPage({ params, searchParams }) {
       });
       if (transferRes.status === 409) {
         const data = await transferRes.json();
-        const errorList = (data.insufficient || []).map(e => `${e.productName}: нужно ${e.needed}, налично ${e.available}`).join('\n');
-        toast.error(`Недостатъчни количества в склада за:\n${errorList}`);
+        if (data.insufficient && data.insufficient.length > 0) {
+          const errorList = data.insufficient.map(e => `${e.productName}: нужно ${e.needed}, налично ${e.available}`).join('\n');
+          toast.error(`Недостатъчни количества в склада за:\n${errorList}`);
+        } else {
+          toast.error('Недостатъчни количества в склада.');
+        }
         try { new Audio('/error.mp3').play(); } catch {}
         setTransferLoading(false);
         setFinishing(false);

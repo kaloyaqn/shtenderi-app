@@ -12,6 +12,8 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
+  PersonStanding,
+  CheckCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { useSession, signOut } from "next-auth/react";
 import BasicHeader from "@/components/BasicHeader";
 import Link from "next/link";
+import { IconTruckReturn } from "@tabler/icons-react";
+import MobileHomepage from "@/components/mobile/homepage/MobileHomepage";
 
 export default function DashboardHome() {
   const { data: session, status } = useSession();
@@ -109,38 +113,7 @@ export default function DashboardHome() {
   // USER DASHBOARD VIEW
   if (session?.user?.role !== "ADMIN") {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-        <div className="max-w-xl w-full px-4 py-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Здравей, {session?.user?.name || ''}!</h1>
-          <p className="text-gray-600 mb-6">Тук можеш бързо да достъпиш своите стелажи, партньори, складове и продажби.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link href="/dashboard/stands">
-              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
-                <Store className="h-8 w-8 text-blue-600 mb-2" />
-                <span className="font-semibold text-gray-900">Моите стелажи</span>
-              </Card>
-            </Link>
-            <Link href="/dashboard/partners">
-              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
-                <Building className="h-8 w-8 text-green-600 mb-2" />
-                <span className="font-semibold text-gray-900">Моите партньори</span>
-              </Card>
-            </Link>
-            <Link href="/dashboard/storages">
-              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
-                <Package className="h-8 w-8 text-yellow-600 mb-2" />
-                <span className="font-semibold text-gray-900">Моите складове</span>
-              </Card>
-            </Link>
-            <Link href="/dashboard/revisions">
-              <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
-                <TrendingUp className="h-8 w-8 text-purple-600 mb-2" />
-                <span className="font-semibold text-gray-900">Моите продажби</span>
-              </Card>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <MobileHomepage session={session} />
     );
   }
 

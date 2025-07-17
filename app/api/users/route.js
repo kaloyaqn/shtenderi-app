@@ -1,9 +1,39 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // List all users (GET)
-export async function GET() {
+export async function GET(req) {
+  if (req.nextUrl?.pathname?.endsWith('/me')) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        userStands: { select: { stand: { select: { id: true, name: true } } } },
+        userPartners: { select: { partner: { select: { id: true, name: true } } } },
+        userStorages: { select: { storage: { select: { id: true, name: true } } } },
+      }
+    });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    return NextResponse.json({
+      ...user,
+      stands: user.userStands.map(us => us.stand),
+      partners: user.userPartners.map(up => up.partner),
+      storages: user.userStorages.map(us => us.storage),
+    });
+  }
   try {
     const users = await prisma.user.findMany({
       select: {

@@ -31,7 +31,9 @@ export async function POST(req, { params }) {
         }
       }
       if (insufficient.length > 0) {
-        throw new Error('Insufficient stock');
+        const err = new Error('Insufficient stock');
+        err.insufficient = insufficient;
+        throw err;
       }
       for (const product of products) {
         await tx.storageProduct.update({
@@ -48,7 +50,7 @@ export async function POST(req, { params }) {
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error.message === 'Insufficient stock') {
-      return NextResponse.json({ error: 'Insufficient stock', insufficient }, { status: 409 });
+      return NextResponse.json({ error: 'Insufficient stock', insufficient: error.insufficient || [] }, { status: 409 });
     }
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
