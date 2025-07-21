@@ -1,9 +1,10 @@
 import PDFDocument from 'pdfkit/js/pdfkit.standalone.js';
 import { NextResponse } from 'next/server';
+import path from 'path';
+import fs from 'fs';
 
 export async function GET() {
   const doc = new PDFDocument({
-    // 54mm is approx 153 points (1pt = 1/72 inch)
     size: [153, 800],
     margins: {
       top: 5,
@@ -13,11 +14,16 @@ export async function GET() {
     },
   });
 
+  // Register the font
+  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'DejaVuLGCSans.ttf');
+  const fontBuffer = fs.readFileSync(fontPath);
+  doc.font(fontBuffer);
+
   const chunks = [];
   doc.on('data', chunks.push.bind(chunks));
 
   // --- PDF Content ---
-  doc.fontSize(10).text('Stendo.bg', { align: 'center' });
+  doc.fontSize(10).text('Stendo.bg', { align: 'left' });
   doc.moveDown(0.5);
   doc.fontSize(8).text('Щендери, които работят за теб.');
   doc.moveDown();
