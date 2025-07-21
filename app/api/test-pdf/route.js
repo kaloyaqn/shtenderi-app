@@ -93,7 +93,7 @@ export async function POST(request) {
     doc.moveTo(itemX, doc.y).lineTo(148, doc.y).stroke();
     doc.moveDown();
   
-    doc.fontSize(8).text(`Общо: ${total.toFixed(2)}лв.`, itemX, doc.y, {
+    doc.fontSize(10).text(`Общо: ${total.toFixed(2)}лв.`, itemX, doc.y, {
       width: 143,
       align: 'right'
     });
