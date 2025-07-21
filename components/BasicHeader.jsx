@@ -36,8 +36,8 @@ export default function BasicHeader({
               >
               <ArrowLeft className="h-4 w-4" />
 
-              </Button>
-            )}
+             </Button>
+           )}
             <div>
               <div className="flex items-center gap-2 w-full">
                 <h1 className="text-xl font-bold text-gray-900 flex-1 truncate">
@@ -51,12 +51,12 @@ export default function BasicHeader({
               <HelpModal />
           </div>
 
-        </div>
         {children && (
           <div className="flex flex-col items-center w-full gap-2 mb-4">
             {children}
           </div>
         )}
+        </div>
       </nav>
     );
   }
