@@ -545,8 +545,17 @@ export default function StandRevisionPage({ params, searchParams }) {
   // - Continue to Sale (switches to sale mode, loads missing products from check)
   if (mode === 'check' && finished && checkId) {
     return (
-      <div className="flex flex-col gap-2 mt-4">
-        <Button asChild>
+      <>
+      <BasicHeader 
+      className={'mt-20'}
+      title={'Приключена проверка'}
+      hasBackButton
+      subtitle={'Изберете дали искате да продължите към продажба, или да отидете към страницата с направената проверка'}
+      />
+
+
+            <div className="flex flex-col gap-2 mt-4">
+        <Button variant={'outline'} asChild>
           <Link href={`/dashboard/checks/${checkId}`}>Виж проверка</Link>
         </Button>
         <Button
@@ -570,11 +579,11 @@ export default function StandRevisionPage({ params, searchParams }) {
               }))
             );
           }}
-          variant="secondary"
         >
           Продължи към продажба
         </Button>
       </div>
+      </>
     );
   }
 

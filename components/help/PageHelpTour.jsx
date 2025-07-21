@@ -6,10 +6,6 @@ import { usePathname } from "next/navigation";
 const stepsByPath = {
   "/dashboard": [
     {
-      target: "#header",
-      content: "Това е твоят основен екран. Тук виждаш най-важната информация.",
-    },
-    {
       target: "#cash-balance-card",
       content: "Тук виждаш наличността в касата си. Това също е бутон към страницата с касата ти.",
     },
@@ -18,41 +14,31 @@ const stepsByPath = {
       content: "Тук виждаш генерирания оборот за деня.",
     },
   ],
-  "/dashboard/stands": [
-    {
-      target: "#card",
-      content: "Това е един от твоите зачислени щендери.",
-    },
-    {
-        target: "#stand-name",
-        content: "Това е името на щендера",
-    },
-    {
-        target: "#stand-partner",
-        content: "Това е името на парнтьора, на когото е щендера",
-    },
-    {
-        target: "#stand-store",
-        content: "Това е името на магазина, в който е щендера",
-    },
-    {
-        target: "#stand-products",
-        content: "Това е показва, колко позиции има на този щендер",
-    },
-    {
-        target: "#stand-button",
-        content: "Натискайки този бутон, отваряш щендера.",
-    },
-  ],
 };
+
+// Helper to match dynamic routes like /dashboard/stands/[standId]
+function getHelpStepsForPath(pathname) {
+  // Exact match first
+  if (stepsByPath[pathname]) return stepsByPath[pathname];
+
+  // Pattern match for dynamic routes
+  for (const pattern in stepsByPath) {
+    // Convert pattern to regex: /dashboard/stands/[standId] -> ^/dashboard/stands/[^/]+$
+    const regex = new RegExp('^' + pattern.replace(/\[.*?\]/g, '[^/]+') + '$');
+    if (regex.test(pathname)) {
+      return stepsByPath[pattern];
+    }
+  }
+  return [];
+}
 
 export default function PageHelpTour() {
   const pathname = usePathname();
   const [run, setRun] = useState(true);
   const [mounted, setMounted] = useState(false);
 
+  const steps = getHelpStepsForPath(pathname);
   const localKey = `tour_seen:${pathname}`;
-  const steps = stepsByPath[pathname] || [];
 
   useEffect(() => {
     // За да не чупи при SSR

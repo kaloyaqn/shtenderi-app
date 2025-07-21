@@ -34,7 +34,6 @@ export default function MobileHomepage({ session }) {
 
   return (
     <>
-    <PageHelpTour />
       <div className="min-h-screen">
         <BasicHeader
             id="header"
