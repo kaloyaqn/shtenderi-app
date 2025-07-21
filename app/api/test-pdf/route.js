@@ -8,7 +8,7 @@ function calculateHeight(products, doc) {
   const footerHeight = 30;
   let productsHeight = 0;
   products.forEach(product => {
-    productsHeight += doc.heightOfString(product.name, { width: 50 }) + 4; // Use new width
+    productsHeight += doc.heightOfString(product.name, { width: 55 }) + 4; // +4 for spacing
   });
   return headerHeight + productsHeight + footerHeight;
 }
@@ -34,8 +34,8 @@ export async function POST(request) {
       margins: {
         top: 5,
         bottom: 5,
-        left: 0, // No software margin
-        right: 0, // No software margin
+        left: 5,
+        right: 5,
       },
     });
   
@@ -56,45 +56,45 @@ export async function POST(request) {
     doc.moveDown();
   
     const tableTop = doc.y;
-    const itemX = 14; // Start at hardware margin
-    const qtyX = 70;
-    const unitPriceX = 95;
-    const totalX = 120;
+    const itemX = 5;
+    const qtyX = 60;
+    const unitPriceX = 85;
+    const totalX = 115;
   
     doc.fontSize(8)
-      .text('Продукт', itemX, tableTop, { width: 50 })
-      .text('Кол.', qtyX, tableTop, { width: 20, align: 'center' })
-      .text('Ед.', unitPriceX, tableTop, { width: 25, align: 'right' })
-      .text('Общо', totalX, tableTop, { width: 25, align: 'right' });
+      .text('Продукт', itemX, tableTop, { width: 45 })
+      .text('Кол.', qtyX, tableTop, { width: 18, align: 'center' })
+      .text('Ед.', unitPriceX, tableTop, { width: 28, align: 'right' })
+      .text('Общо', totalX, tableTop, { width: 28, align: 'right' });
   
-    doc.moveTo(itemX, doc.y).lineTo(139, doc.y).stroke(); // Use new width
+    doc.moveTo(itemX, doc.y).lineTo(148, doc.y).stroke();
     doc.moveDown(0.5);
   
     let total = 0;
     function addRow(item, qty, unitPrice) {
         const y = doc.y;
-        const nameHeight = doc.heightOfString(item, { width: 50, align: 'left' }); // Use new width
+        const nameHeight = doc.heightOfString(item, { width: 55, align: 'left' });
         const rowHeight = Math.max(nameHeight, 10);
       
         doc.fontSize(8)
-          .text(item, itemX, y, { width: 50, align: 'left' }) // Use new width
-          .text(`${qty} бр.`, qtyX, y, { width: 20, align: 'center' })
-          .text(`${unitPrice.toFixed(2)} лв.`, unitPriceX, y, { width: 25, align: 'right' })
-          .text(`${(qty * unitPrice).toFixed(2)} лв.`, totalX, y, { width: 25, align: 'right' });
+          .text(item, itemX, y, { width: 55, align: 'left' })
+          .text(`${qty} бр.`, qtyX, y, { width: 18, align: 'center' })
+          .text(`${unitPrice.toFixed(2)} лв.`, unitPriceX, y, { width: 28, align: 'right' })
+          .text(`${(qty * unitPrice).toFixed(2)} лв.`, totalX, y, { width: 28, align: 'right' });
       
         doc.y = y + rowHeight + 1;
         total += qty * unitPrice;
-    }
+      }
   
     for (const product of products) {
       addRow(product.name, product.quantity, product.price);
     }
   
-    doc.moveTo(itemX, doc.y).lineTo(139, doc.y).stroke(); // Use new width
+    doc.moveTo(itemX, doc.y).lineTo(148, doc.y).stroke();
     doc.moveDown();
   
-    doc.fontSize(10).text(`Общо: ${total.toFixed(2)}лв.`, 0, doc.y, {
-      width: 153 - 14, // full width - right margin
+    doc.fontSize(10).text(`Общо: ${total.toFixed(2)}лв.`, itemX, doc.y, {
+      width: 143,
       align: 'right'
     });
 
