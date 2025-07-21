@@ -27,17 +27,47 @@ export async function GET() {
   doc.moveDown(0.5);
   doc.fontSize(8).text('Щендери, които работят за теб.');
   doc.moveDown();
-  doc.text('Date: ' + new Date().toLocaleDateString());
-  doc.text('Time: ' + new Date().toLocaleTimeString());
+  doc.text('Дата: ' + new Date().toLocaleDateString());
+  doc.text('Време: ' + new Date().toLocaleTimeString());
   doc.moveDown();
-  doc.text('--------------------------');
-  doc.text('Продукт         Кол.  Цена');
-  doc.text('--------------------------');
-  doc.text('Лилав гумен инструмент     1  10.00');
-  doc.text('Sample Item 2     2  25.50');
-  doc.text('--------------------------');
+
+  const tableTop = doc.y;
+  const itemX = 5;
+  const qtyX = 95;
+  const priceX = 120;
+
+  // Table Header
+  doc.fontSize(8)
+    .text('Продукт', itemX, tableTop)
+    .text('Кол.', qtyX, tableTop, { width: 30, align: 'center' })
+    .text('Цена', priceX, tableTop, { width: 30, align: 'right' });
+
+  // Draw a line under the header
+  doc.moveTo(itemX, doc.y).lineTo(148, doc.y).stroke();
+  doc.moveDown(0.5);
+
+  // Table Rows
+  function addRow(item, qty, price) {
+    const y = doc.y;
+    doc.fontSize(8)
+       .text(item, itemX, y)
+       .text(qty, qtyX, y, { width: 30, align: 'center' })
+       .text(price, priceX, y, { width: 30, align: 'right' });
+    doc.moveDown(0.5);
+  }
+
+  addRow('Гумент елемент', '1', '10.00');
+  addRow('Хо кабел', '2', '25.50');
+
+  // Draw a line after the rows
+  doc.moveTo(itemX, doc.y).lineTo(148, doc.y).stroke();
   doc.moveDown();
-  doc.fontSize(10).text('Total: 35.50', { align: 'right' });
+
+  // Total
+  doc.fontSize(8).text('Общо: 35.50лв.', itemX, doc.y, {
+    width: 143, // Usable width (153 total - 5 left margin - 5 right margin)
+    align: 'right'
+  });
   // --- End PDF Content ---
 
   return new Promise((resolve) => {
