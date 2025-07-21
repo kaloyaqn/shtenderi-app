@@ -45,16 +45,14 @@ export async function POST(request) {
     doc.on('data', chunks.push.bind(chunks));
   
     // --- PDF Content ---
-    doc.fontSize(10).text('Omax Solutions', { align: 'left' });
+    doc.fontSize(10).text('Omax Solutions EOOD', { align: 'left' });
     doc.moveDown(0.5);
-    doc.fontSize(8).text('Това е СТОКОВА разписка, не е касов бон!');
     if (revisionNumber) {
       doc.moveDown(0.2);
-      doc.fontSize(9).text(`Разписка № ${revisionNumber}`, { align: 'left' });
+      doc.fontSize(9).text(`Стокова разписка #0035900${revisionNumber}`, { align: 'left' });
     }
     doc.moveDown();
-    doc.text('Дата: ' + new Date().toLocaleDateString());
-    doc.text('Време: ' + new Date().toLocaleTimeString());
+
     doc.moveDown();
   
     const tableTop = doc.y;
@@ -99,6 +97,11 @@ export async function POST(request) {
       width: 143,
       align: 'right'
     });
+
+    doc.fontSize(8).text('Това е СТОКОВА разписка, не е касов бон!');
+    doc.text('Дата: ' + new Date().toLocaleDateString());
+    doc.text('Време: ' + new Date().toLocaleTimeString());
+
     // --- End PDF Content ---
   
     doc.end();
