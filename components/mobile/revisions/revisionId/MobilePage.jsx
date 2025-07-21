@@ -162,6 +162,7 @@ export default function MobilePageRevisionId({
                   Принтирай
                 </Button>
                 <PrintStockButton 
+                revisionNumber={revision.number}
                   missingProducts={revision.missingProducts}
                 />
                 <Button

@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { Button } from "../ui/button";
+import { DownloadIcon } from "lucide-react";
 
-export default function PrintStockButton({missingProducts}) {
+export default function PrintStockButton({missingProducts, revisionNumber}) {
 
     useEffect(() => {
         if (Array.isArray(missingProducts)) {
@@ -20,51 +21,46 @@ export default function PrintStockButton({missingProducts}) {
     }, [missingProducts])
 
     const handlePrint = async () => {
-        try {
-            const response = await fetch('/api/test-pdf', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    products: Array.isArray(missingProducts)
-                        ? missingProducts.map(product => ({
-                            name: product.product?.name || "N/A",
-                            quantity: product.missingQuantity || 0,
-                            price: product.priceAtSale ?? product.product?.clientPrice ?? 0,
-                        }))
-                        : [],
-                }),
-            });
-    
-            if (!response.ok) {
-                throw new Error('Failed to generate PDF');
-            }
-    
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'receipt.pdf';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error("PDF Download Error:", error);
-            // Optionally show a toast here
+        const response = await fetch('/api/test-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                products: Array.isArray(missingProducts)
+                    ? missingProducts.map(product => ({
+                        name: product.product?.name || "N/A",
+                        quantity: product.missingQuantity || 0,
+                        price: product.priceAtSale ?? product.product?.clientPrice ?? 0,
+                    }))
+                    : [],
+                revisionNumber: revisionNumber,
+            }),
+        });
+
+        if (!response.ok) {
+            alert('Failed to generate PDF');
+            return;
         }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${revisionNumber}-receipt.pdf`; // Hardcoded for now
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
     };
 
     return (
         <>
             <Button
-                              variant="outline"
                               size="sm"
-                              className="h-7 text-xs flex-1 bg-transparent"
-            onClick={handlePrint}>
-                Свали PDF
-            </Button>
+                  className="h-7 text-xs"
+                  variant={'outline'}
+            type="button" onClick={handlePrint}>
+                <DownloadIcon />
+                Свали PDF</Button>
         </>
     )
 }
