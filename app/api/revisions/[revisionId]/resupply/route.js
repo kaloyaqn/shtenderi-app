@@ -31,9 +31,8 @@ export async function POST(req, { params }) {
     }
 
     // Do the check and update atomically in a transaction
-    let insufficient = [];
     const result = await prisma.$transaction(async (tx) => {
-      insufficient = [];
+      let insufficient = [];
       for (const missingProduct of revision.missingProducts) {
         const requiredQuantity = missingProduct.missingQuantity;
         const productId = missingProduct.productId;
@@ -57,8 +56,7 @@ export async function POST(req, { params }) {
         }
       }
       if (insufficient.length > 0) {
-        // Throw to abort transaction
-        throw { insufficient };
+        return { success: false, insufficient };
       }
       // All sufficient, do the update
       for (const missingProduct of revision.missingProducts) {
@@ -99,17 +97,11 @@ export async function POST(req, { params }) {
           },
         });
       }
-      return true;
-    }).catch((err) => {
-      if (err && err.insufficient) {
-        insufficient = err.insufficient;
-        return false;
-      }
-      throw err;
+      return { success: true };
     });
 
-    if (!result && insufficient.length > 0) {
-      return NextResponse.json({ insufficient }, { status: 409 });
+    if (!result.success && result.insufficient?.length > 0) {
+      return NextResponse.json({ insufficient: result.insufficient }, { status: 409 });
     }
 
     return NextResponse.json({ success: true, message: 'Щандът е зареден успешно!' });

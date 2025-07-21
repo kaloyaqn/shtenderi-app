@@ -1,9 +1,11 @@
 "use client";
 
-import { RefreshCcw } from "lucide-react";
+import { ArrowLeft, HelpCircle, RefreshCcw } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
+import HelpModal from "./help/HelpModal";
 
 export default function BasicHeader({
   title,
@@ -17,13 +19,14 @@ export default function BasicHeader({
 }) {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const [showHelp, setShowHelp] = useState(false);
 
   if (isMobile) {
     // Render a simplified or custom mobile header
     return (
       <nav>
         <div className={`flex flex-col items-start mb-4 p-2 border-b bg-white ${className}`}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative w-full">
             {hasBackButton && (
               <Button
                 onClick={() => router.back()}
@@ -31,9 +34,10 @@ export default function BasicHeader({
                 size="sm"
                 variant={"ghost"}
               >
-                {"<-"} <span className="md:block hidden"></span>
-              </Button>
-            )}
+              <ArrowLeft className="h-4 w-4" />
+
+             </Button>
+           )}
             <div>
               <div className="flex items-center gap-2 w-full">
                 <h1 className="text-xl font-bold text-gray-900 flex-1 truncate">
@@ -44,13 +48,15 @@ export default function BasicHeader({
                 <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
               )}
             </div>
+              <HelpModal />
           </div>
-        </div>
+
         {children && (
           <div className="flex flex-col items-center w-full gap-2 mb-4">
             {children}
           </div>
         )}
+        </div>
       </nav>
     );
   }

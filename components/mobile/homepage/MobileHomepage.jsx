@@ -1,6 +1,7 @@
 "use client";
 
 import BasicHeader from "@/components/BasicHeader";
+import PageHelpTour from "@/components/help/PageHelpTour";
 import { Card, CardTitle } from "@/components/ui/card";
 import { IconTruckReturn } from "@tabler/icons-react";
 import {
@@ -35,6 +36,7 @@ export default function MobileHomepage({ session }) {
     <>
       <div className="min-h-screen">
         <BasicHeader
+            id="header"
           className="bg-gray-50"
           title={`Здравей, ${session.user.name}`}
           subtitle={`Всичко важно за теб - на едно място.`}
@@ -42,7 +44,7 @@ export default function MobileHomepage({ session }) {
 
         <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
           <Link href={`/dashboard/cash-registers/${stats.storageId}`}>
-            <Card className="hover:shadow-lg transition p-4 cursor-pointer flex flex-col gap-0">
+            <Card id="cash-balance-card" className="hover:shadow-lg transition p-4 cursor-pointer flex flex-col gap-0">
               <h2>Наличност каса</h2>
               <span className="font-semibold text-gray-900 text-2xl">
                 {stats.cashBalance || "00.00"} лв.
@@ -50,7 +52,7 @@ export default function MobileHomepage({ session }) {
             </Card>
           </Link>
           <Link href={`/dashboard/cash-registers/${stats.storageId}`}>
-            <Card className="hover:shadow-lg transition cursor-pointer p-4 gap-0">
+            <Card id="gross-income-card" className="hover:shadow-lg transition cursor-pointer p-4 gap-0">
               <h2>Генериран оборот</h2>
 
               <span className="font-semibold text-2xl text-gray-900">

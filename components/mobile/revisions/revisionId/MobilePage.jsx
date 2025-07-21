@@ -24,6 +24,8 @@ import MobileProductCard from "./MobileProductCard";
 import PaymentsTable from "@/components/tables/revisions/PaymentsTable";
 import PaymentsTableMobile from "./PaymentsCardMobile";
 import PaymentsCardMobile from "./PaymentsCardMobile";
+import BasicHeader from "@/components/BasicHeader";
+import PrintStockButton from "@/components/buttons/print-stock-button";
 
 export default function MobilePageRevisionId({
   revision,
@@ -45,35 +47,13 @@ export default function MobilePageRevisionId({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-4 py-3">
-          <div className="flex items-center space-x-2 mb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-1"
-              onClick={() => router.back()}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-lg font-bold text-gray-900">
-                Продажба #{revision.number}
-              </h1>
-              <p className="text-xs text-gray-500">
-                Всички данни за тази продажба
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAllActions(!showAllActions)}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
+
+      <BasicHeader
+      title={`Продажба #${revision.number}`}
+      subtitle={'Всички данни за тази продажба'}
+      hasBackButton
+      >
+      </BasicHeader>
 
       {/* Main Content */}
       <div className="p-1 space-y-3">
@@ -132,6 +112,13 @@ export default function MobilePageRevisionId({
                   <Printer className="h-3 w-3 mr-1" />
                   Принтирай
                 </Button>
+                {/* PRINT STOCK BUTTON */}
+                {revision && (
+                    <PrintStockButton 
+                        missingProducts={revision.missingProducts}
+                    />
+                )}
+                {/* PRINT STOCK BUTTON */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -174,6 +161,7 @@ export default function MobilePageRevisionId({
                   <Printer className="h-3 w-3 mr-1" />
                   Принтирай
                 </Button>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -188,13 +176,10 @@ export default function MobilePageRevisionId({
               </div>
             )}
 
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700 text-white h-8 text-sm"
-              onClick={() => setResupplyDialogOpen(true)}
-            >
-              <Warehouse className="h-3 w-3 mr-2" />
-              Зареди от склад
-            </Button>
+              <PrintStockButton 
+                revisionNumber={revision.number}
+                  missingProducts={revision.missingProducts}
+                />
           </CardContent>
         </Card>
 

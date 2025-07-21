@@ -3,53 +3,82 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  // Delete child/related tables first to avoid foreign key constraint errors
+  console.log('Starting DB cleanup...');
 
-  // Revision-related
-  await prisma.missingProduct.deleteMany();
-  await prisma.revision.deleteMany();
+  // Delete in order of dependency
+  await prisma.cashMovement.deleteMany();
+  console.log('Deleted CashMovements');
+  
+  await prisma.payment.deleteMany();
+  console.log('Deleted Payments');
 
-  // Stand-related
-  await prisma.standProduct.deleteMany();
-  await prisma.check.deleteMany();
+  await prisma.cashRegister.deleteMany();
+  console.log('Deleted CashRegisters');
+
   await prisma.checkedProduct.deleteMany();
+  console.log('Deleted CheckedProducts');
 
-  // Storage-related
+  await prisma.check.deleteMany();
+  console.log('Deleted Checks');
+
+  await prisma.missingProduct.deleteMany();
+  console.log('Deleted MissingProducts');
+
+  await prisma.revision.deleteMany();
+  console.log('Deleted Revisions');
+
+  await prisma.standProduct.deleteMany();
+  console.log('Deleted StandProducts');
+
   await prisma.storageProduct.deleteMany();
+  console.log('Deleted StorageProducts');
 
-  // Refund-related
   await prisma.refundProduct.deleteMany();
+  console.log('Deleted RefundProducts');
+
   await prisma.refund.deleteMany();
+  console.log('Deleted Refunds');
 
-  // Credit notes and invoices
   await prisma.creditNote.deleteMany();
+  console.log('Deleted CreditNotes');
+
   await prisma.invoice.deleteMany();
+  console.log('Deleted Invoices');
 
-  // Transfers
   await prisma.transferProduct.deleteMany();
+  console.log('Deleted TransferProducts');
+
   await prisma.transfer.deleteMany();
+  console.log('Deleted Transfers');
 
-  // Imports
   await prisma.importProduct.deleteMany();
+  console.log('Deleted ImportProducts');
+
   await prisma.import.deleteMany();
+  console.log('Deleted Imports');
 
-  // User relations
   await prisma.userPartner.deleteMany();
+  console.log('Deleted UserPartners');
+
   await prisma.userStand.deleteMany();
+  console.log('Deleted UserStands');
+
   await prisma.userStorage.deleteMany();
+  console.log('Deleted UserStorages');
 
-  // Stand, Storage, Store
   await prisma.stand.deleteMany();
+  console.log('Deleted Stands');
+
   await prisma.storage.deleteMany();
+  console.log('Deleted Storages');
+
   await prisma.store.deleteMany();
+  console.log('Deleted Stores');
 
-  // Products
   await prisma.product.deleteMany();
+  console.log('Deleted Products');
 
-  // Users
-
-  // Do NOT delete partners!
-  await prisma.partner.deleteMany();
+  console.log('DB cleanup finished. Users and Partners were not deleted.');
 }
 
 main()

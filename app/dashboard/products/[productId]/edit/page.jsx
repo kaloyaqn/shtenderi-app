@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,11 +12,10 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/toggle"
 
 export default function EditProductPage({ params }) {
   const router = useRouter()
-  const { productId } = use(params)
+  const { productId } = params
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [product, setProduct] = useState(null)
@@ -51,7 +50,6 @@ export default function EditProductPage({ params }) {
     const data = {
         name: formData.get('name')?.trim(),
         barcode: formData.get('barcode')?.trim(),
-        clientPrice: parseFloat(formData.get('clientPrice')),
         pcd: formData.get('pcd')?.trim() || null,
         quantity: parseInt(formData.get('quantity'), 10) || 0,
         active: formData.get('active') === 'on',
@@ -110,16 +108,6 @@ export default function EditProductPage({ params }) {
                 <div className="grid gap-2">
                   <Label htmlFor="barcode">Баркод *</Label>
                   <Input id="barcode" name="barcode" required defaultValue={product.barcode} placeholder="Сканирайте или въведете баркод" />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="clientPrice">Клиентска цена *</Label>
-                  <Input id="clientPrice" name="clientPrice" type="number" step="0.01" required defaultValue={product.clientPrice} placeholder="0.00" />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="deliveryPrice">Цена на доставка *</Label>
-                  <Input id="deliveryPrice" name="deliveryPrice" type="number" step="0.01" required defaultValue={product.deliveryPrice} placeholder="0.00" />
                 </div>
 
                 <div className="grid gap-2">
