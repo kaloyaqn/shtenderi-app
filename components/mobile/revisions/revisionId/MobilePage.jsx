@@ -161,10 +161,7 @@ export default function MobilePageRevisionId({
                   <Printer className="h-3 w-3 mr-1" />
                   Принтирай
                 </Button>
-                <PrintStockButton 
-                revisionNumber={revision.number}
-                  missingProducts={revision.missingProducts}
-                />
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -179,13 +176,10 @@ export default function MobilePageRevisionId({
               </div>
             )}
 
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700 text-white h-8 text-sm"
-              onClick={() => setResupplyDialogOpen(true)}
-            >
-              <Warehouse className="h-3 w-3 mr-2" />
-              Зареди от склад
-            </Button>
+              <PrintStockButton 
+                revisionNumber={revision.number}
+                  missingProducts={revision.missingProducts}
+                />
           </CardContent>
         </Card>
 

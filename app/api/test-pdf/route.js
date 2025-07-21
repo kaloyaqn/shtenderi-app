@@ -1,14 +1,16 @@
+
 import PDFDocument from 'pdfkit/js/pdfkit.standalone.js';
 import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs';
 
 function calculateHeight(products, doc) {
-  const headerHeight = 70;
-  const footerHeight = 30;
+  const headerHeight = 65; // Adjusted for smaller fonts
+  const footerHeight = 25; // Adjusted for smaller fonts
   let productsHeight = 0;
+  doc.fontSize(7); // Set font size for measurement
   products.forEach(product => {
-    productsHeight += doc.heightOfString(product.name, { width: 55 }) + 4; // +4 for spacing
+    productsHeight += doc.heightOfString(product.name, { width: 55 }) + 3; // +3 for spacing
   });
   return headerHeight + productsHeight + footerHeight;
 }
@@ -27,6 +29,7 @@ export async function POST(request) {
     // Create a temporary doc to calculate height accurately
     const tempDoc = new PDFDocument({ size: [153, 1000] });
     tempDoc.font(fontBuffer);
+    tempDoc.fontSize(7); // Set font size for measurement before calculating
     const pageHeight = calculateHeight(products, tempDoc);
   
     const doc = new PDFDocument({
@@ -34,8 +37,8 @@ export async function POST(request) {
       margins: {
         top: 5,
         bottom: 5,
-        left: 5,
-        right: 5,
+        left: 2, // Minimal gutter
+        right: 2, // Minimal gutter
       },
     });
   
@@ -45,62 +48,63 @@ export async function POST(request) {
     doc.on('data', chunks.push.bind(chunks));
   
     // --- PDF Content ---
-    doc.fontSize(10).text('Omax Solutions EOOD', { align: 'left' });
+    doc.fontSize(9).text('Omax Solutions EOOD', { align: 'left' }); // Was 10
     doc.moveDown(0.5);
     if (revisionNumber) {
       doc.moveDown(0.2);
-      doc.fontSize(9).text(`Стокова разписка #0035900${revisionNumber}`, { align: 'left' });
+      doc.fontSize(8).text(`Стокова разписка #0035900${revisionNumber}`, { align: 'left' }); // Was 9
     }
     doc.moveDown();
 
     doc.moveDown();
   
     const tableTop = doc.y;
-    const itemX = 5;
-    const qtyX = 60;
-    const unitPriceX = 85;
-    const totalX = 115;
+    const itemX = 2;
+    const qtyX = 57;
+    const unitPriceX = 82;
+    const totalX = 117;
   
-    doc.fontSize(8)
-      .text('Продукт', itemX, tableTop, { width: 45 })
-      .text('Кол.', qtyX, tableTop, { width: 18, align: 'center' })
-      .text('Ед.', unitPriceX, tableTop, { width: 28, align: 'right' })
-      .text('Общо', totalX, tableTop, { width: 28, align: 'right' });
+    doc.fontSize(7) // Was 8
+      .text('Продукт', itemX, tableTop, { width: 55 })
+      .text('Кол.', qtyX, tableTop, { width: 25, align: 'center' })
+      .text('Ед.', unitPriceX, tableTop, { width: 35, align: 'right' })
+      .text('Общо', totalX, tableTop, { width: 35, align: 'right' });
   
-    doc.moveTo(itemX, doc.y).lineTo(148, doc.y).stroke();
+    doc.moveTo(itemX, doc.y).lineTo(151, doc.y).stroke(); // Use new width
     doc.moveDown(0.5);
   
     let total = 0;
     function addRow(item, qty, unitPrice) {
         const y = doc.y;
+        doc.fontSize(7); // Set font size before measuring
         const nameHeight = doc.heightOfString(item, { width: 55, align: 'left' });
-        const rowHeight = Math.max(nameHeight, 10);
+        const rowHeight = Math.max(nameHeight, 9); // Adjusted minimum height
       
-        doc.fontSize(8)
-          .text(item, itemX, y, { width: 55, align: 'left' })
-          .text(`${qty} бр.`, qtyX, y, { width: 18, align: 'center' })
-          .text(`${unitPrice.toFixed(2)} лв.`, unitPriceX, y, { width: 28, align: 'right' })
-          .text(`${(qty * unitPrice).toFixed(2)} лв.`, totalX, y, { width: 28, align: 'right' });
+        doc.fontSize(7) // Was 8
+          .text(item, itemX, y, { width: 55, align: 'left' }) 
+          .text(`${qty} бр.`, qtyX, y, { width: 25, align: 'center' })
+          .text(`${unitPrice.toFixed(2)} лв.`, unitPriceX, y, { width: 35, align: 'right' })
+          .text(`${(qty * unitPrice).toFixed(2)} лв.`, totalX, y, { width: 35, align: 'right' });
       
         doc.y = y + rowHeight + 1;
         total += qty * unitPrice;
-      }
+    }
   
     for (const product of products) {
       addRow(product.name, product.quantity, product.price);
     }
   
-    doc.moveTo(itemX, doc.y).lineTo(148, doc.y).stroke();
+    doc.moveTo(itemX, doc.y).lineTo(151, doc.y).stroke(); // Use new width
     doc.moveDown();
   
-    doc.fontSize(10).text(`Общо: ${total.toFixed(2)}лв.`, itemX, doc.y, {
-      width: 143,
+    doc.fontSize(9).text(`Общо: ${total.toFixed(2)}лв.`, 0, doc.y, { // Was 10
+      width: 153 - 2, 
       align: 'right'
     });
 
-    doc.fontSize(8).text('Това е СТОКОВА разписка, не е касов бон!');
-    doc.text('Дата: ' + new Date().toLocaleDateString());
-    doc.text('Време: ' + new Date().toLocaleTimeString());
+    doc.fontSize(7).text('Това е СТОКОВА разписка, не е касов бон!'); // Was 8
+    doc.fontSize(7).text('Дата: ' + new Date().toLocaleDateString());
+    doc.fontSize(7).text('Време: ' + new Date().toLocaleTimeString());
 
     // --- End PDF Content ---
   
@@ -119,4 +123,4 @@ export async function POST(request) {
         resolve(response);
       });
     });
-  }
+}
