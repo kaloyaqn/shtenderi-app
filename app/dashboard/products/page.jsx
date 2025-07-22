@@ -44,6 +44,7 @@ import {
 import { DialogTitle } from "@radix-ui/react-dialog";
 import EditProductPage from "./[productId]/edit/page";
 import Link from "next/link";
+import Image from "next/image";
 
 function EditableCell({ value, onSave, type = "text", min, max }) {
   const [editing, setEditing] = useState(false);
@@ -536,9 +537,7 @@ export default function ProductsPage() {
           <>
             {row.original.image && (
               <Link href={row.original.image} target="_blank" rel="noopener noreferrer">
-                <Button variant={'table'}>
-                    <ImageIcon size={12} />
-                </Button>
+                  <img className="rounded-sm border" src={row.original.image} width={40} height={40} />
               </Link>
             )}
           </>
