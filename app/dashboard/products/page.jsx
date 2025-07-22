@@ -13,6 +13,7 @@ import {
   Loader2,
   PlusIcon,
   ImportIcon,
+  ImageIcon,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -42,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import EditProductPage from "./[productId]/edit/page";
+import Link from "next/link";
 
 function EditableCell({ value, onSave, type = "text", min, max }) {
   const [editing, setEditing] = useState(false);
@@ -289,8 +291,10 @@ export default function ProductsPage() {
   const [showPriceDialog, setShowPriceDialog] = useState(false);
   const [updatingPrices, setUpdatingPrices] = useState(false);
 
-  const [updatedRowId, setUpdatedRowId] = useState(null)
+  // state for updated row
+  const [updatedRowId, setUpdatedRowId] = useState(null);
 
+  // state for bulk edit
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -311,17 +315,17 @@ export default function ProductsPage() {
   }, []);
 
   const handleProductUpdated = (updatedProduct) => {
-    setData(prev =>
-      prev.map(p => p.id === updatedProduct.id ? updatedProduct : p)
-    )
-  }
-  
+    setData((prev) =>
+      prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+    );
+  };
+
   useEffect(() => {
     if (updatedRowId) {
-      const timeout = setTimeout(() => setUpdatedRowId(null), 10000)
-      return () => clearTimeout(timeout)
+      const timeout = setTimeout(() => setUpdatedRowId(null), 10000);
+      return () => clearTimeout(timeout);
     }
-  }, [updatedRowId])
+  }, [updatedRowId]);
 
   const handleDelete = async () => {
     if (!productToDelete) return;
@@ -525,6 +529,23 @@ export default function ProductsPage() {
 
   const columns = [
     {
+      accessorKey: "image",
+      header: "",
+      cell: ({ row }) => {
+        return (
+          <>
+            {row.original.image && (
+              <Link href={row.original.image} target="_blank" rel="noopener noreferrer">
+                <Button variant={'table'}>
+                    <ImageIcon size={12} />
+                </Button>
+              </Link>
+            )}
+          </>
+        );
+      },
+    },
+    {
       accessorKey: "name",
       header: "Име",
     },
@@ -694,8 +715,6 @@ export default function ProductsPage() {
 
   return (
     <div className="">
-
-
       <BasicHeader
         title="Глобални продукти"
         subtitle="Управлявай продукти на глобално ниво"

@@ -14,6 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoadingScreen from "@/components/LoadingScreen";
 
+// The image field in your form is just a text input for a URL (type='link' is not a valid input type in HTML, so it falls back to text).
+// If you want to preview the image, you need to render an <img> tag with the value of the image field.
+// Also, make sure the value you enter is a valid image URL.
+
 export default function EditProductPage({
   productId,
   fetchProducts,
@@ -22,10 +26,10 @@ export default function EditProductPage({
   setUpdatedRowId
 }) {
   const router = useRouter();
-  // const { productId } = params
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [product, setProduct] = useState(null);
+  const [imageUrl, setImageUrl] = useState(""); // for live preview
 
   useEffect(() => {
     if (!productId) return;
@@ -37,6 +41,7 @@ export default function EditProductPage({
         if (!response.ok) throw new Error("Failed to fetch product");
         const data = await response.json();
         setProduct(data);
+        setImageUrl(data.image || "");
       } catch (error) {
         console.error("Error fetching product:", error);
         setError("Грешка при зареждане на продукт");
@@ -59,9 +64,9 @@ export default function EditProductPage({
       barcode: formData.get("barcode")?.trim(),
       pcd: formData.get("pcd")?.trim() || null,
       active: formData.get("active") === "on",
-      // quantity: Number(formData.get("quantity")) || 0,
       clientPrice: Number(formData.get("clientPrice")),
       deliveryPrice: Number(formData.get("deliveryPrice")),
+      image: formData.get("image"),
     };
 
     try {
@@ -156,6 +161,30 @@ export default function EditProductPage({
             defaultValue={product.deliveryPrice || ""}
             placeholder="0.00"
           />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="image">Снимка (URL)</Label>
+          <Input
+            id="image"
+            name="image"
+            type="text"
+            value={imageUrl}
+            onChange={e => setImageUrl(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            autoComplete="off"
+          />
+          {/* Show image preview if valid URL */}
+          {imageUrl && (
+            <div className="mt-2">
+              <img
+                src={imageUrl}
+                alt="Преглед на снимката"
+                style={{ maxWidth: 180, maxHeight: 180, borderRadius: 8, border: "1px solid #eee" }}
+                onError={e => { e.target.style.display = "none"; }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid gap-2">

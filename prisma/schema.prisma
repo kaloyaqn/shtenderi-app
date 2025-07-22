@@ -36,6 +36,7 @@ model Product {
   quantity    Int      @default(0)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
+  image       String?
 
   standProducts   StandProduct[]
   checkedProducts CheckedProduct[]
