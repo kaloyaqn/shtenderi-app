@@ -5,6 +5,8 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Draggable } from "@fullcalendar/interaction";
+import rrulePlugin from "@fullcalendar/rrule";
+
 
 import { useEffect, useRef, useState } from "react";
 import { addDays } from "date-fns";
@@ -22,6 +24,9 @@ export default function SchedulePage() {
     Saturday: 6,
   };
 
+  const weekdayMap = ["su", "mo", "tu", "we", "th", "fr", "sa"];
+
+
   const sidebarRef = useRef(null);
 
   useEffect(() => {
@@ -37,15 +42,23 @@ export default function SchedulePage() {
   }, []);
 
   const events = stores.map((store) => {
-    const offset = dayMap[store.visit_day]; // get index of day
-    // const visitDate = addDays(schedule, offset);
+    const startDate = new Date(store.schedule);
+    const weekday = startDate.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  
     return {
       id: store.id.toString(),
       title: store.name,
-      start: new Date(store.schedule).toISOString().split("T")[0],
+      rrule: {
+        freq: "weekly",
+        byweekday: weekdayMap[weekday],
+        dtstart: startDate.toISOString(), // first visible occurrence
+      },
       allDay: true,
+      color: store.color || getRandomColor(),
     };
   });
+
+  
 
   async function fetchStores() {
     try {
@@ -85,10 +98,23 @@ export default function SchedulePage() {
         throw new Error(result.error);
       }
       console.log("stana mai");
+      fetchStores();
     } catch (err) {
       console.log(err);
     }
   };
+
+  function getRandomColor() {
+    const colors = [
+      "#f87171",
+      "#facc15",
+      "#34d399",
+      "#60a5fa",
+      "#c084fc",
+      "#f472b6",
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
 
   useEffect(() => {
     fetchStores();
@@ -101,12 +127,12 @@ export default function SchedulePage() {
         subtitle={"Това е страницата с графиците за всеки магазин."}
       />
 
-
-
-      <div id="external-events" ref={sidebarRef}>
-
-      {stores.map((store) => {
-          return (
+      <div className="grid grid-cols-12 gap-2">
+        <div id="external-events"
+        className="col-span-2"
+        ref={sidebarRef}>
+          {stores.map((store) => {
+            return (
               <div
                 key={store.id}
                 className="fc-draggable bg-blue-200 p-1 mb-2 cursor-pointer"
@@ -114,37 +140,43 @@ export default function SchedulePage() {
               >
                 {store.name}
               </div>
-          );
-      })}
-      </div>
+            );
+          })}
+        </div>
 
-      <FullCalendar
-        viewClassNames={"h-50"}
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridWeek"
-        editable={true}
-        droppable={true}
-        events={events}
-        dateClick={(e) => console.log("клик", e.dateStr)}
-        eventReceive={(info) => {
-          console.log("Dropped external event:", info.event);
-          // Optionally persist it in your state or backend
-          const id = info.event._def.publicId;
-          const newDate = moveDate(
-            new Date(info.event._instance.range.start).toISOString(),
-            id
-          );
-          console.log("преместен", newDate, id);
-        }}
-        eventDrop={(info) => {
-          const id = info.event._def.publicId;
-          const newDate = moveDate(
-            new Date(info.event._instance.range.start).toISOString(),
-            id
-          );
-          console.log("преместен", newDate, id);
-        }}
-      />
+          <div className="col-span-10">
+
+        <FullCalendar
+          viewClassNames={"h-50 "}
+          plugins={[dayGridPlugin, interactionPlugin, rrulePlugin]}
+          initialView="dayGridWeek"
+          editable={true}
+          droppable={true}
+          locale={"bg"}
+          locales={"bg"}
+          events={events}
+          dateClick={(e) => console.log("клик", e.dateStr)}
+          eventReceive={(info) => {
+            console.log("Dropped external event:", info.event);
+            // Optionally persist it in your state or backend
+            const id = info.event._def.publicId;
+            const newDate = moveDate(
+              new Date(info.event._instance.range.start).toISOString(),
+              id
+            );
+            console.log("преместен", newDate, id);
+          }}
+          eventDrop={(info) => {
+            const id = info.event._def.publicId;
+            const newDate = moveDate(
+              new Date(info.event._instance.range.start).toISOString(),
+              id
+            );
+            console.log("преместен", newDate, id);
+          }}
+        />
+          </div>
+      </div>
     </>
   );
 }
