@@ -1,22 +1,41 @@
-'use client'
-import { useEffect, useRef, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useReactToPrint } from 'react-to-print';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import LoadingScreen from '@/components/LoadingScreen';
-import BasicHeader from '@/components/BasicHeader';
-import { BadgeDollarSignIcon, Printer, ScaleIcon, Truck, ArrowLeft } from 'lucide-react';
-import RevisionProductsTable from '@/app/dashboard/revisions/[revisionId]/_components/RevisionProductsTable';
-import { DataTable } from '@/components/ui/data-table';
-import { useSession } from 'next-auth/react';
-import { useIsMobile } from '@/hooks/use-mobile';
-import MobileProductCard from '@/components/mobile/revisions/revisionId/MobileProductCard';
-import PrintStockButton from '@/components/buttons/print-stock-button';
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useReactToPrint } from "react-to-print";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import LoadingScreen from "@/components/LoadingScreen";
+import BasicHeader from "@/components/BasicHeader";
+import {
+  BadgeDollarSignIcon,
+  Printer,
+  ScaleIcon,
+  Truck,
+  ArrowLeft,
+} from "lucide-react";
+import RevisionProductsTable from "@/app/dashboard/revisions/[revisionId]/_components/RevisionProductsTable";
+import { DataTable } from "@/components/ui/data-table";
+import { useSession } from "next-auth/react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileProductCard from "@/components/mobile/revisions/revisionId/MobileProductCard";
+import PrintStockButton from "@/components/buttons/print-stock-button";
 
 export default function CheckIdPage() {
   const params = useParams();
@@ -24,7 +43,7 @@ export default function CheckIdPage() {
   const [check, setCheck] = useState(null);
   const [loading, setLoading] = useState(true);
   const [storages, setStorages] = useState([]);
-  const [selectedStorage, setSelectedStorage] = useState('');
+  const [selectedStorage, setSelectedStorage] = useState("");
   const [resupplyDialogOpen, setResupplyDialogOpen] = useState(false);
   const [resupplyErrors, setResupplyErrors] = useState([]);
   const [resupplyLoading, setResupplyLoading] = useState(false);
@@ -38,7 +57,7 @@ export default function CheckIdPage() {
     if (checkId) {
       setLoading(true);
       fetch(`/api/checks/${checkId}`)
-        .then(res => res.json())
+        .then((res) => res.json())
         .then(setCheck)
         .finally(() => setLoading(false));
     }
@@ -47,17 +66,17 @@ export default function CheckIdPage() {
   // Fetch storages for resupply dialog
   useEffect(() => {
     if (resupplyDialogOpen && check?.stand?.id) {
-      fetch('/api/storages')
-        .then(res => res.json())
+      fetch("/api/storages")
+        .then((res) => res.json())
         .then(setStorages)
-        .catch(() => toast.error('Failed to load storages'));
+        .catch(() => toast.error("Failed to load storages"));
     }
   }, [resupplyDialogOpen, check?.stand?.id]);
 
   // Print logic
   const getPrintTableHtml = () => {
     const el = contentRef.current;
-    return el ? el.outerHTML : '';
+    return el ? el.outerHTML : "";
   };
   const handlePrint = () => {
     reactToPrintFn();
@@ -66,18 +85,18 @@ export default function CheckIdPage() {
   // Resupply (load from storage) logic
   const handleResupply = async () => {
     if (!selectedStorage) {
-      toast.error('Моля, изберете склад.');
+      toast.error("Моля, изберете склад.");
       return;
     }
     setResupplyLoading(true);
     setResupplyErrors([]);
     try {
       const response = await fetch(`/api/stands/${check.stand.id}/transfer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storageId: selectedStorage,
-          products: check.checkedProducts.map(cp => ({
+          products: check.checkedProducts.map((cp) => ({
             productId: cp.product.id,
             quantity: cp.quantity,
           })),
@@ -90,9 +109,9 @@ export default function CheckIdPage() {
       }
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || 'Failed to resupply from storage');
+        throw new Error(errorText || "Failed to resupply from storage");
       }
-      toast.success('Щандът е зареден успешно!');
+      toast.success("Щандът е зареден успешно!");
       setResupplyDialogOpen(false);
       setResupplyErrors([]);
     } catch (err) {
@@ -106,67 +125,78 @@ export default function CheckIdPage() {
   if (!check) return <div>Проверката не е намерена.</div>;
 
   // Only show missing products (quantity > 0)
-  const missingProducts = check.checkedProducts.filter(cp => cp.quantity > 0);
+  const missingProducts = check.checkedProducts.filter((cp) => cp.quantity > 0);
 
   if (isMobile) {
     // Mobile-only design mimicking MobilePageRevisionId
     return (
       <div className="min-h-screen bg-gray-50">
         <BasicHeader
-        hasBackButton
-        title={`Проверка #${check.id.slice(0, 8)}`}
-        subtitle="Всички данни за твоята проверка"
-      >
-        <Button className='w-full' variant="outline" onClick={handlePrint}>
-          <Printer /> Принтирай
-        </Button>
-        {session?.user?.role === 'ADMIN' && (
-          <Button
-            variant="outline"
-            className='w-full'
-            onClick={() => setResupplyDialogOpen(true)}
-          >
-            <Truck /> Зареди от склад
-          </Button>
-        )}
-        <Button
-          className='w-full'
-          onClick={() => router.push(`/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`)}
+          hasBackButton
+          title={`Проверка #${check.id.slice(0, 8)}`}
+          subtitle="Всички данни за твоята проверка"
         >
-          <BadgeDollarSignIcon /> Превърни в продажба
-        </Button>
-      </BasicHeader>
+          <PrintStockButton missingProducts={missingProducts} />
+          {session?.user?.role === "ADMIN" && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setResupplyDialogOpen(true)}
+            >
+              <Truck /> Зареди от склад
+            </Button>
+          )}
+          <Button
+            className="w-full"
+            onClick={() =>
+              router.push(
+                `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
+              )
+            }
+          >
+            <BadgeDollarSignIcon /> Превърни в продажба
+          </Button>
+        </BasicHeader>
         <div className="p-1 space-y-3">
           <div className="rounded-lg border bg-white p-4 mb-2">
-            <div className="text-sm font-semibold mb-3">Информация за проверката</div>
+            <div className="text-sm font-semibold mb-3">
+              Информация за проверката
+            </div>
             <div className="space-y-4">
               <div>
                 <span className="text-xs text-gray-500">Щанд</span>
-                <p className="text-base">{check.stand?.name || 'N/A'}</p>
+                <p className="text-base">{check.stand?.name || "N/A"}</p>
               </div>
               <div>
                 <span className="text-xs text-gray-500">Потребител</span>
-                <p className="text-base">{check.user?.name || check.user?.email || 'N/A'}</p>
+                <p className="text-base">
+                  {check.user?.name || check.user?.email || "N/A"}
+                </p>
               </div>
               <div>
                 <span className="text-xs text-gray-500">Дата</span>
-                <p className="text-base">{new Date(check.createdAt).toLocaleString()}</p>
+                <p className="text-base">
+                  {new Date(check.createdAt).toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
-            <div className="flex items-center justify-between mb-3 mt-6">
-              <div className="text-base font-semibold">Проверени продукти</div>
-              <Badge variant="outline">{missingProducts.length} продукта</Badge>
-            </div>
-            <div className="space-y-2">
-              {missingProducts.map((cp) => (
-                <MobileProductCard key={cp.id} mp={{...cp, missingQuantity: cp.quantity}} />
-              ))}
-              {missingProducts.length === 0 && (
-                <div className="text-center text-gray-500 py-8">
-                  Няма намерени продукти.
-                </div>
-              )}
+          <div className="flex items-center justify-between mb-3 mt-6">
+            <div className="text-base font-semibold">Проверени продукти</div>
+            <Badge variant="outline">{missingProducts.length} продукта</Badge>
+          </div>
+          <div className="space-y-2">
+            {missingProducts.map((cp) => (
+              <MobileProductCard
+                key={cp.id}
+                mp={{ ...cp, missingQuantity: cp.quantity }}
+              />
+            ))}
+            {missingProducts.length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                Няма намерени продукти.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -175,15 +205,27 @@ export default function CheckIdPage() {
 
   // Table columns for checked products
   const columns = [
-    { accessorKey: 'name', header: 'Име', cell: ({ row }) => row.original.product?.name || '-' },
-    { accessorKey: 'barcode', header: 'Баркод', cell: ({ row }) => row.original.product?.barcode || '-' },
-    { accessorKey: 'quantity', header: 'Брой', cell: ({ row }) => row.original.quantity },
+    {
+      accessorKey: "name",
+      header: "Име",
+      cell: ({ row }) => row.original.product?.name || "-",
+    },
+    {
+      accessorKey: "barcode",
+      header: "Баркод",
+      cell: ({ row }) => row.original.product?.barcode || "-",
+    },
+    {
+      accessorKey: "quantity",
+      header: "Брой",
+      cell: ({ row }) => row.original.quantity,
+    },
     // { accessorKey: 'status', header: 'Статус', cell: ({ row }) => row.original.status },
   ];
-  const data = missingProducts.map(cp => ({
+  const data = missingProducts.map((cp) => ({
     ...cp,
-    name: cp.product?.name || '-',
-    barcode: cp.product?.barcode || '-',
+    name: cp.product?.name || "-",
+    barcode: cp.product?.barcode || "-",
   }));
 
   return (
@@ -196,20 +238,19 @@ export default function CheckIdPage() {
         <Button variant="outline" onClick={handlePrint}>
           <Printer /> Принтирай
         </Button>
-        <PrintStockButton 
-                        missingProducts={missingProducts}
-                    />
-        {session?.user?.role === 'ADMIN' && (
-          <Button
-            variant="outline"
-            onClick={() => setResupplyDialogOpen(true)}
-          >
+        <PrintStockButton missingProducts={missingProducts} />
+        {session?.user?.role === "ADMIN" && (
+          <Button variant="outline" onClick={() => setResupplyDialogOpen(true)}>
             <Truck /> Зареди от склад
           </Button>
         )}
         <div className="h-6 w-px bg-gray-300"></div>
         <Button
-          onClick={() => router.push(`/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`)}
+          onClick={() =>
+            router.push(
+              `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
+            )
+          }
         >
           <BadgeDollarSignIcon /> Превърни в продажба
         </Button>
@@ -218,26 +259,42 @@ export default function CheckIdPage() {
         <div className="lg:col-span-1 order-2 lg:order-1 sticky top-2 self-start z-10">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base lg:text-lg">Информация за проверката</CardTitle>
+              <CardTitle className="text-base lg:text-lg">
+                Информация за проверката
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">ID</label>
-                  <p className="text-lg font-semibold">{check.id.slice(0, 8)}</p>
+                  <label className="text-sm font-medium text-gray-500">
+                    ID
+                  </label>
+                  <p className="text-lg font-semibold">
+                    {check.id.slice(0, 8)}
+                  </p>
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Щанд</label>
-                <p className="text-base">{check.stand?.name || 'N/A'}</p>
+                <label className="text-sm font-medium text-gray-500">
+                  Щанд
+                </label>
+                <p className="text-base">{check.stand?.name || "N/A"}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Потребител</label>
-                <p className="text-base">{check.user?.name || check.user?.email || 'N/A'}</p>
+                <label className="text-sm font-medium text-gray-500">
+                  Потребител
+                </label>
+                <p className="text-base">
+                  {check.user?.name || check.user?.email || "N/A"}
+                </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Дата</label>
-                <p className="text-base">{new Date(check.createdAt).toLocaleString()}</p>
+                <label className="text-sm font-medium text-gray-500">
+                  Дата
+                </label>
+                <p className="text-base">
+                  {new Date(check.createdAt).toLocaleString()}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -246,8 +303,12 @@ export default function CheckIdPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base lg:text-lg">Проверени продукти</CardTitle>
-                <Badge variant="outline">{missingProducts.length} продукта</Badge>
+                <CardTitle className="text-base lg:text-lg">
+                  Проверени продукти
+                </CardTitle>
+                <Badge variant="outline">
+                  {missingProducts.length} продукта
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
@@ -257,9 +318,14 @@ export default function CheckIdPage() {
         </div>
       </div>
       {/* Print-only stock receipt table */}
-      <div ref={contentRef} className="hidden print:block bg-white p-8 text-black">
+      <div
+        ref={contentRef}
+        className="hidden print:block bg-white p-8 text-black"
+      >
         <div className="flex justify-between items-center mb-4">
-          <div className="text-xl font-bold">Проверка № {check.id.slice(0, 8)}</div>
+          <div className="text-xl font-bold">
+            Проверка № {check.id.slice(0, 8)}
+          </div>
           <div className="text-md">
             Дата: {new Date(check.createdAt).toLocaleDateString("bg-BG")}
           </div>
@@ -273,14 +339,14 @@ export default function CheckIdPage() {
           </div>
           <div className="mb-2 text-right">
             <div className="font-semibold">Получател:</div>
-            <div>Щанд: {check.stand?.name || '-'}</div>
+            <div>Щанд: {check.stand?.name || "-"}</div>
           </div>
         </div>
         <div className="mb-4">
           <div className="font-semibold">Описание:</div>
         </div>
         <RevisionProductsTable
-          missingProducts={check.checkedProducts.map(cp => ({
+          missingProducts={check.checkedProducts.map((cp) => ({
             ...cp,
             product: cp.product,
             missingQuantity: cp.quantity,
@@ -323,18 +389,28 @@ export default function CheckIdPage() {
                 Недостатъчни количества за:
                 <ul>
                   {resupplyErrors.map((err, i) => (
-                    <li key={i}>{err.productName} (нужно: {err.needed}, налично: {err.available})</li>
+                    <li key={i}>
+                      {err.productName} (нужно: {err.needed}, налично:{" "}
+                      {err.available})
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setResupplyDialogOpen(false)} disabled={resupplyLoading}>
+            <Button
+              variant="outline"
+              onClick={() => setResupplyDialogOpen(false)}
+              disabled={resupplyLoading}
+            >
               Отказ
             </Button>
-            <Button onClick={handleResupply} disabled={!selectedStorage || resupplyLoading}>
-              {resupplyLoading ? 'Зареждане...' : 'Зареди'}
+            <Button
+              onClick={handleResupply}
+              disabled={!selectedStorage || resupplyLoading}
+            >
+              {resupplyLoading ? "Зареждане..." : "Зареди"}
             </Button>
           </DialogFooter>
         </DialogContent>
