@@ -47,6 +47,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import ProductOffer from "@/components/offers/productOffer";
+import { IconInvoice } from "@tabler/icons-react";
 
 function EditableCell({ value, onSave, type = "text", min, max }) {
   const [editing, setEditing] = useState(false);
@@ -299,6 +300,9 @@ export default function ProductsPage() {
 
   // state for bulk edit
   const [checkedProducts, setCheckedProducts] = useState([]);
+
+  // offer button
+  const [offerButton, setOfferButton] = useState(false);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -762,6 +766,12 @@ export default function ProductsPage() {
           style={{ display: "none" }}
         /> */}
 
+        <Button variant='outline'
+        onClick={() => setOfferButton(!offerButton)}
+        >
+          <IconInvoice /> {offerButton ? <> Скрий оферта</> : <>Оферта</>}
+        </Button>
+
         <Button onClick={() => router.push("/dashboard/products/create")}>
           <PlusIcon /> Добави продукт
         </Button>
@@ -769,8 +779,10 @@ export default function ProductsPage() {
 
       {importError && <div className="text-red-500 mb-4">{importError}</div>}
       {/* offer */}
-      <ProductOffer checkedProducts={checkedProducts}
-        products={data} />
+        {offerButton && (
+                <ProductOffer checkedProducts={checkedProducts}
+                products={data} />
+        )}
 
         {/* offer */}
       <DataTable

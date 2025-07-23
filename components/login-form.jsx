@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { signIn } from "next-auth/react"
+import LogoStendo from "@/public/svg/LogoStendo"
 
 export function LoginForm({
   className,
@@ -54,6 +55,7 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
+          <LogoStendo className="size-10"/>
           <CardTitle>Вход в Stendo</CardTitle>
           <CardDescription>
            Въведи имейла и паролата си, за да влезнеш.
