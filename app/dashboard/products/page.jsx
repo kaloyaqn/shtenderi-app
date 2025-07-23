@@ -48,6 +48,7 @@ import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import ProductOffer from "@/components/offers/productOffer";
 import { IconInvoice } from "@tabler/icons-react";
+import CreateProductPage from "./create/page";
 
 function EditableCell({ value, onSave, type = "text", min, max }) {
   const [editing, setEditing] = useState(false);
@@ -537,10 +538,9 @@ export default function ProductsPage() {
 
   const handleCheckProduct = (id) => {
     setCheckedProducts((prev) => {
-      const updated =
-        prev.includes(id)
-          ? prev.filter((productId) => productId !== id)
-          : [...prev, id];
+      const updated = prev.includes(id)
+        ? prev.filter((productId) => productId !== id)
+        : [...prev, id];
       console.log(updated);
       return updated;
     });
@@ -570,8 +570,17 @@ export default function ProductsPage() {
         return (
           <>
             {row.original.image && (
-              <Link href={row.original.image} target="_blank" rel="noopener noreferrer">
-                  <img className="rounded-sm border" src={row.original.image} width={40} height={40} />
+              <Link
+                href={row.original.image}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  className="rounded-sm border"
+                  src={row.original.image}
+                  width={40}
+                  height={40}
+                />
               </Link>
             )}
           </>
@@ -717,7 +726,7 @@ export default function ProductsPage() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Редактирай продукт</DialogTitle>
+                  <DialogTitle className="text-lg font-semibold">Редактирай продукт</DialogTitle>
                 </DialogHeader>
                 <EditProductPage
                   fetchProducts={fetchProducts}
@@ -753,7 +762,6 @@ export default function ProductsPage() {
         title="Номенклатура"
         subtitle="Управлявай продукти на глобално ниво"
       >
-
         {/* <Button onClick={handleImportClick} variant={"outline"}>
           <ImportIcon />
           Импорт
@@ -766,25 +774,35 @@ export default function ProductsPage() {
           style={{ display: "none" }}
         /> */}
 
-        <Button variant='outline'
-        onClick={() => setOfferButton(!offerButton)}
-        >
+        <Button variant="outline" onClick={() => setOfferButton(!offerButton)}>
           <IconInvoice /> {offerButton ? <> Скрий оферта</> : <>Оферта</>}
         </Button>
-
+{/* 
         <Button onClick={() => router.push("/dashboard/products/create")}>
           <PlusIcon /> Добави продукт
-        </Button>
+        </Button> */}
+        <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                <PlusIcon /> Добави продукт
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="font-semibold text-lg">Добави продукт</DialogTitle>
+                </DialogHeader>
+                  <CreateProductPage />
+              </DialogContent>
+            </Dialog>
       </BasicHeader>
 
       {importError && <div className="text-red-500 mb-4">{importError}</div>}
       {/* offer */}
-        {offerButton && (
-                <ProductOffer checkedProducts={checkedProducts}
-                products={data} />
-        )}
+      {offerButton && (
+        <ProductOffer checkedProducts={checkedProducts} products={data} />
+      )}
 
-        {/* offer */}
+      {/* offer */}
       <DataTable
         columns={columns}
         data={data}

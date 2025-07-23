@@ -58,16 +58,7 @@ export default function CreateProductPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Добави продукт</CardTitle>
-            <CardDescription>
-              Въведете информация за новия продукт
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <div className="grid gap-2">
@@ -114,9 +105,5 @@ export default function CreateProductPage() {
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
   )
 } 
