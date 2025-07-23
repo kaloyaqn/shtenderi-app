@@ -37,7 +37,6 @@ export default function StandRevisionPage({ params, searchParams }) {
   const [standName, setStandName] = useState('');
   const [showCheck, setShowCheck] = useState(false);
   const [inputReadOnly, setInputReadOnly] = useState(false);
-  const [pendingProducts, setPendingProducts] = useState({}); // barcode -> { product, quantity }
   const [finishing, setFinishing] = useState(false); // loading state for finish button
   const { data: session } = useSession();
   const userId = session?.user?.id || null;
@@ -187,17 +186,9 @@ export default function StandRevisionPage({ params, searchParams }) {
         inputRef.current?.focus();
         return;
       }
-      // Add to pendingProducts
-      setPendingProducts(prev => {
-        if (prev[barcode]) {
-          return { ...prev, [barcode]: { ...prev[barcode], quantity: prev[barcode].quantity + 1 } };
-        } else {
-          return { ...prev, [barcode]: { product: productData, quantity: 1 } };
-        }
-      });
+      // No pendingProducts logic here
       e.target.reset();
       setShowCheck(true);
-      setTimeout(() => setShowCheck(false), 2000);
       inputRef.current?.focus();
       return;
     }
@@ -287,18 +278,8 @@ export default function StandRevisionPage({ params, searchParams }) {
         setFinishing(false);
       }
     } else if (mode === 'sale') {
-      // Add pending products to stand with quantity 0
-      const pendingBarcodes = Object.keys(pendingProducts);
-      for (const barcode of pendingBarcodes) {
-        const { product } = pendingProducts[barcode];
-        // Call API to add to standProducts if not already present
-        await fetch(`/api/stands/${standId}/products`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: product.id, quantity: 0 }),
-        });
-      }
-      // Build missingProducts: original missing + all pending products
+      // No pendingProducts logic here
+      // Build missingProducts: only from missing
       const missingProducts = [
         ...missing.map(m => {
           const prod = products.find(p => p.product.barcode === m.barcode)?.product;
@@ -308,14 +289,6 @@ export default function StandRevisionPage({ params, searchParams }) {
             clientPrice: prod.clientPrice,
           } : null;
         }).filter(mp => mp && mp.productId),
-        ...pendingBarcodes.map(barcode => {
-          const prod = pendingProducts[barcode].product;
-          return {
-            productId: prod.id,
-            missingQuantity: pendingProducts[barcode].quantity,
-            clientPrice: prod.clientPrice,
-          };
-        }),
       ];
       // Always create a revision, even if there are no missing products
       try {
@@ -360,7 +333,7 @@ export default function StandRevisionPage({ params, searchParams }) {
     return 0;
   });
 
-  // Merge products and pendingProducts for display
+  // Merge products for display (no pendingProducts)
   const allProducts = [
     ...products.map(p => {
       const rem = remaining.find(r => r.barcode === p.product.barcode);
@@ -371,12 +344,6 @@ export default function StandRevisionPage({ params, searchParams }) {
         isPending: false,
       };
     }),
-    ...Object.values(pendingProducts).map(({ product, quantity }) => ({
-      barcode: product.barcode,
-      name: product.name,
-      quantity,
-      isPending: true,
-    })),
   ];
 
   // --- SALE MODE STATE ---
@@ -755,7 +722,7 @@ export default function StandRevisionPage({ params, searchParams }) {
           <div className="text-base font-semibold mb-2  flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</div>
           <div className="grid gap-2 mb-6 sm:grid-cols-2">
             {allProducts.filter(p => p.quantity > 0).map(p => (
-              <div key={p.barcode} className={`rounded-sm border p-2 flex flex-col justify-between ${p.isPending ? 'bg-yellow-100 border-yellow-400' : 'border-gray-200'}`}>
+              <div key={p.barcode} className={`rounded-sm border p-2 flex flex-col justify-between border-gray-200`}>
                 <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
                 <div className='w-full flex justify-between items-end'>
                   <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>
