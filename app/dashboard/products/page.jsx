@@ -791,7 +791,7 @@ export default function ProductsPage() {
                 <DialogHeader>
                   <DialogTitle className="font-semibold text-lg">Добави продукт</DialogTitle>
                 </DialogHeader>
-                  <CreateProductPage />
+                  <CreateProductPage fetchProducts={fetchProducts}/>
               </DialogContent>
             </Dialog>
       </BasicHeader>
