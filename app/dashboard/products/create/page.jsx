@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export default function CreateProductPage() {
+export default function CreateProductPage({fetchProducts}) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -47,9 +47,8 @@ export default function CreateProductPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Грешка при създаване на продукт')
       }
-
-      router.push('/dashboard/products')
-      router.refresh()
+      
+      fetchProducts();
     } catch (err) {
       setError(err.message)
     } finally {
