@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
+import LogoStendo from "@/public/svg/LogoStendo";
 
 function useHasMounted() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -150,7 +151,7 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <a href="#">
-                <IconInnerShadowTop className="!size-5" />
+                <LogoStendo />
                 <span className="text-base font-semibold">Stendo</span>
                 {hasMounted && process.env.NEXT_PUBLIC_SUSTOQNIE === 'development' && (
                   <span className="ml-2 font-bold text-red-500 text-xs align-middle">

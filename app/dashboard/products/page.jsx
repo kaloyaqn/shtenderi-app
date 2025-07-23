@@ -45,6 +45,10 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 import EditProductPage from "./[productId]/edit/page";
 import Link from "next/link";
 import Image from "next/image";
+import { Input } from "@/components/ui/input";
+import ProductOffer from "@/components/offers/productOffer";
+import { IconInvoice } from "@tabler/icons-react";
+import CreateProductPage from "./create/page";
 
 function EditableCell({ value, onSave, type = "text", min, max }) {
   const [editing, setEditing] = useState(false);
@@ -296,6 +300,10 @@ export default function ProductsPage() {
   const [updatedRowId, setUpdatedRowId] = useState(null);
 
   // state for bulk edit
+  const [checkedProducts, setCheckedProducts] = useState([]);
+
+  // offer button
+  const [offerButton, setOfferButton] = useState(false);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -528,7 +536,33 @@ export default function ProductsPage() {
     return "";
   };
 
+  const handleCheckProduct = (id) => {
+    setCheckedProducts((prev) => {
+      const updated = prev.includes(id)
+        ? prev.filter((productId) => productId !== id)
+        : [...prev, id];
+      console.log(updated);
+      return updated;
+    });
+  };
+
   const columns = [
+    {
+      id: "checkbox",
+      header: "",
+      cell: ({ row }) => {
+        const checked = checkedProducts.includes(row.original.id);
+        return (
+          <Input
+            className="w-5 h-5"
+            type="checkbox"
+            id={`checkbox-${row.original.id}`}
+            checked={checked}
+            onChange={() => handleCheckProduct(row.original.id)}
+          />
+        );
+      },
+    },
     {
       accessorKey: "image",
       header: "",
@@ -536,8 +570,17 @@ export default function ProductsPage() {
         return (
           <>
             {row.original.image && (
-              <Link href={row.original.image} target="_blank" rel="noopener noreferrer">
-                  <img className="rounded-sm border" src={row.original.image} width={40} height={40} />
+              <Link
+                href={row.original.image}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  className="rounded-sm border"
+                  src={row.original.image}
+                  width={40}
+                  height={40}
+                />
               </Link>
             )}
           </>
@@ -548,6 +591,7 @@ export default function ProductsPage() {
       accessorKey: "name",
       header: "Име",
     },
+
     {
       accessorKey: "barcode",
       header: "Баркод",
@@ -682,7 +726,7 @@ export default function ProductsPage() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Редактирай продукт</DialogTitle>
+                  <DialogTitle className="text-lg font-semibold">Редактирай продукт</DialogTitle>
                 </DialogHeader>
                 <EditProductPage
                   fetchProducts={fetchProducts}
@@ -715,10 +759,10 @@ export default function ProductsPage() {
   return (
     <div className="">
       <BasicHeader
-        title="Глобални продукти"
+        title="Номенклатура"
         subtitle="Управлявай продукти на глобално ниво"
       >
-        <Button onClick={handleImportClick} variant={"outline"}>
+        {/* <Button onClick={handleImportClick} variant={"outline"}>
           <ImportIcon />
           Импорт
         </Button>
@@ -728,14 +772,37 @@ export default function ProductsPage() {
           ref={fileInputRef}
           onChange={handleFileChange}
           style={{ display: "none" }}
-        />
+        /> */}
+
+        <Button variant="outline" onClick={() => setOfferButton(!offerButton)}>
+          <IconInvoice /> {offerButton ? <> Скрий оферта</> : <>Оферта</>}
+        </Button>
+{/* 
         <Button onClick={() => router.push("/dashboard/products/create")}>
           <PlusIcon /> Добави продукт
-        </Button>
+        </Button> */}
+        <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                <PlusIcon /> Добави продукт
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="font-semibold text-lg">Добави продукт</DialogTitle>
+                </DialogHeader>
+                  <CreateProductPage />
+              </DialogContent>
+            </Dialog>
       </BasicHeader>
 
       {importError && <div className="text-red-500 mb-4">{importError}</div>}
+      {/* offer */}
+      {offerButton && (
+        <ProductOffer checkedProducts={checkedProducts} products={data} />
+      )}
 
+      {/* offer */}
       <DataTable
         columns={columns}
         data={data}

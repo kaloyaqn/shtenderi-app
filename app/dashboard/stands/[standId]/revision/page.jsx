@@ -636,24 +636,7 @@ export default function StandRevisionPage({ params, searchParams }) {
           </Select>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-3">
-          <div>
-            <div className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/>Чекирани продукти (ще бъдат продадени)</div>
-            <div className="grid gap-2 mb-6">
-              {saleChecked.length === 0 && <div className="text-muted-foreground text-sm">Няма чекирани продукти.</div>}
-              {saleChecked.map(p => (
-                <div key={p.barcode} className='rounded-sm border p-2 border-green-200 bg-green-50 flex flex-col justify-between text-green-900'>
-                  <h3 className='text-sm leading-[110%]'>{p.name}</h3>
-                  <div className='w-full flex justify-between items-end'>
-                    <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-green-100 text-gray-600 rounded-[2px]'>
-                      <Barcode size={12} />
-                      <span className='leading-tight'>{p.barcode}</span>
-                    </div>
-                    <h6 className='font-bold text-base'>{p.checked}</h6>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+
           <div>
             <div className="text-base font-semibold mb-2 flex items-center gap-2"><Package size={20}/> Непродадени продукти (очакват сканиране)</div>
             <div className="grid gap-2 mb-6">
@@ -667,6 +650,24 @@ export default function StandRevisionPage({ params, searchParams }) {
                       <span className='leading-tight'>{p.barcode}</span>
                     </div>
                     <h6 className='font-bold text-base gray-900'>{p.remaining}</h6>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-lg font-semibold mb-2 flex items-center gap-2"><CheckCircle size={20} className="text-green-500"/>Чекирани продукти (ще бъдат продадени)</div>
+            <div className="grid gap-2 mb-6">
+              {saleChecked.length === 0 && <div className="text-muted-foreground text-sm">Няма чекирани продукти.</div>}
+              {saleChecked.map(p => (
+                <div key={p.barcode} className='rounded-sm border p-2 border-green-200 bg-green-50 flex flex-col justify-between text-green-900'>
+                  <h3 className='text-sm leading-[110%]'>{p.name}</h3>
+                  <div className='w-full flex justify-between items-end'>
+                    <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-green-100 text-gray-600 rounded-[2px]'>
+                      <Barcode size={12} />
+                      <span className='leading-tight'>{p.barcode}</span>
+                    </div>
+                    <h6 className='font-bold text-base'>{p.checked}</h6>
                   </div>
                 </div>
               ))}
