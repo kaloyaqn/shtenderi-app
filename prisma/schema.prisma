@@ -135,7 +135,7 @@ model Store {
   contact     String?                        // Лице за контакт
   phone       String?                        // Телефон
   createdAt   DateTime @default(now())
-  schedule    DateTime?  //График за проверка
+  schedule    Json?    // График за проверки (може да съдържа масив от дати или обекти)
 
   partner     Partner  @relation(fields: [partnerId], references: [id])
   partnerId   String                          // Външният ID на фирмата

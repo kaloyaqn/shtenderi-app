@@ -165,6 +165,16 @@ export default function StandRevisionPage({ params, searchParams }) {
     const barcode = e.target.barcode.value.trim();
     if (!barcode) return;
     const prod = products.find(p => p.product.barcode === barcode);
+    // Check if product is inactive
+    if (prod && prod.product && prod.product.active === false) {
+      toast.error('Продуктът е неактивен, моля свържете се с администратор');
+      try {
+        new Audio('/error.mp3').play();
+      } catch (err) {}
+      e.target.reset();
+      inputRef.current?.focus();
+      return;
+    }
     if (!prod) {
       // Try to fetch product by barcode
       let productData = null;
@@ -177,6 +187,16 @@ export default function StandRevisionPage({ params, searchParams }) {
           }
         }
       } catch {}
+      // Check if fetched product is inactive
+      if (productData && productData.active === false) {
+        toast.error('Продуктът е неактивен, моля свържете се с администратор');
+        try {
+          new Audio('/error.mp3').play();
+        } catch (err) {}
+        e.target.reset();
+        inputRef.current?.focus();
+        return;
+      }
       if (!productData) {
         toast.error('Продукт с този баркод не е намерен.');
         try {
@@ -394,6 +414,13 @@ export default function StandRevisionPage({ params, searchParams }) {
   // Sale scan handler
   const handleSaleScan = (barcode) => {
     const uncheckedProd = saleUnchecked.find(p => p.barcode === barcode);
+    // Check if product is inactive
+    if (uncheckedProd && uncheckedProd.hasOwnProperty('active') && uncheckedProd.active === false) {
+      toast.error('Продуктът е неактивен, моля свържете се с администратор');
+      try { new Audio('/error.mp3').play(); } catch {}
+      setTimeout(() => saleInputRef.current?.focus(), 100);
+      return false;
+    }
     if (!uncheckedProd) {
       // Check if product exists in the original sale list (checked or all products)
       const wasInSale = saleChecked.find(p => p.barcode === barcode) || products.find(p => p.product.barcode === barcode);
