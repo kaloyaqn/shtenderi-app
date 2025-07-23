@@ -16,6 +16,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { useSession } from 'next-auth/react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileProductCard from '@/components/mobile/revisions/revisionId/MobileProductCard';
+import PrintStockButton from '@/components/buttons/print-stock-button';
 
 export default function CheckIdPage() {
   const params = useParams();
@@ -195,6 +196,9 @@ export default function CheckIdPage() {
         <Button variant="outline" onClick={handlePrint}>
           <Printer /> Принтирай
         </Button>
+        <PrintStockButton 
+                        missingProducts={missingProducts}
+                    />
         {session?.user?.role === 'ADMIN' && (
           <Button
             variant="outline"
