@@ -147,7 +147,7 @@ export default function SchedulePage() {
           <div className="col-span-10">
 
         <FullCalendar
-          viewClassNames={"h-50 "}
+          viewClassNames={""}
           plugins={[dayGridPlugin, interactionPlugin, rrulePlugin]}
           initialView="dayGridWeek"
           editable={true}
