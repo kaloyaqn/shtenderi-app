@@ -41,11 +41,13 @@ export async function POST(req) {
     const products = revision.missingProducts.map(mp => {
       const basePrice = mp.product?.clientPrice || 0;
       const price = basePrice * (1 - partnerDiscount / 100);
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
       return {
         productId: mp.product?.id,
         name: mp.product?.name || '-',
         barcode: mp.product?.barcode || '-',
-        quantity: mp.missingQuantity,
+        quantity: quantity,
         clientPrice: price,
         pcd: mp.product?.pcd || '',
       };

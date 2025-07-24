@@ -92,19 +92,24 @@ export async function POST(req) {
         }
       }
 
-      // 2. Build missingProducts array - ONLY for checked products
+      // 2. Build missingProducts array - ONLY for checked products (actually sold)
       const missingProducts = [];
       
       // Add checked products (transferred and now "sold")
       for (const checked of saleChecked) {
+        // Find the original quantity from the check
+        const checkProduct = check.checkedProducts.find(cp => cp.productId === checked.productId);
+        const originalQuantity = checkProduct?.originalQuantity || checked.checked;
+        
         missingProducts.push({
           productId: checked.productId,
-          missingQuantity: checked.checked,
+          missingQuantity: originalQuantity, // Original quantity (what should have been there)
+          givenQuantity: checked.checked, // Actually scanned/transferred
           clientPrice: checked.clientPrice,
         });
       }
 
-      // 3. Set unchecked products to 0 in stand (but don't include in sale)
+      // 3. Handle unchecked products (set stand quantity to 0, but DON'T include in sale)
       const checkedProductIds = saleChecked.map(p => p.productId);
       const uncheckedProducts = check.checkedProducts.filter(cp => 
         cp.quantity > 0 && !checkedProductIds.includes(cp.productId)
@@ -116,19 +121,22 @@ export async function POST(req) {
           where: { standId, productId: unchecked.productId },
           data: { quantity: 0 },
         });
+        // DO NOT add to missingProducts - they weren't sold!
       }
 
-      // 4. Create revision (only for checked products)
+      // 4. Create revision (ONLY for checked products - actually sold)
       const revision = await tx.revision.create({
         data: {
           number: nextNumber,
           standId,
           partnerId,
           userId,
+          checkId, // Store reference to the check
           missingProducts: {
             create: missingProducts.map(mp => ({
               productId: mp.productId,
               missingQuantity: mp.missingQuantity,
+              givenQuantity: mp.givenQuantity,
               priceAtSale: mp.clientPrice * (1 - partnerDiscount / 100),
             }))
           }

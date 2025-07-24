@@ -66,7 +66,9 @@ export async function POST(req, { params }) {
     let totalSale = 0;
     for (const mp of revision.missingProducts) {
       const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
-      totalSale += mp.missingQuantity * price;
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      totalSale += quantity * price;
     }
 
     // 3. If fully paid, update status

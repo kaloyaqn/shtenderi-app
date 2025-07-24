@@ -31,6 +31,7 @@ export async function POST(req, { params }) {
         create: checkedProducts.map(cp => ({
           productId: cp.productId,
           quantity: cp.quantity,
+          originalQuantity: cp.originalQuantity,
           status: cp.status || 'ok',
         })),
       },

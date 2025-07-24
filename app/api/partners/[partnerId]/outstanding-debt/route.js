@@ -21,7 +21,9 @@ export async function GET(req, { params }) {
     revisionIds.push(rev.id);
     for (const mp of rev.missingProducts) {
       const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
-      totalSales += mp.missingQuantity * price;
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      totalSales += quantity * price;
     }
   }
   // Calculate total payments

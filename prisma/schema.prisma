@@ -79,6 +79,7 @@ model CheckedProduct {
   product    Product  @relation(fields: [productId], references: [id])
   productId  String
   quantity   Int
+  originalQuantity Int? // Original quantity for sale mode comparison
   status     String   // "ok", "missing", "replaced"
 }
 
@@ -157,6 +158,7 @@ model Revision {
   createdAt  DateTime @default(now())
   type       String   @default("manual") // NEW FIELD: origin of revision (e.g., 'import', 'manual', etc.)
   status     RevisionStatus @default(NOT_PAID) // <-- new field
+  checkId    String?  // Reference to the check that generated this sale
 
   missingProducts MissingProduct[]
   payments Payment[]
@@ -174,6 +176,7 @@ model MissingProduct {
   product     Product  @relation(fields: [productId], references: [id])
   productId   String
   missingQuantity Int
+  givenQuantity Int?   // Quantity actually scanned/transferred (doesn't affect stats)
   priceAtSale Float?
 }
 

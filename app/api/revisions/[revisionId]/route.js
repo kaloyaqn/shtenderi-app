@@ -36,6 +36,7 @@ export async function PATCH(req, { params }) {
         revisionId,
         productId: mp.productId,
         missingQuantity: mp.missingQuantity,
+        givenQuantity: mp.givenQuantity || null, // Only set if explicitly provided
       }))
     });
     return NextResponse.json({ success: true });
@@ -88,6 +89,7 @@ export async function POST(req, { params }) {
           create: original.missingProducts.map(mp => ({
             productId: mp.productId,
             missingQuantity: mp.missingQuantity,
+            givenQuantity: mp.givenQuantity || null, // Only set if explicitly provided
           }))
         }
       },

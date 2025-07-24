@@ -11,6 +11,7 @@ import {
   Search,
   Send,
   Warehouse,
+  AlertTriangle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -187,16 +188,27 @@ export default function MobilePageRevisionId({
         <div className="">
           <div className="pb-2 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <span className="text- font-semibold">Продадени продукти</span>
+              <span className="text- font-semibold">Продукти от продажбата</span>
               <Badge
                 variant="secondary"
                 className="bg-gray-200 text-gray-700 text-xs"
               >
-                {revision.missingProducts.length} продукта
+                {filteredProducts.length} продукта
               </Badge>
             </div>
           </div>
           <div className="pt-0">
+            {/* Warning for unscanned products */}
+            {filteredProducts.some(mp => !mp.isSold) && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-center gap-2 text-red-700">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="text-sm font-medium">
+                  Някои продукти не са били налични на склад. Тези с 0, не са включени в продабжата и автоматично за зачислени на 0.
+                  </span>
+                </div>
+              </div>
+            )}
             {/* Search */}
             <div className="relative mb-3">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
@@ -211,7 +223,9 @@ export default function MobilePageRevisionId({
             {/* Products List */}
             <div className="space-y-2 p-0">
               {filteredProducts.map((mp) => (
-                <MobileProductCard key={mp.id} mp={mp} />
+                <div key={mp.id} className={!mp.isSold ? "bg-red-50 border border-red-200 rounded-md" : ""}>
+                  <MobileProductCard mp={mp} />
+                </div>
               ))}
               {filteredProducts.length === 0 && (
                 <div className="text-center text-gray-500 py-8">

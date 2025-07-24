@@ -16,12 +16,16 @@ export default function RevisionProductsTable({ missingProducts, showTotals = tr
         {missingProducts && missingProducts.length > 0 ? (
           missingProducts.map(mp => {
             const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
-            const total = price * mp.missingQuantity;
+            // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+            const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+            const total = price * quantity;
             return (
               <tr key={mp.id}>
                 <td className="border border-black px-2 py-1">{mp.product?.name || '-'}</td>
                 <td className="border border-black px-2 py-1">{mp.product?.barcode || '-'}</td>
-                <td className="border border-black px-2 py-1 text-center">{mp.missingQuantity}</td>
+                <td className="border border-black px-2 py-1 text-center">
+                  {mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity}
+                </td>
                 <td className="border border-black px-2 py-1 text-right">{price.toFixed(2)}</td>
                 <td className="border border-black px-2 py-1 text-right">{total.toFixed(2)}</td>
               </tr>
@@ -38,13 +42,19 @@ export default function RevisionProductsTable({ missingProducts, showTotals = tr
           <tr className="font-bold bg-gray-100">
             <td className="p-2 border text-right" colSpan={2}>Общо:</td>
             <td className="p-2 border text-center">
-              {missingProducts.reduce((sum, mp) => sum + mp.missingQuantity, 0)}
+              {missingProducts.reduce((sum, mp) => {
+                // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+                const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+                return sum + quantity;
+              }, 0)}
             </td>
             <td className="p-2 border"></td>
             <td className="p-2 border text-right">
               {missingProducts.reduce((sum, mp) => {
                 const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
-                return sum + price * mp.missingQuantity;
+                // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+                const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+                return sum + price * quantity;
               }, 0).toFixed(2)}
             </td>
           </tr>

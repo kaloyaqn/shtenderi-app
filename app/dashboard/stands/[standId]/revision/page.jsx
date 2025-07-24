@@ -274,14 +274,15 @@ export default function StandRevisionPage({ params, searchParams }) {
     setReport(missing);
     if (mode === 'check') {
       // Create a check
-      const checkedProducts = remaining.map(m => {
-        const prod = products.find(p => p.product.barcode === m.barcode)?.product;
-        return prod ? {
-          productId: prod.id,
-          quantity: m.remaining,
-          status: m.remaining > 0 ? 'missing' : 'ok',
-        } : null;
-      }).filter(Boolean);
+      const checkedProducts = products.map(p => {
+        const rem = remaining.find(r => r.barcode === p.product.barcode);
+        return {
+          productId: p.product.id,
+          quantity: rem ? rem.remaining : 0, // Missing quantity
+          originalQuantity: p.quantity, // Original quantity for sale mode
+          status: (rem && rem.remaining > 0) ? 'missing' : 'ok',
+        };
+      });
       try {
         const res = await fetch(`/api/stands/${standId}/checks`, {
           method: 'POST',

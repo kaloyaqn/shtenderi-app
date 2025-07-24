@@ -78,6 +78,12 @@ export default function StandDetailPage({ params }) {
     products: [],
     toImport: [],
   });
+  const [fileConfirmationPrompt, setFileConfirmationPrompt] = useState({
+    open: false,
+    fileName: '',
+    products: [],
+    activate: false,
+  });
 
   const { data: session } = useSession();
   const userIsAdmin = session?.user?.role === "ADMIN";
@@ -153,6 +159,14 @@ export default function StandDetailPage({ params }) {
       setDeleteDialogOpen(false);
       setProductOnStandToDelete(null);
     }
+  };
+
+  const handleFileConfirmation = async () => {
+    await proceedWithImport(
+      fileConfirmationPrompt.products,
+      fileConfirmationPrompt.activate,
+      fileConfirmationPrompt.fileName
+    );
   };
 
   const columns = [
@@ -267,8 +281,13 @@ export default function StandDetailPage({ params }) {
           toImport: productsToImport,
         });
       } else {
-        // No inactive products, proceed directly
-        await proceedWithImport(productsToImport, false, file.name);
+        // No inactive products, show file confirmation
+        setFileConfirmationPrompt({
+          open: true,
+          fileName: file.name,
+          products: productsToImport,
+          activate: false,
+        });
       }
     } catch (err) {
       console.error("File change or check error:", err);
@@ -292,6 +311,17 @@ export default function StandDetailPage({ params }) {
       productsToSend = products.map((p) =>
         inactiveBarcodes.has(p.barcode) ? { ...p, shouldActivate: true } : p
       );
+    }
+
+    // Show file confirmation if not already shown
+    if (fileName && !fileConfirmationPrompt.open) {
+      setFileConfirmationPrompt({
+        open: true,
+        fileName: fileName,
+        products: productsToSend,
+        activate: activate,
+      });
+      return;
     }
 
     await toast.promise(
@@ -319,6 +349,14 @@ export default function StandDetailPage({ params }) {
         error: (err) => err.message || "Възникна грешка при импортиране",
       }
     );
+    
+    // Close the confirmation dialog
+    setFileConfirmationPrompt({
+      open: false,
+      fileName: '',
+      products: [],
+      activate: false,
+    });
   };
 
   if (loading) return <LoadingScreen />;
@@ -770,6 +808,33 @@ export default function StandDetailPage({ params }) {
               }}
             >
               Активирай и импортирай
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* File Confirmation Dialog */}
+      <AlertDialog
+        open={fileConfirmationPrompt.open}
+        onOpenChange={(open) =>
+          !open &&
+          setFileConfirmationPrompt({ open: false, fileName: '', products: [], activate: false })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Потвърждение за импорт</AlertDialogTitle>
+            <AlertDialogDescription>
+              Искате ли да импортирате файл <strong>{fileConfirmationPrompt.fileName}</strong>?
+              <br />
+              <br />
+              Файлът съдържа {fileConfirmationPrompt.products.length} продукта.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отказ</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFileConfirmation}>
+              Да, импортирай
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

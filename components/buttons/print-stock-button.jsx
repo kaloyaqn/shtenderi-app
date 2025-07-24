@@ -30,7 +30,7 @@ export default function PrintStockButton({ missingProducts, revisionNumber }) {
         products: Array.isArray(missingProducts)
           ? missingProducts.map((product) => ({
               name: product.product?.name || "N/A",
-              quantity: product.missingQuantity || 0,
+              quantity: product.givenQuantity !== null ? product.givenQuantity : product.missingQuantity || 0,
               price: product.priceAtSale ?? product.product?.clientPrice ?? 0,
             }))
           : [],

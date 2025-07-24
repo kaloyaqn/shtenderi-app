@@ -18,7 +18,9 @@ export async function GET() {
   let totalSalesValue = 0;
   for (const rev of allRevisions) {
     for (const mp of rev.missingProducts) {
-      totalSalesValue += (mp.missingQuantity || 0) * (mp.product?.clientPrice || 0);
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      totalSalesValue += (quantity || 0) * (mp.product?.clientPrice || 0);
     }
   }
 
@@ -40,8 +42,10 @@ export async function GET() {
   let itemsSoldLast30Days = 0;
   for (const rev of last30DaysRevisions) {
     for (const mp of rev.missingProducts) {
-      salesLast30Days += (mp.missingQuantity || 0) * (mp.product?.clientPrice || 0);
-      itemsSoldLast30Days += mp.missingQuantity || 0;
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      salesLast30Days += (quantity || 0) * (mp.product?.clientPrice || 0);
+      itemsSoldLast30Days += quantity || 0;
     }
   }
   const salesCountLast30Days = last30DaysRevisions.length;
