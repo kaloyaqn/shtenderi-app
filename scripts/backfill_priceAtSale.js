@@ -3,34 +3,30 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-
 async function main() {
-  const missingProducts = await prisma.missingProduct.findMany({
+  const today = new Date();
+
+  // Find all stores where schedule is null
+  const storesToUpdate = await prisma.store.findMany({
     where: {
-      OR: [
-        { priceAtSale: null },
-        { priceAtSale: 0 },
-      ],
+      schedule: {
+        equals: null
+      }
     },
-    include: {
-      product: true,
-      revision: true,
-    },
+    select: {
+      id: true
+    }
   });
 
   let updated = 0;
-  for (const mp of missingProducts) {
-    // Fallback to product's clientPrice
-    const price = mp.product?.clientPrice || 0;
-    if (price > 0) {
-      await prisma.missingProduct.update({
-        where: { id: mp.id },
-        data: { priceAtSale: price },
-      });
-      updated++;
-    }
+  for (const store of storesToUpdate) {
+    await prisma.store.update({
+      where: { id: store.id },
+      data: { schedule: today },
+    });
+    updated++;
   }
-  console.log(`Updated priceAtSale for ${updated} missingProducts.`);
+  console.log(`Updated schedule to today for ${updated} stores.`);
 }
 
 main()
@@ -40,4 +36,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });
