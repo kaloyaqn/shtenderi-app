@@ -372,7 +372,6 @@ export default function StandRevisionPage({ params, searchParams }) {
   const [saleLoading, setSaleLoading] = useState(false);
   const [storages, setStorages] = useState([]);
   const [selectedStorage, setSelectedStorage] = useState('');
-  const [transferLoading, setTransferLoading] = useState(false);
   const saleInputRef = useRef();
 
   // When entering sale mode, load only missing products from the check
@@ -459,7 +458,7 @@ export default function StandRevisionPage({ params, searchParams }) {
     return true;
   };
 
-  // On finish in sale mode, first create a transfer, then the revision
+  // On finish in sale mode, use the new sale API that handles automatic zeroing
   const handleFinishSale = async () => {
     setFinishing(true);
     setFinished(true);
@@ -468,19 +467,22 @@ export default function StandRevisionPage({ params, searchParams }) {
       setFinishing(false);
       return;
     }
-    // 1. Create transfer from storage to stand
-    setTransferLoading(true);
+    
     try {
-      const transferRes = await fetch(`/api/stands/${standId}/transfer`, {
+      const res = await fetch('/api/revisions/sale', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          storageId: selectedStorage,
-          products: saleChecked.map(p => ({ productId: p.productId, quantity: p.checked, name: p.name })),
+          standId,
+          userId,
+          checkId,
+          saleChecked,
+          selectedStorage,
         }),
       });
-      if (transferRes.status === 409) {
-        const data = await transferRes.json();
+      
+      if (res.status === 409) {
+        const data = await res.json();
         if (data.insufficient && data.insufficient.length > 0) {
           const errorList = data.insufficient.map(e => `${e.productName}: нужно ${e.needed}, налично ${e.available}`).join('\n');
           toast.error(`Недостатъчни количества в склада за:\n${errorList}`);
@@ -488,39 +490,15 @@ export default function StandRevisionPage({ params, searchParams }) {
           toast.error('Недостатъчни количества в склада.');
         }
         try { new Audio('/error.mp3').play(); } catch {}
-        setTransferLoading(false);
         setFinishing(false);
         return;
       }
-      if (!transferRes.ok) {
-        const errorText = await transferRes.text();
-        throw new Error(errorText || 'Грешка при трансфер от склада');
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Грешка при запис на продажбата');
       }
-    } catch (err) {
-      toast.error(err.message);
-      try { new Audio('/error.mp3').play(); } catch {}
-      setTransferLoading(false);
-      setFinishing(false);
-      return;
-    }
-    setTransferLoading(false);
-    // 2. Create the revision (sale)
-    const missingProducts = saleChecked.map(p => ({
-      productId: p.productId,
-      missingQuantity: p.checked,
-      clientPrice: p.clientPrice,
-    }));
-    try {
-      const res = await fetch('/api/revisions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          standId,
-          userId,
-          missingProducts,
-        }),
-      });
-      if (!res.ok) throw new Error('Грешка при запис на продажбата');
+      
       const data = await res.json();
       setRevisionId(data.id);
       toast.success('Продажбата е записана успешно!');
@@ -589,11 +567,11 @@ export default function StandRevisionPage({ params, searchParams }) {
         <BasicHeader title={`Продажба след проверка`}>
           <Button
             onClick={handleFinishSale}
-            disabled={saleChecked.length === 0 || finishing || !selectedStorage || transferLoading}
+            disabled={saleChecked.length === 0 && saleUnchecked.length === 0 || finishing || !selectedStorage}
             size="lg"
             className="w-full! h-15 mt-3 mb-4"
           >
-            {finishing || transferLoading ? <span className="flex items-center gap-2"><span className="loader mr-2 w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Обработка...</span> : <><CheckCircle />  Приключи продажба</>}
+            {finishing ? <span className="flex items-center gap-2"><span className="loader mr-2 w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Обработка...</span> : <><CheckCircle />  Приключи продажба</>}
           </Button>
         </BasicHeader>
         <form onSubmit={e => {
