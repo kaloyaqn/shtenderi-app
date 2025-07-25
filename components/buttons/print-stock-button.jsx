@@ -59,7 +59,7 @@ export default function PrintStockButton({ missingProducts, revisionNumber }) {
       <Button
         size="sm"
         className="w-full text-xs"
-        variant={"default"}
+        variant={"outline"}
         type="button"
         onClick={handlePrint}
       >

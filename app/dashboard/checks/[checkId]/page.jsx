@@ -239,11 +239,11 @@ export default function CheckIdPage() {
           <Printer /> Принтирай
         </Button>
         <PrintStockButton missingProducts={missingProducts} />
-        {session?.user?.role === "ADMIN" && (
+        {/* {session?.user?.role === "ADMIN" && (
           <Button variant="outline" onClick={() => setResupplyDialogOpen(true)}>
             <Truck /> Зареди от склад
           </Button>
-        )}
+        )} */}
         <div className="h-6 w-px bg-gray-300"></div>
         <Button
           onClick={() =>
