@@ -7,7 +7,7 @@ export async function GET() {
   const startOf30Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29); // includes today
   const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-  // 1. Total sales value (all time)
+  // 1. Total sales value (all time, including imports)
   const allRevisions = await prisma.revision.findMany({
     include: {
       missingProducts: {
@@ -24,13 +24,13 @@ export async function GET() {
     }
   }
 
-  // 2, 3, 4. Last 30 days
+  // 2, 3, 4. Last 30 days (including imports)
   const last30DaysRevisions = await prisma.revision.findMany({
     where: {
       createdAt: {
         gte: startOf30Days,
         lt: endOfToday,
-      }
+      },
     },
     include: {
       missingProducts: {

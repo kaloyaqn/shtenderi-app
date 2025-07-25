@@ -16,7 +16,7 @@ export async function GET() {
     prisma.store.count(),
   ]);
 
-  // Gross income this month (sum of all sales from revisions in the month)
+  // Gross income this month (sum of all sales from revisions in the month, including imports)
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);

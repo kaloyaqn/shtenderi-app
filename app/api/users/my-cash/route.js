@@ -22,7 +22,7 @@ export async function GET() {
     const cashRegister = await prisma.cashRegister.findUnique({
       where: { storageId: userStorage.storageId },
     });
-    // Calculate grossIncome for this user for today only
+    // Calculate grossIncome for this user for today only (including imports)
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const revisions = await prisma.revision.findMany({

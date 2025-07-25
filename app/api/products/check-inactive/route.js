@@ -13,13 +13,17 @@ export async function POST(req) {
     const inactiveProducts = await prisma.product.findMany({
       where: {
         barcode: { in: barcodesAsString },
-        active: false,
+        clientPrice: 0,
       },
       select: {
         barcode: true,
         name: true,
+        clientPrice: true,
       },
     });
+    
+    console.log('[CHECK-INACTIVE] Checking barcodes:', barcodesAsString);
+    console.log('[CHECK-INACTIVE] Found inactive products:', inactiveProducts);
 
     return NextResponse.json({ inactiveProducts });
   } catch (error) {

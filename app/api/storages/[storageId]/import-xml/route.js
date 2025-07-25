@@ -4,8 +4,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function POST(req, { params }) {
+  let fileName = null; // Declare fileName at function scope
   const { storageId } = await params;
-  const { products: productsFromXml, fileName } = await req.json();
+  const { products: productsFromXml, fileName: fileNameFromRequest } = await req.json();
+  fileName = fileNameFromRequest; // Assign to function-scoped variable
 
   if (!storageId || !Array.isArray(productsFromXml)) {
     return new NextResponse('Missing storageId or products data', { status: 400 });
@@ -57,19 +59,20 @@ export async function POST(req, { params }) {
 
       if (dbProduct) {
         // Increment the global product quantity
-        console.log('[IMPORT-XML][STORAGE] Updating product with:', {
+        const updateData = {
           name: product.name,
           deliveryPrice: deliveryPrice,
+          // Do NOT update clientPrice
           quantity: { increment: xmlQuantity },
-        });
+        };
+        if (product.shouldActivate) {
+          updateData.active = true;
+          console.log('[IMPORT-XML][STORAGE] Activating product:', product.barcode);
+        }
+        console.log('[IMPORT-XML][STORAGE] Updating product with:', updateData);
         await prisma.product.update({
           where: { id: dbProduct.id },
-          data: {
-            name: product.name,
-            deliveryPrice: deliveryPrice,
-            // Do NOT update clientPrice
-            quantity: { increment: xmlQuantity },
-          },
+          data: updateData,
         });
       } else {
         // If it doesn't exist, create it
@@ -80,17 +83,27 @@ export async function POST(req, { params }) {
           deliveryPrice: deliveryPrice,
           quantity: xmlQuantity,
         });
+        const createData = {
+          barcode: product.barcode,
+          name: product.name || `XML Import ${product.barcode}`,
+          clientPrice: 0, // Always 0 on create
+          deliveryPrice: deliveryPrice,
+          quantity: xmlQuantity,
+          active: true, // Always active when created
+        };
+        if (product.shouldActivate) {
+          createData.active = true;
+        }
+        console.log('[IMPORT-XML][STORAGE] Creating product with:', createData);
         dbProduct = await prisma.product.create({
-          data: {
-            barcode: product.barcode,
-            name: product.name || `XML Import ${product.barcode}`,
-            clientPrice: 0, // Always 0 on create
-            deliveryPrice: deliveryPrice,
-            quantity: xmlQuantity,
-          },
+          data: createData,
         });
       }
-      importedProductIds.push({ productId: dbProduct.id, quantity: xmlQuantity });
+      importedProductIds.push({ 
+        productId: dbProduct.id, 
+        quantity: xmlQuantity,
+        clientPrice: product.clientPrice || 0
+      });
       
       // Upsert the product in the specific storage
       await prisma.storageProduct.upsert({
@@ -112,11 +125,20 @@ export async function POST(req, { params }) {
     }
 
     // Create Import record first
+    if (!fileName) {
+      console.error('[IMPORT] No fileName provided, cannot create import record');
+      return NextResponse.json({ error: 'Filename is required for import' }, { status: 400 });
+    }
+    
     const importRecord = await prisma.import.create({
       data: {
-        userId: session.user.id,
-        storageId,
-        fileName: fileName || null,
+        user: {
+          connect: { id: session.user.id }
+        },
+        storage: {
+          connect: { id: storageId }
+        },
+        fileName: fileName,
       },
     });
 
@@ -143,7 +165,11 @@ export async function POST(req, { params }) {
           userId: session.user.id,
           type: 'import',
           missingProducts: {
-            create: importedProductIds.map(p => ({ productId: p.productId, missingQuantity: p.quantity })),
+            create: importedProductIds.map(p => ({ 
+              productId: p.productId, 
+              missingQuantity: p.quantity,
+              priceAtSale: p.clientPrice
+            })),
           },
         },
       });
