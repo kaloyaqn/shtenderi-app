@@ -535,6 +535,11 @@ export default function StandRevisionPage({ params, searchParams }) {
           onClick={async () => {
             setMode('sale');
             setFinished(false);
+            // Update URL to include checkId
+            const url = new URL(window.location);
+            url.searchParams.set('checkId', checkId);
+            window.history.pushState({}, '', url);
+            
             // Fetch the check and reload missing products for sale mode
             const res = await fetch(`/api/stands/${standId}/checks/${checkId}`);
             const check = await res.json();

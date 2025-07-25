@@ -80,6 +80,7 @@ model CheckedProduct {
   productId  String
   quantity   Int
   originalQuantity Int? // Original quantity for sale mode comparison
+  standQuantityAtCheck Int? // Stand quantity at the time of check
   status     String   // "ok", "missing", "replaced"
 }
 

@@ -117,20 +117,9 @@ export async function POST(req) {
         });
       }
 
-      // 3. Handle unchecked products (set stand quantity to 0, but DON'T include in sale)
-      const checkedProductIds = saleChecked.map(p => p.productId);
-      const uncheckedProducts = check.checkedProducts.filter(cp => 
-        cp.quantity > 0 && !checkedProductIds.includes(cp.productId)
-      );
-
-      for (const unchecked of uncheckedProducts) {
-        // Set stand quantity to 0 for unchecked products
-        await tx.standProduct.updateMany({
-          where: { standId, productId: unchecked.productId },
-          data: { quantity: 0 },
-        });
-        // DO NOT add to missingProducts - they weren't sold!
-      }
+      // 3. Handle unchecked products (DON'T change stand quantity, they weren't sold)
+      // The stand quantity should remain unchanged for products that weren't given/sold
+      // Only products that were actually transferred and sold should affect stand quantities
 
       // 4. Create revision (ONLY for checked products - actually sold)
       const revision = await tx.revision.create({
@@ -152,17 +141,71 @@ export async function POST(req) {
         include: { missingProducts: true }
       });
 
-      // 5. Subtract quantities from stand for checked products
-      for (const checked of saleChecked) {
-        const standProduct = await tx.standProduct.findFirst({
-          where: { standId, productId: checked.productId }
+      // 5. Update stand quantities based on resupply logic
+      console.log('[SALE-COMPLETION] Check data:', check.checkedProducts);
+      console.log('[SALE-COMPLETION] Sale checked products:', saleChecked);
+      
+      for (const checkProduct of check.checkedProducts) {
+        const missingQuantity = checkProduct.quantity || 0; // What was missing from check
+        const originalStandQuantity = checkProduct.standQuantityAtCheck || 0; // Original stand quantity at check time
+        const currentStandQuantity = checkProduct.originalQuantity || 0; // Current stand quantity (after transfers)
+        
+        // Find how much was actually given in this sale
+        const saleProduct = saleChecked.find(sp => sp.productId === checkProduct.productId);
+        const givenQuantity = saleProduct?.checked || 0;
+        
+        console.log('[SALE-COMPLETION] Processing check product:', {
+          productId: checkProduct.productId,
+          missingQuantity,
+          originalStandQuantity,
+          currentStandQuantity,
+          givenQuantity
         });
-        if (standProduct) {
-          const newQty = Math.max(0, standProduct.quantity - checked.checked);
-          await tx.standProduct.update({
-            where: { id: standProduct.id },
-            data: { quantity: newQty }
+        
+        if (missingQuantity > 0) {
+          const currentStandProduct = await tx.standProduct.findFirst({
+            where: { standId, productId: checkProduct.productId }
           });
+          
+          if (currentStandProduct) {
+            let newQuantity;
+            
+            if (givenQuantity >= missingQuantity) {
+              // FULL RESUPPLY: Stand quantity goes back to original
+              newQuantity = originalStandQuantity;
+              console.log('FULL RESUPPLY - Stand quantity restored to original:', {
+                productId: checkProduct.productId,
+                originalStandQuantity,
+                newQuantity
+              });
+            } else if (givenQuantity > 0) {
+              // PARTIAL RESUPPLY: Stand quantity = quantity found during check + given
+              const quantityFoundDuringCheck = originalStandQuantity - missingQuantity;
+              newQuantity = quantityFoundDuringCheck + givenQuantity;
+              console.log('PARTIAL RESUPPLY - Stand quantity calculated:', {
+                productId: checkProduct.productId,
+                originalStandQuantity,
+                missingQuantity,
+                quantityFoundDuringCheck,
+                givenQuantity,
+                newQuantity
+              });
+            } else {
+              // NO RESUPPLY: Stand quantity = original - missing
+              newQuantity = Math.max(0, originalStandQuantity - missingQuantity);
+              console.log('NO RESUPPLY - Stand quantity reduced:', {
+                productId: checkProduct.productId,
+                originalStandQuantity,
+                missingQuantity,
+                newQuantity
+              });
+            }
+            
+            await tx.standProduct.update({
+              where: { id: currentStandProduct.id },
+              data: { quantity: newQuantity }
+            });
+          }
         }
       }
 
