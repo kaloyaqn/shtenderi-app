@@ -10,7 +10,7 @@ export async function POST(req) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-    const { sourceType, sourceId, products } = await req.json();
+    const { sourceType, sourceId, products, note } = await req.json();
     if (!sourceType || !sourceId || !Array.isArray(products) || products.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -30,6 +30,7 @@ export async function POST(req) {
         userId: session.user.id,
         sourceType,
         sourceId,
+        note,
         refundProducts: {
           create: products.map(p => ({
             productId: p.productId,

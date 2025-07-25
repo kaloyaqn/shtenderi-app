@@ -182,7 +182,7 @@ export default function CheckIdPage() {
             </div>
           </div>
           <div className="flex items-center justify-between mb-3 mt-6">
-            <div className="text-base font-semibold">Проверени продукти</div>
+            <div className="text-base font-semibold">Липсващи артикули </div>
             <Badge variant="outline">{missingProducts.length} продукта</Badge>
           </div>
           <div className="space-y-2">
@@ -304,7 +304,7 @@ export default function CheckIdPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base lg:text-lg">
-                  Проверени продукти
+                Липсващи артикули
                 </CardTitle>
                 <Badge variant="outline">
                   {missingProducts.length} продукта

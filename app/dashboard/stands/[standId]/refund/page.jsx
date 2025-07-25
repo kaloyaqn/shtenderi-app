@@ -4,12 +4,15 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 export default function StandRefundPage() {
   const { standId } = useParams();
   const [products, setProducts] = useState([]); // [{product, quantity}]
   const [refundList, setRefundList] = useState({}); // barcode -> { product, quantity }
   const [standName, setStandName] = useState("");
+  const [note, setNote] = useState("");
   const inputRef = useRef();
   const router = useRouter();
   const { data: session } = useSession();
@@ -110,6 +113,7 @@ export default function StandRefundPage() {
           sourceType: "STAND",
           sourceId: standId,
           products: productsToRefund,
+          note: note,
         }),
       });
       if (!res.ok) throw new Error("Грешка при връщане на продукти");
@@ -151,8 +155,13 @@ export default function StandRefundPage() {
             </div>
           ))}
         </div>
-      </div>
-      <Button onClick={handleRefund} disabled={Object.keys(refundList).length === 0} className="text-lg px-8 py-3 rounded font-bold">
+      </div> 
+      <Label className={'mb-2'}>Основание на рекламация</Label>
+      <Textarea 
+      value={note}
+      onChange={(e) => setNote(e.target.value)}
+      />
+      <Button onClick={handleRefund} disabled={Object.keys(refundList).length === 0} className="text-lg px-8 py-3 rounded font-bold mt-4">
         Потвърди връщането
       </Button>
     </div>
