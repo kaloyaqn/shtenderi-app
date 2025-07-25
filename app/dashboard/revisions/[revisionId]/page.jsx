@@ -121,21 +121,28 @@ export default function RevisionDetailPage() {
       const data = await res.json();
       setRevision(data);
       
-      // If this revision was created from a check, fetch unscanned products
+      // If this revision was created from a check, fetch all missing products from the check
       if (data.checkId) {
         try {
           const checkRes = await fetch(`/api/stands/${data.standId}/checks/${data.checkId}`);
           if (checkRes.ok) {
             const checkData = await checkRes.json();
-            // Find products that were in the check but not in the revision (unscanned)
+            console.log('Check data:', checkData);
+            // Find ALL products that were missing from the check (not just unscanned ones)
             const soldProductIds = data.missingProducts.map(mp => mp.productId);
-            const unscanned = checkData.checkedProducts.filter(cp => 
+            const allMissingFromCheck = checkData.checkedProducts.filter(cp => 
               cp.quantity > 0 && !soldProductIds.includes(cp.productId)
             );
-            setUnscannedProducts(unscanned);
+            console.log('Missing from check:', {
+              soldProductIds,
+              allMissingFromCheck,
+              checkProducts: checkData.checkedProducts
+            });
+            console.log('Sample unscanned product:', allMissingFromCheck[0]);
+            setUnscannedProducts(allMissingFromCheck);
           }
         } catch (error) {
-          console.error("Failed to fetch unscanned products:", error);
+          console.error("Failed to fetch missing products from check:", error);
         }
       }
     } catch (error) {
@@ -465,7 +472,7 @@ export default function RevisionDetailPage() {
             ) : isUnscanned ? (
               <div>
                 <div>{mp.missingQuantity}</div>
-                <div className="text-xs text-red-500">(не сканиран)</div>
+                <div className="text-xs text-red-500">(не наличен)</div>
               </div>
             ) : (
               mp.missingQuantity
@@ -498,7 +505,7 @@ export default function RevisionDetailPage() {
     id: cp.id,
     productId: cp.productId,
     product: cp.product,
-    missingQuantity: cp.originalQuantity || cp.quantity,
+    missingQuantity: cp.quantity, // Use quantity (missing from check), not originalQuantity
     givenQuantity: 0, // Not scanned
     priceAtSale: cp.product?.clientPrice || 0,
     name: cp.product?.name || "-",
@@ -507,6 +514,17 @@ export default function RevisionDetailPage() {
   }));
 
   const data = [...soldProducts, ...unscannedProductsData];
+
+  // Debug logging
+  console.log('Revision data:', {
+    revisionId: revision?.id,
+    checkId: revision?.checkId,
+    soldProductsCount: soldProducts.length,
+    unscannedProductsCount: unscannedProductsData.length,
+    totalDataCount: data.length,
+    soldProducts: soldProducts,
+    unscannedProducts: unscannedProductsData
+  });
 
   // Filter products for mobile search (include both sold and unscanned products)
   const filteredProducts = data.filter(
@@ -679,6 +697,17 @@ export default function RevisionDetailPage() {
                       {revision.user?.name || revision.user?.email || "N/A"}
                     </p>
                   </div>
+
+                  {revision.checkId && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Свързана проверка
+                      </label>
+                      <p className="text-base font-mono text-sm">
+                        #{revision.checkId.slice(-8)}
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -725,15 +754,15 @@ export default function RevisionDetailPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {revision.missingProducts?.length > 0 ? (
+                  {data.length > 0 ? (
                     <>
-                      {/* Warning for unscanned products */}
+                      {/* Warning for missing products from check */}
                       {hasUnscannedProducts && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
                           <div className="flex items-center gap-2 text-red-700">
                             <AlertTriangle className="w-4 h-4" />
                             <span className="text-sm font-medium">
-                              Някои продукти не са били налични на склад. Тези с 0, не са включени в продабжата и автоматично за зачислени на 0.
+                              Някои продукти от проверката не са били налични за продажба. Те са показани в червено и не са включени в продажбата.
                             </span>
                           </div>
                         </div>

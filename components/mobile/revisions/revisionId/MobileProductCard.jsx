@@ -31,7 +31,7 @@ export default function MobileProductCard({mp}) {
                 ) : !mp.isSold ? (
                   <div className="text-right text-red-600">
                     <div>{mp.missingQuantity}</div>
-                    <div className="text-xs text-red-500 font-normal">(не сканиран)</div>
+                    <div className="text-xs text-red-500 font-normal">(не наличен)</div>
                   </div>
                 ) : (
                   mp.missingQuantity

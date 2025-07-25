@@ -97,13 +97,21 @@ export async function POST(req) {
       
       // Add checked products (transferred and now "sold")
       for (const checked of saleChecked) {
-        // Find the original quantity from the check
+        // Find the missing quantity from the check (not the original stand quantity)
         const checkProduct = check.checkedProducts.find(cp => cp.productId === checked.productId);
-        const originalQuantity = checkProduct?.originalQuantity || checked.checked;
+        const missingQuantityFromCheck = checkProduct?.quantity || 0; // This is the missing quantity from check
+        
+        console.log('Sale API Debug:', {
+          productId: checked.productId,
+          checkProductQuantity: checkProduct?.quantity,
+          checkProductOriginalQuantity: checkProduct?.originalQuantity,
+          missingQuantityFromCheck,
+          givenQuantity: checked.checked
+        });
         
         missingProducts.push({
           productId: checked.productId,
-          missingQuantity: originalQuantity, // Original quantity (what should have been there)
+          missingQuantity: missingQuantityFromCheck, // Missing quantity from check (what was requested)
           givenQuantity: checked.checked, // Actually scanned/transferred
           clientPrice: checked.clientPrice,
         });

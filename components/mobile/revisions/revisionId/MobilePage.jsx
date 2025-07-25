@@ -88,6 +88,14 @@ export default function MobilePageRevisionId({
                 {revision.user?.name || revision.user?.email || "N/A"}
               </p>
             </div>
+            {revision.checkId && (
+              <div>
+                <span className="text-xs text-gray-500">Свързана проверка</span>
+                <p className="text-base font-mono text-xs">
+                  #{revision.checkId.slice(-8)}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
         {/* Action Buttons */}
@@ -204,7 +212,7 @@ export default function MobilePageRevisionId({
                 <div className="flex items-center gap-2 text-red-700">
                   <AlertTriangle className="w-4 h-4" />
                   <span className="text-sm font-medium">
-                  Някои продукти не са били налични на склад. Тези с 0, не са включени в продабжата и автоматично за зачислени на 0.
+                  Някои продукти от проверката не са били налични за продажба. Те са показани в червено.
                   </span>
                 </div>
               </div>
