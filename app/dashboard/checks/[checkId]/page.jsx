@@ -146,16 +146,22 @@ export default function CheckIdPage() {
               <Truck /> Зареди от склад
             </Button>
           )}
-          <Button
-            className="w-full"
-            onClick={() =>
-              router.push(
-                `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
-              )
-            }
-          >
-            <BadgeDollarSignIcon /> Превърни в продажба
-          </Button>
+          {check.revisions && check.revisions.length > 0 ? (
+            <Button variant="outline" className="w-full" disabled>
+              <BadgeDollarSignIcon /> Вече превърната в продажба
+            </Button>
+          ) : (
+            <Button
+              className="w-full"
+              onClick={() =>
+                router.push(
+                  `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
+                )
+              }
+            >
+              <BadgeDollarSignIcon /> Превърни в продажба
+            </Button>
+          )}
         </BasicHeader>
         <div className="p-1 space-y-3">
           <div className="rounded-lg border bg-white p-4 mb-2">
@@ -182,7 +188,7 @@ export default function CheckIdPage() {
             </div>
           </div>
           <div className="flex items-center justify-between mb-3 mt-6">
-            <div className="text-base font-semibold">Проверени продукти</div>
+            <div className="text-base font-semibold">Липсващи артикули </div>
             <Badge variant="outline">{missingProducts.length} продукта</Badge>
           </div>
           <div className="space-y-2">
@@ -239,21 +245,27 @@ export default function CheckIdPage() {
           <Printer /> Принтирай
         </Button>
         <PrintStockButton missingProducts={missingProducts} />
-        {session?.user?.role === "ADMIN" && (
+        {/* {session?.user?.role === "ADMIN" && (
           <Button variant="outline" onClick={() => setResupplyDialogOpen(true)}>
             <Truck /> Зареди от склад
           </Button>
-        )}
+        )} */}
         <div className="h-6 w-px bg-gray-300"></div>
-        <Button
-          onClick={() =>
-            router.push(
-              `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
-            )
-          }
-        >
-          <BadgeDollarSignIcon /> Превърни в продажба
-        </Button>
+        {check.revisions && check.revisions.length > 0 ? (
+          <Button variant="outline" disabled>
+            <BadgeDollarSignIcon /> Вече превърната в продажба
+          </Button>
+        ) : (
+          <Button
+            onClick={() =>
+              router.push(
+                `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
+              )
+            }
+          >
+            <BadgeDollarSignIcon /> Превърни в продажба
+          </Button>
+        )}
       </BasicHeader>
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-2">
         <div className="lg:col-span-1 order-2 lg:order-1 sticky top-2 self-start z-10">
@@ -304,7 +316,7 @@ export default function CheckIdPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base lg:text-lg">
-                  Проверени продукти
+                Липсващи артикули
                 </CardTitle>
                 <Badge variant="outline">
                   {missingProducts.length} продукта

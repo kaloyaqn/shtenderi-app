@@ -45,12 +45,23 @@ export const PrintableRevision = React.forwardRef(({ revision }, ref) => {
             {revision.missingProducts?.length > 0 ? (
               revision.missingProducts.map((mp) => {
                 const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
-                const total = price * mp.missingQuantity;
+                // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+                const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+                const total = price * quantity;
                 return (
                   <tr key={mp.id}>
                     <td className="p-2 border">{mp.product?.name || 'N/A'}</td>
                     <td className="p-2 border">{mp.product?.barcode || 'N/A'}</td>
-                    <td className="p-2 border text-center">{mp.missingQuantity}</td>
+                    <td className="p-2 border text-center">
+                  {mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity ? (
+                    <div>
+                      <div className="font-semibold">{mp.missingQuantity}</div>
+                      <div className="text-xs text-gray-600">(дадено: {mp.givenQuantity})</div>
+                    </div>
+                  ) : (
+                    (mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity)
+                  )}
+                </td>
                     <td className="p-2 border text-right">{price.toFixed(2)}</td>
                     <td className="p-2 border text-right">{total.toFixed(2)}</td>
                   </tr>
@@ -67,13 +78,19 @@ export const PrintableRevision = React.forwardRef(({ revision }, ref) => {
               <tr className="font-bold bg-gray-100">
                 <td className="p-2 border text-right" colSpan={2}>Общо:</td>
                 <td className="p-2 border text-center">
-                  {revision.missingProducts.reduce((sum, mp) => sum + mp.missingQuantity, 0)}
+                  {revision.missingProducts.reduce((sum, mp) => {
+                    // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+                    const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+                    return sum + quantity;
+                  }, 0)}
                 </td>
                 <td className="p-2 border"></td>
                 <td className="p-2 border text-right">
                   {revision.missingProducts.reduce((sum, mp) => {
                     const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
-                    return sum + price * mp.missingQuantity;
+                    // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+                    const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+                    return sum + price * quantity;
                   }, 0).toFixed(2)}
                 </td>
               </tr>

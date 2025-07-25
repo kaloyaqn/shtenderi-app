@@ -17,7 +17,13 @@ BEGIN
     WHERE "revisionId" = NEW."revisionId";
 
     -- Calculate the total due for this revision (sum of missingProducts * priceAtSale)
-    SELECT COALESCE(SUM("missingQuantity" * COALESCE("priceAtSale", 0)), 0) INTO total_due
+    -- Use givenQuantity if available, otherwise use missingQuantity
+    SELECT COALESCE(SUM(
+      CASE 
+        WHEN "givenQuantity" IS NOT NULL THEN "givenQuantity" * COALESCE("priceAtSale", 0)
+        ELSE "missingQuantity" * COALESCE("priceAtSale", 0)
+      END
+    ), 0) INTO total_due
     FROM "MissingProduct"
     WHERE "revisionId" = NEW."revisionId";
 

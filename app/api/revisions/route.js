@@ -33,6 +33,7 @@ export async function POST(req) {
           create: missingProducts.map(mp => ({
             productId: mp.productId,
             missingQuantity: mp.missingQuantity,
+            givenQuantity: mp.givenQuantity || null, // Only set if explicitly provided
             priceAtSale: mp.clientPrice * (1 - partnerDiscount / 100),
           }))
         }

@@ -37,8 +37,8 @@ export default function StandRevisionPage({ params, searchParams }) {
   const [standName, setStandName] = useState('');
   const [showCheck, setShowCheck] = useState(false);
   const [inputReadOnly, setInputReadOnly] = useState(false);
-  const [pendingProducts, setPendingProducts] = useState({}); // barcode -> { product, quantity }
   const [finishing, setFinishing] = useState(false); // loading state for finish button
+  const [checkAlreadyHasRevision, setCheckAlreadyHasRevision] = useState(false); // track if check already has revision
   const { data: session } = useSession();
   const userId = session?.user?.id || null;
   const router = useRouter();
@@ -84,6 +84,16 @@ export default function StandRevisionPage({ params, searchParams }) {
       fetch(`/api/stands/${standId}/checks/${checkIdFromParams}`)
         .then(res => res.json())
         .then(check => {
+          console.log('Check data loaded:', check);
+          console.log('Check revisions:', check.revisions);
+          
+          // Check if this check already has a revision
+          if (check.revisions && check.revisions.length > 0) {
+            console.log('Check already has revision, setting error state');
+            setCheckAlreadyHasRevision(true);
+            return;
+          }
+          
           // Set up missing products for sale mode
           setRemaining(
             check.checkedProducts.map(cp => ({
@@ -98,6 +108,9 @@ export default function StandRevisionPage({ params, searchParams }) {
               quantity: cp.quantity,
             }))
           );
+        })
+        .catch(err => {
+          console.error('Error fetching check:', err);
         });
     }
   }, [checkIdFromParams, mode, standId]);
@@ -166,6 +179,16 @@ export default function StandRevisionPage({ params, searchParams }) {
     const barcode = e.target.barcode.value.trim();
     if (!barcode) return;
     const prod = products.find(p => p.product.barcode === barcode);
+    // Check if product is inactive
+    if (prod && prod.product && prod.product.active === false) {
+      toast.error('Продуктът е неактивен, моля свържете се с администратор');
+      try {
+        new Audio('/error.mp3').play();
+      } catch (err) {}
+      e.target.reset();
+      inputRef.current?.focus();
+      return;
+    }
     if (!prod) {
       // Try to fetch product by barcode
       let productData = null;
@@ -178,6 +201,16 @@ export default function StandRevisionPage({ params, searchParams }) {
           }
         }
       } catch {}
+      // Check if fetched product is inactive
+      if (productData && productData.active === false) {
+        toast.error('Продуктът е неактивен, моля свържете се с администратор');
+        try {
+          new Audio('/error.mp3').play();
+        } catch (err) {}
+        e.target.reset();
+        inputRef.current?.focus();
+        return;
+      }
       if (!productData) {
         toast.error('Продукт с този баркод не е намерен.');
         try {
@@ -187,17 +220,9 @@ export default function StandRevisionPage({ params, searchParams }) {
         inputRef.current?.focus();
         return;
       }
-      // Add to pendingProducts
-      setPendingProducts(prev => {
-        if (prev[barcode]) {
-          return { ...prev, [barcode]: { ...prev[barcode], quantity: prev[barcode].quantity + 1 } };
-        } else {
-          return { ...prev, [barcode]: { product: productData, quantity: 1 } };
-        }
-      });
+      // No pendingProducts logic here
       e.target.reset();
       setShowCheck(true);
-      setTimeout(() => setShowCheck(false), 2000);
       inputRef.current?.focus();
       return;
     }
@@ -263,14 +288,15 @@ export default function StandRevisionPage({ params, searchParams }) {
     setReport(missing);
     if (mode === 'check') {
       // Create a check
-      const checkedProducts = remaining.map(m => {
-        const prod = products.find(p => p.product.barcode === m.barcode)?.product;
-        return prod ? {
-          productId: prod.id,
-          quantity: m.remaining,
-          status: m.remaining > 0 ? 'missing' : 'ok',
-        } : null;
-      }).filter(Boolean);
+      const checkedProducts = products.map(p => {
+        const rem = remaining.find(r => r.barcode === p.product.barcode);
+        return {
+          productId: p.product.id,
+          quantity: rem ? rem.remaining : 0, // Missing quantity
+          originalQuantity: p.quantity, // Original quantity for sale mode
+          status: (rem && rem.remaining > 0) ? 'missing' : 'ok',
+        };
+      });
       try {
         const res = await fetch(`/api/stands/${standId}/checks`, {
           method: 'POST',
@@ -287,18 +313,8 @@ export default function StandRevisionPage({ params, searchParams }) {
         setFinishing(false);
       }
     } else if (mode === 'sale') {
-      // Add pending products to stand with quantity 0
-      const pendingBarcodes = Object.keys(pendingProducts);
-      for (const barcode of pendingBarcodes) {
-        const { product } = pendingProducts[barcode];
-        // Call API to add to standProducts if not already present
-        await fetch(`/api/stands/${standId}/products`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: product.id, quantity: 0 }),
-        });
-      }
-      // Build missingProducts: original missing + all pending products
+      // No pendingProducts logic here
+      // Build missingProducts: only from missing
       const missingProducts = [
         ...missing.map(m => {
           const prod = products.find(p => p.product.barcode === m.barcode)?.product;
@@ -308,14 +324,6 @@ export default function StandRevisionPage({ params, searchParams }) {
             clientPrice: prod.clientPrice,
           } : null;
         }).filter(mp => mp && mp.productId),
-        ...pendingBarcodes.map(barcode => {
-          const prod = pendingProducts[barcode].product;
-          return {
-            productId: prod.id,
-            missingQuantity: pendingProducts[barcode].quantity,
-            clientPrice: prod.clientPrice,
-          };
-        }),
       ];
       // Always create a revision, even if there are no missing products
       try {
@@ -360,7 +368,7 @@ export default function StandRevisionPage({ params, searchParams }) {
     return 0;
   });
 
-  // Merge products and pendingProducts for display
+  // Merge products for display (no pendingProducts)
   const allProducts = [
     ...products.map(p => {
       const rem = remaining.find(r => r.barcode === p.product.barcode);
@@ -371,12 +379,6 @@ export default function StandRevisionPage({ params, searchParams }) {
         isPending: false,
       };
     }),
-    ...Object.values(pendingProducts).map(({ product, quantity }) => ({
-      barcode: product.barcode,
-      name: product.name,
-      quantity,
-      isPending: true,
-    })),
   ];
 
   // --- SALE MODE STATE ---
@@ -385,7 +387,6 @@ export default function StandRevisionPage({ params, searchParams }) {
   const [saleLoading, setSaleLoading] = useState(false);
   const [storages, setStorages] = useState([]);
   const [selectedStorage, setSelectedStorage] = useState('');
-  const [transferLoading, setTransferLoading] = useState(false);
   const saleInputRef = useRef();
 
   // When entering sale mode, load only missing products from the check
@@ -427,6 +428,13 @@ export default function StandRevisionPage({ params, searchParams }) {
   // Sale scan handler
   const handleSaleScan = (barcode) => {
     const uncheckedProd = saleUnchecked.find(p => p.barcode === barcode);
+    // Check if product is inactive
+    if (uncheckedProd && uncheckedProd.hasOwnProperty('active') && uncheckedProd.active === false) {
+      toast.error('Продуктът е неактивен, моля свържете се с администратор');
+      try { new Audio('/error.mp3').play(); } catch {}
+      setTimeout(() => saleInputRef.current?.focus(), 100);
+      return false;
+    }
     if (!uncheckedProd) {
       // Check if product exists in the original sale list (checked or all products)
       const wasInSale = saleChecked.find(p => p.barcode === barcode) || products.find(p => p.product.barcode === barcode);
@@ -465,7 +473,7 @@ export default function StandRevisionPage({ params, searchParams }) {
     return true;
   };
 
-  // On finish in sale mode, first create a transfer, then the revision
+  // On finish in sale mode, use the new sale API that handles automatic zeroing
   const handleFinishSale = async () => {
     setFinishing(true);
     setFinished(true);
@@ -474,59 +482,40 @@ export default function StandRevisionPage({ params, searchParams }) {
       setFinishing(false);
       return;
     }
-    // 1. Create transfer from storage to stand
-    setTransferLoading(true);
+    
     try {
-      const transferRes = await fetch(`/api/stands/${standId}/transfer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storageId: selectedStorage,
-          products: saleChecked.map(p => ({ productId: p.productId, quantity: p.checked, name: p.name })),
-        }),
-      });
-      if (transferRes.status === 409) {
-        const data = await transferRes.json();
-        if (data.insufficient && data.insufficient.length > 0) {
-          const errorList = data.insufficient.map(e => `${e.productName}: нужно ${e.needed}, налично ${e.available}`).join('\n');
-          toast.error(`Недостатъчни количества в склада за:\n${errorList}`);
-        } else {
-          toast.error('Недостатъчни количества в склада.');
-        }
-        try { new Audio('/error.mp3').play(); } catch {}
-        setTransferLoading(false);
-        setFinishing(false);
-        return;
-      }
-      if (!transferRes.ok) {
-        const errorText = await transferRes.text();
-        throw new Error(errorText || 'Грешка при трансфер от склада');
-      }
-    } catch (err) {
-      toast.error(err.message);
-      try { new Audio('/error.mp3').play(); } catch {}
-      setTransferLoading(false);
-      setFinishing(false);
-      return;
-    }
-    setTransferLoading(false);
-    // 2. Create the revision (sale)
-    const missingProducts = saleChecked.map(p => ({
-      productId: p.productId,
-      missingQuantity: p.checked,
-      clientPrice: p.clientPrice,
-    }));
-    try {
-      const res = await fetch('/api/revisions', {
+      const res = await fetch('/api/revisions/sale', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           standId,
           userId,
-          missingProducts,
+          checkId,
+          saleChecked,
+          selectedStorage,
         }),
       });
-      if (!res.ok) throw new Error('Грешка при запис на продажбата');
+      
+      if (res.status === 409) {
+        const data = await res.json();
+        if (data.insufficient && data.insufficient.length > 0) {
+          const errorList = data.insufficient.map(e => `${e.productName}: нужно ${e.needed}, налично ${e.available}`).join('\n');
+          toast.error(`Недостатъчни количества в склада за:\n${errorList}`);
+        } else if (data.error && data.error.includes('already has a revision')) {
+          toast.error('Тази проверка вече е превърната в продажба. Не можете да създадете дублираща продажба.');
+        } else {
+          toast.error('Недостатъчни количества в склада.');
+        }
+        try { new Audio('/error.mp3').play(); } catch {}
+        setFinishing(false);
+        return;
+      }
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Грешка при запис на продажбата');
+      }
+      
       const data = await res.json();
       setRevisionId(data.id);
       toast.success('Продажбата е записана успешно!');
@@ -562,6 +551,11 @@ export default function StandRevisionPage({ params, searchParams }) {
           onClick={async () => {
             setMode('sale');
             setFinished(false);
+            // Update URL to include checkId
+            const url = new URL(window.location);
+            url.searchParams.set('checkId', checkId);
+            window.history.pushState({}, '', url);
+            
             // Fetch the check and reload missing products for sale mode
             const res = await fetch(`/api/stands/${standId}/checks/${checkId}`);
             const check = await res.json();
@@ -590,16 +584,51 @@ export default function StandRevisionPage({ params, searchParams }) {
   // In sale mode, render split UI
   if (mode === 'sale') {
     if (saleLoading) return <LoadingScreen />;
+    
+    console.log('Sale mode render - checkAlreadyHasRevision:', checkAlreadyHasRevision);
+    
+    // Show error if check already has a revision
+    if (checkAlreadyHasRevision) {
+      return (
+        <div className="pb-15">
+          <BasicHeader title="Грешка" hasBackButton />
+          <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
+            <div className="text-center max-w-md">
+              <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Проверката вече е превърната в продажба
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Тази проверка вече има създадена продажба. Не можете да създадете дублираща продажба от същата проверка.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Button asChild>
+                  <Link href={`/dashboard/checks/${checkId}`}>
+                    Виж проверката
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href={`/dashboard/stands/${standId}`}>
+                    Назад към щанда
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="pb-15">
         <BasicHeader title={`Продажба след проверка`}>
           <Button
             onClick={handleFinishSale}
-            disabled={saleChecked.length === 0 || finishing || !selectedStorage || transferLoading}
+            disabled={saleChecked.length === 0 && saleUnchecked.length === 0 || finishing || !selectedStorage}
             size="lg"
             className="w-full! h-15 mt-3 mb-4"
           >
-            {finishing || transferLoading ? <span className="flex items-center gap-2"><span className="loader mr-2 w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Обработка...</span> : <><CheckCircle />  Приключи продажба</>}
+            {finishing ? <span className="flex items-center gap-2"><span className="loader mr-2 w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Обработка...</span> : <><CheckCircle />  Приключи продажба</>}
           </Button>
         </BasicHeader>
         <form onSubmit={e => {
@@ -755,7 +784,7 @@ export default function StandRevisionPage({ params, searchParams }) {
           <div className="text-base font-semibold mb-2  flex items-center gap-2"><Package size={20}/> Списък с продукти на щанда</div>
           <div className="grid gap-2 mb-6 sm:grid-cols-2">
             {allProducts.filter(p => p.quantity > 0).map(p => (
-              <div key={p.barcode} className={`rounded-sm border p-2 flex flex-col justify-between ${p.isPending ? 'bg-yellow-100 border-yellow-400' : 'border-gray-200'}`}>
+              <div key={p.barcode} className={`rounded-sm border p-2 flex flex-col justify-between border-gray-200`}>
                 <h3 className='text-sm text-gray-700 leading-[110%]'>{p.name}</h3>
                 <div className='w-full flex justify-between items-end'>
                   <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-gray-50 text-gray-600 rounded-[2px]'>

@@ -56,6 +56,11 @@ export default function StorageDetailPage({ params }) {
   const [priceChanges, setPriceChanges] = useState([]);
   const [showPriceDialog, setShowPriceDialog] = useState(false);
   const [updatingPrices, setUpdatingPrices] = useState(false);
+  const [fileConfirmationPrompt, setFileConfirmationPrompt] = useState({
+    open: false,
+    fileName: '',
+    products: [],
+  });
 
   // Focus input for barcode scanning
   const barcodeInputRef = useRef(null);
@@ -118,6 +123,50 @@ export default function StorageDetailPage({ params }) {
     setProductToDelete(null);
   };
 
+  const handleFileConfirmation = async () => {
+    const toastId = toast.loading('Импортиране...');
+    
+    try {
+        const response = await fetch(`/api/storages/${storageId}/import-xml`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                products: fileConfirmationPrompt.products, 
+                fileName: fileConfirmationPrompt.fileName 
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            // Check for duplicate file name error
+            if (data && data.includes && data.includes('file with this name')) {
+                toast.error('Файл с това име е импортиран наскоро. Моля, преименувайте файла и опитайте отново.', { id: toastId });
+            } else {
+                throw new Error(data.error || 'Import failed');
+            }
+            return;
+        }
+
+        if (data.priceChanges && data.priceChanges.length > 0) {
+            setPriceChanges(data.priceChanges);
+            setShowPriceDialog(true);
+        } else {
+            toast.success('Продуктите са импортирани успешно!', { id: toastId });
+            await fetchData();
+        }
+    } catch (err) {
+        toast.error(err.message || 'Възникна грешка при импортиране', { id: toastId });
+    } finally {
+        // Close the confirmation dialog
+        setFileConfirmationPrompt({
+            open: false,
+            fileName: '',
+            products: [],
+        });
+    }
+  };
+
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
@@ -144,31 +193,12 @@ export default function StorageDetailPage({ params }) {
             throw new Error("XML файлът не съдържа продукти или е в грешен формат.");
         }
 
-        const response = await fetch(`/api/storages/${storageId}/import-xml`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ products, fileName: file.name })
+        // Show file confirmation dialog
+        setFileConfirmationPrompt({
+            open: true,
+            fileName: file.name,
+            products: products,
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            // Check for duplicate file name error
-            if (data && data.includes && data.includes('file with this name')) {
-                toast.error('Файл с това име е импортиран наскоро. Моля, преименувайте файла и опитайте отново.', { id: toastId });
-            } else {
-                throw new Error(data.error || 'Import failed');
-            }
-            return;
-        }
-
-        if (data.priceChanges && data.priceChanges.length > 0) {
-            setPriceChanges(data.priceChanges);
-            setShowPriceDialog(true);
-        } else {
-            toast.success('Продуктите са импортирани успешно!', { id: toastId });
-            await fetchData();
-        }
 
     } catch (err) {
         toast.error(err.message || 'Възникна грешка при импортиране', { id: toastId });
@@ -619,6 +649,33 @@ export default function StorageDetailPage({ params }) {
             >
               {updatingPrices ? 'Обновяване...' : 'Да, обнови цените'}
             </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* File Confirmation Dialog */}
+      <AlertDialog
+        open={fileConfirmationPrompt.open}
+        onOpenChange={(open) =>
+          !open &&
+          setFileConfirmationPrompt({ open: false, fileName: '', products: [] })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Потвърждение за импорт</AlertDialogTitle>
+            <AlertDialogDescription>
+              Искате ли да импортирате файл <strong>{fileConfirmationPrompt.fileName}</strong>?
+              <br />
+              <br />
+              Файлът съдържа {fileConfirmationPrompt.products.length} продукта.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отказ</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFileConfirmation}>
+              Да, импортирай
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

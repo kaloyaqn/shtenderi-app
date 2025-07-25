@@ -394,6 +394,16 @@ export default function RefundDetailPage() {
                 </div>
               </div>
 
+              <div>
+              <label className="text-sm font-medium text-gray-500 flex items-center">
+                  <User className="h-4 w-4 mr-1" />
+                  Основание
+                </label>
+                <p className="text-base font-medium">
+                  {refund.note ? <>{refund.note}</> : <>Няма Основание</>}
+                </p>
+              </div>
+
               {returned && returnedStorage && (
                 <>
                   <Separator />

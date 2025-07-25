@@ -77,6 +77,26 @@ export default function StandDetailPage({ params }) {
     open: false,
     products: [],
     toImport: [],
+    fileName: '',
+    prices: {},
+  });
+  
+  const handlePriceChange = (barcode, value) => {
+    const newPrice = parseFloat(value) || 0;
+    console.log(`[FRONTEND] Price change for ${barcode}: ${value} -> ${newPrice}`);
+    setInactiveProductsPrompt(prev => ({
+      ...prev,
+      prices: {
+        ...prev.prices,
+        [barcode]: newPrice
+      }
+    }));
+  };
+  const [fileConfirmationPrompt, setFileConfirmationPrompt] = useState({
+    open: false,
+    fileName: '',
+    products: [],
+    activate: false,
   });
 
   const { data: session } = useSession();
@@ -153,6 +173,19 @@ export default function StandDetailPage({ params }) {
       setDeleteDialogOpen(false);
       setProductOnStandToDelete(null);
     }
+  };
+
+  const handleFileConfirmation = async () => {
+    console.log('[FRONTEND] File confirmation with fileName:', fileConfirmationPrompt.fileName);
+    if (!fileConfirmationPrompt.fileName) {
+      toast.error('Filename is missing. Please try again.');
+      return;
+    }
+    await proceedWithImport(
+      fileConfirmationPrompt.products,
+      fileConfirmationPrompt.activate,
+      fileConfirmationPrompt.fileName
+    );
   };
 
   const columns = [
@@ -261,14 +294,28 @@ export default function StandDetailPage({ params }) {
       const { inactiveProducts } = await checkRes.json();
 
       if (inactiveProducts && inactiveProducts.length > 0) {
+        // Initialize prices with current clientPrice or 0
+        const initialPrices = {};
+        inactiveProducts.forEach(product => {
+          const matchingImportProduct = productsToImport.find(p => p.barcode === product.barcode);
+          initialPrices[product.barcode] = matchingImportProduct?.clientPrice || 0;
+        });
+        
         setInactiveProductsPrompt({
           open: true,
           products: inactiveProducts,
           toImport: productsToImport,
+          fileName: file.name,
+          prices: initialPrices,
         });
       } else {
-        // No inactive products, proceed directly
-        await proceedWithImport(productsToImport, false, file.name);
+        // No inactive products, show file confirmation
+        setFileConfirmationPrompt({
+          open: true,
+          fileName: file.name,
+          products: productsToImport,
+          activate: false,
+        });
       }
     } catch (err) {
       console.error("File change or check error:", err);
@@ -282,7 +329,8 @@ export default function StandDetailPage({ params }) {
   const proceedWithImport = async (
     products,
     activate = false,
-    fileName = undefined
+    fileName,
+    updatePrices = null
   ) => {
     let productsToSend = products;
     if (activate) {
@@ -292,10 +340,50 @@ export default function StandDetailPage({ params }) {
       productsToSend = products.map((p) =>
         inactiveBarcodes.has(p.barcode) ? { ...p, shouldActivate: true } : p
       );
+      console.log('[FRONTEND] Products to activate:', inactiveProductsPrompt.products.map(p => p.barcode));
+      console.log('[FRONTEND] Products with shouldActivate:', productsToSend.filter(p => p.shouldActivate).map(p => p.barcode));
+    }
+
+    // Show file confirmation if not already shown and we're not updating prices
+    if (fileName && !fileConfirmationPrompt.open && !updatePrices) {
+      setFileConfirmationPrompt({
+        open: true,
+        fileName: fileName,
+        products: productsToSend,
+        activate: activate,
+      });
+      return;
     }
 
     await toast.promise(
       (async () => {
+        console.log('[FRONTEND] Sending import request with fileName:', fileName);
+        if (!fileName) {
+          throw new Error('Filename is required for import');
+        }
+        
+        // If we need to update prices first
+        if (updatePrices && Object.keys(updatePrices).length > 0) {
+          console.log('[FRONTEND] Updating product prices:', updatePrices);
+          console.log('[FRONTEND] Prices object keys:', Object.keys(updatePrices));
+          console.log('[FRONTEND] Prices values:', Object.values(updatePrices));
+          
+          const updateResponse = await fetch('/api/products/update-prices', {
+            method: 'PUT',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prices: updatePrices }),
+          });
+          
+          if (!updateResponse.ok) {
+            const error = await updateResponse.json();
+            console.log('[FRONTEND] Price update failed:', error);
+            throw new Error(error.error || 'Failed to update product prices');
+          }
+          
+          const updateResult = await updateResponse.json();
+          console.log('[FRONTEND] Price update result:', updateResult);
+        }
+        
         const response = await fetch(`/api/stands/${standId}/import-xml`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -306,7 +394,7 @@ export default function StandDetailPage({ params }) {
           const err = await response.json();
           if (err && err.error && err.error.includes("file with this name")) {
             throw new Error(
-              "Файл с това име е импортиран наскоро. Моля, преименувайте файла и опитайте отново."
+              "Файл с това име е импортиран наскоро!"
             );
           }
           throw new Error(err.error || "Import failed");
@@ -319,6 +407,14 @@ export default function StandDetailPage({ params }) {
         error: (err) => err.message || "Възникна грешка при импортиране",
       }
     );
+    
+    // Close the confirmation dialog
+    setFileConfirmationPrompt({
+      open: false,
+      fileName: '',
+      products: [],
+      activate: false,
+    });
   };
 
   if (loading) return <LoadingScreen />;
@@ -720,40 +816,59 @@ export default function StandDetailPage({ params }) {
         open={inactiveProductsPrompt.open}
         onOpenChange={(open) =>
           !open &&
-          setInactiveProductsPrompt({ open: false, products: [], toImport: [] })
+          setInactiveProductsPrompt({ open: false, products: [], toImport: [], fileName: '' })
         }
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Открити са неактивни продукти</AlertDialogTitle>
+            <AlertDialogTitle>Открити са продукти без цена</AlertDialogTitle>
             <AlertDialogDescription>
-              Следните продукти от XML файла са маркирани като неактивни в
-              системата:
-              <ul className="mt-2 list-disc list-inside">
+              Следните продукти от XML файла нямат зададена цена в системата
+              (clientPrice = 0). Можете да зададете цени за тях:
+              <div className="mt-4 space-y-3">
                 {inactiveProductsPrompt.products.map((p) => (
-                  <li key={p.barcode}>
-                    {p.name} ({p.barcode})
-                  </li>
+                  <div key={p.barcode} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{p.name}</p>
+                      <p className="text-xs text-gray-500">{p.barcode}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600">Цена:</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={inactiveProductsPrompt.prices[p.barcode] || 0}
+                        onChange={(e) => handlePriceChange(p.barcode, e.target.value)}
+                        className="w-24 h-8 text-sm"
+                        placeholder="0.00"
+                      />
+                      <span className="text-sm text-gray-500">лв.</span>
+                    </div>
+                  </div>
                 ))}
-              </ul>
-              Желаете ли да ги активирате и да продължите с импорта, или да ги
+              </div>
+              Желаете ли да обновите цените и да продължите с импорта, или да ги
               пропуснете?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
+                console.log('[FRONTEND] Skip inactive products with fileName:', inactiveProductsPrompt.fileName);
                 const inactiveBarcodes = new Set(
                   inactiveProductsPrompt.products.map((p) => p.barcode)
                 );
                 const filteredProducts = inactiveProductsPrompt.toImport.filter(
                   (p) => !inactiveBarcodes.has(p.barcode)
                 );
-                proceedWithImport(filteredProducts, false);
+                proceedWithImport(filteredProducts, false, inactiveProductsPrompt.fileName);
                 setInactiveProductsPrompt({
                   open: false,
                   products: [],
                   toImport: [],
+                  fileName: '',
+                  prices: {},
                 });
               }}
             >
@@ -761,15 +876,47 @@ export default function StandDetailPage({ params }) {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                proceedWithImport(inactiveProductsPrompt.toImport, true);
+                console.log('[FRONTEND] Update prices and import with fileName:', inactiveProductsPrompt.fileName);
+                console.log('[FRONTEND] Current prices state:', inactiveProductsPrompt.prices);
+                console.log('[FRONTEND] Products to import:', inactiveProductsPrompt.toImport.length);
+                proceedWithImport(inactiveProductsPrompt.toImport, false, inactiveProductsPrompt.fileName, inactiveProductsPrompt.prices);
                 setInactiveProductsPrompt({
                   open: false,
                   products: [],
                   toImport: [],
+                  fileName: '',
+                  prices: {},
                 });
               }}
             >
-              Активирай и импортирай
+              Обнови цени и импортирай
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* File Confirmation Dialog */}
+      <AlertDialog
+        open={fileConfirmationPrompt.open}
+        onOpenChange={(open) =>
+          !open &&
+          setFileConfirmationPrompt({ open: false, fileName: '', products: [], activate: false })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Потвърждение за импорт</AlertDialogTitle>
+            <AlertDialogDescription>
+              Искате ли да импортирате файл <strong>{fileConfirmationPrompt.fileName}</strong>?
+              <br />
+              <br />
+              Файлът съдържа {fileConfirmationPrompt.products.length} продукта.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отказ</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFileConfirmation}>
+              Да, импортирай
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

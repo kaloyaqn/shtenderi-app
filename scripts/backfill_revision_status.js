@@ -19,7 +19,11 @@ async function main() {
       where: { revisionId: rev.id },
       select: { missingQuantity: true, priceAtSale: true },
     });
-    const totalDue = missing.reduce((sum, mp) => sum + mp.missingQuantity * (mp.priceAtSale || 0), 0);
+    const totalDue = missing.reduce((sum, mp) => {
+      // Use givenQuantity if available, otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      return sum + quantity * (mp.priceAtSale || 0);
+    }, 0);
     // Determine status
     const status = (totalPaid >= totalDue && totalDue > 0) ? 'PAID' : 'NOT_PAID';
     await prisma.revision.update({

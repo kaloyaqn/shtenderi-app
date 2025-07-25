@@ -4,9 +4,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function POST(req, context) {
+  let fileName = null; // Declare fileName at function scope
   try {
     const { standId } = await context.params;
-    const { products, fileName } = await req.json();
+    const { products, fileName: fileNameFromRequest } = await req.json();
+    fileName = fileNameFromRequest; // Assign to function-scoped variable
     console.log('IMPORT XML: standId:', standId, 'products:', products);
     if (!Array.isArray(products) || !standId) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
@@ -75,6 +77,7 @@ export async function POST(req, context) {
         updateData.quantity = { increment: product.quantity };
         if (product.shouldActivate) {
           updateData.active = true;
+          console.log('[IMPORT-XML][STAND] Activating product:', product.barcode);
         }
         console.log('[IMPORT-XML][STAND] Updating product with:', updateData);
         dbProduct = await prisma.product.update({
@@ -83,7 +86,11 @@ export async function POST(req, context) {
         });
       }
 
-      importedProductIds.push({ productId: dbProduct.id, quantity: product.quantity });
+      importedProductIds.push({ 
+        productId: dbProduct.id, 
+        quantity: product.quantity,
+        clientPrice: product.clientPrice || 0
+      });
 
       await prisma.standProduct.upsert({
         where: {
@@ -106,11 +113,20 @@ export async function POST(req, context) {
     }
 
     // Create Import record first
+    if (!fileName) {
+      console.error('[IMPORT] No fileName provided, cannot create import record');
+      return NextResponse.json({ error: 'Filename is required for import' }, { status: 400 });
+    }
+    
     const importRecord = await prisma.import.create({
       data: {
-        userId: session.user.id,
-        standId,
-        fileName: fileName || null,
+        user: {
+          connect: { id: session.user.id }
+        },
+        stand: {
+          connect: { id: standId }
+        },
+        fileName: fileName,
       },
     });
 
@@ -136,10 +152,24 @@ export async function POST(req, context) {
         include: { store: { include: { partner: true } } },
       });
       let partnerId = null;
+      let partnerDiscount = 0;
       if (stand?.store?.partnerId) {
         partnerId = stand.store.partnerId;
+        partnerDiscount = stand.store.partner?.percentageDiscount || 0;
       }
-      await prisma.revision.create({
+      
+      console.log('[IMPORT-XML][STAND] Creating revision with:', {
+        nextNumber,
+        standId,
+        userId: session.user.id,
+        partnerId,
+        partnerDiscount,
+        importedProductIds: importedProductIds.length,
+        stand: stand ? { id: stand.id, name: stand.name, storeId: stand.storeId } : null,
+        store: stand?.store ? { id: stand.store.id, name: stand.store.name, partnerId: stand.store.partnerId } : null
+      });
+      
+      const revision = await prisma.revision.create({
         data: {
           number: nextNumber,
           standId,
@@ -147,10 +177,16 @@ export async function POST(req, context) {
           type: 'import',
           partnerId: partnerId,
           missingProducts: {
-            create: importedProductIds.map(p => ({ productId: p.productId, missingQuantity: p.quantity })),
+            create: importedProductIds.map(p => ({ 
+              productId: p.productId, 
+              missingQuantity: p.quantity,
+              priceAtSale: p.clientPrice * (1 - partnerDiscount / 100) // Apply partner discount
+            })),
           },
         },
       });
+      
+      console.log('[IMPORT-XML][STAND] Created revision:', revision.id);
     }
 
     return NextResponse.json({ success: true, priceChanges });

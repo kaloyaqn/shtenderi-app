@@ -23,7 +23,19 @@ export default function MobileProductCard({mp}) {
             <div className="flex justify-between">
               <span className="text-xs text-gray-500">Брой:</span>
               <span className="text-sm font-bold text-gray-900">
-                {mp.missingQuantity}
+                {mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity ? (
+                  <div className="text-right">
+                    <div>{mp.givenQuantity}</div>
+                    <div className="text-xs text-gray-500 font-normal">(искано: {mp.missingQuantity})</div>
+                  </div>
+                ) : !mp.isSold ? (
+                  <div className="text-right text-red-600">
+                    <div>{mp.missingQuantity}</div>
+                    <div className="text-xs text-red-500 font-normal">(не наличен)</div>
+                  </div>
+                ) : (
+                  mp.missingQuantity
+                )}
               </span>
             </div>
           </div>

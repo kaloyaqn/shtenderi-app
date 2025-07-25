@@ -15,6 +15,15 @@ export async function GET(req, { params }) {
       stand: { select: { id: true, name: true } },
       user: { select: { id: true, name: true, email: true } },
       checkedProducts: { include: { product: true } },
+      revisions: { 
+        select: { 
+          id: true, 
+          number: true, 
+          createdAt: true, 
+          status: true,
+          missingProducts: { select: { missingQuantity: true, givenQuantity: true } }
+        } 
+      },
     },
   });
   if (!check) {

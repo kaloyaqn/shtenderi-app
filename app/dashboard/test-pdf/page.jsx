@@ -15,7 +15,7 @@ export default function TestPdfPage() {
   const handleDownloadDynamicPdf = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/test-pdf', {
+      const response = await fetch('/api/mushroom-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

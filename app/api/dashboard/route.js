@@ -16,7 +16,7 @@ export async function GET() {
     prisma.store.count(),
   ]);
 
-  // Gross income this month (sum of all sales from revisions in the month)
+  // Gross income this month (sum of all sales from revisions in the month, including imports)
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -35,7 +35,9 @@ export async function GET() {
   let grossIncome = 0;
   for (const rev of revisionsThisMonth) {
     for (const mp of rev.missingProducts) {
-      grossIncome += (mp.missingQuantity || 0) * (mp.priceAtSale || 0);
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      grossIncome += (quantity || 0) * (mp.priceAtSale || 0);
     }
   }
 
@@ -62,7 +64,9 @@ export async function GET() {
     let standTotal = 0;
     for (const mp of rev.missingProducts) {
       const price = mp.priceAtSale || (mp.product?.clientPrice || 0);
-      standTotal += (mp.missingQuantity || 0) * price;
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      standTotal += (quantity || 0) * price;
     }
     salesByStandMap[standId] = (salesByStandMap[standId] || 0) + standTotal;
   }
@@ -77,7 +81,9 @@ export async function GET() {
     for (const mp of rev.missingProducts) {
       // Get product name
       const name = mp.product?.name || mp.productId;
-      productSalesMap[name] = (productSalesMap[name] || 0) + (mp.missingQuantity || 0);
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      productSalesMap[name] = (productSalesMap[name] || 0) + (quantity || 0);
     }
   }
   const topProducts = Object.entries(productSalesMap)

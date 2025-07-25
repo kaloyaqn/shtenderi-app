@@ -70,6 +70,7 @@ model Check {
   updatedAt DateTime @updatedAt
 
   checkedProducts CheckedProduct[]
+  revisions       Revision[] // One-to-many relationship with revisions
 }
 
 model CheckedProduct {
@@ -79,6 +80,8 @@ model CheckedProduct {
   product    Product  @relation(fields: [productId], references: [id])
   productId  String
   quantity   Int
+  originalQuantity Int? // Original quantity for sale mode comparison
+  standQuantityAtCheck Int? // Stand quantity at the time of check
   status     String   // "ok", "missing", "replaced"
 }
 
@@ -135,6 +138,7 @@ model Store {
   contact     String?                        // Лице за контакт
   phone       String?                        // Телефон
   createdAt   DateTime @default(now())
+  schedule    DateTime?  //График за проверка
 
   partner     Partner  @relation(fields: [partnerId], references: [id])
   partnerId   String                          // Външният ID на фирмата
@@ -156,6 +160,9 @@ model Revision {
   createdAt  DateTime @default(now())
   type       String   @default("manual") // NEW FIELD: origin of revision (e.g., 'import', 'manual', etc.)
   status     RevisionStatus @default(NOT_PAID) // <-- new field
+  checkId    String?  // Reference to the check that generated this sale
+
+  check      Check?   @relation(fields: [checkId], references: [id]) // Optional relationship with check
 
   missingProducts MissingProduct[]
   payments Payment[]
@@ -173,6 +180,7 @@ model MissingProduct {
   product     Product  @relation(fields: [productId], references: [id])
   productId   String
   missingQuantity Int
+  givenQuantity Int?   // Quantity actually scanned/transferred (doesn't affect stats)
   priceAtSale Float?
 }
 
@@ -263,6 +271,7 @@ model Refund {
   id         String   @id @default(uuid())
   user       User     @relation(fields: [userId], references: [id])
   userId     String
+  note       String?
   sourceType RefundSourceType
   sourceId   String // standId or storageId
   createdAt  DateTime @default(now())

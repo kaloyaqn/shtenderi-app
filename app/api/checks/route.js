@@ -24,6 +24,14 @@ export async function GET() {
       stand: { select: { id: true, name: true } },
       user: { select: { id: true, name: true, email: true } },
       _count: { select: { checkedProducts: true } },
+      revisions: { 
+        select: { 
+          id: true, 
+          number: true, 
+          createdAt: true, 
+          status: true 
+        } 
+      },
     },
     orderBy: { createdAt: 'desc' },
   });

@@ -1,4 +1,5 @@
-import { getStoreById, updateStore, deleteStore } from '@/lib/stores/store'
+import { getStoreById, updateStore, deleteStore, updateStoreSchedule } from '@/lib/stores/store'
+
 
 // GET: Връща магазин по ID с партньор
 export async function GET(req, { params }) {
@@ -18,12 +19,26 @@ export async function GET(req, { params }) {
 }
 
 // PUT: Редактира магазин
+
 export async function PUT(req, { params }) {
   try {
-    const { storeId } = params
-    const body = await req.json()
-    const store = await updateStore(storeId, body)
-    return Response.json(store)
+    const { storeId } = params;
+
+    const url = new URL(req.url, `http://${req.headers.get("host")}`);
+    const hasScheduleQuery = url.searchParams.has('schedule');
+
+    const body = await req.json();
+
+    if (hasScheduleQuery) {
+      // If ?schedule is present, update only the schedule
+      console.log("KUR")
+      const updated = await updateStoreSchedule(storeId, body);
+      return Response.json(updated);
+    }
+
+    // Otherwise, update the whole store
+    const store = await updateStore(storeId, body);
+    return Response.json(store);
   } catch (error) {
     console.error('[STORE_PUT_ERROR]', error)
     const status = error.status || 500

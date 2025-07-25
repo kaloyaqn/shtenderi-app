@@ -36,6 +36,7 @@ import {
   Printer,
   Send,
   Truck,
+  AlertTriangle,
 } from "lucide-react";
 import { IconInvoice } from "@tabler/icons-react";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -84,6 +85,7 @@ export default function RevisionDetailPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [cashRegisters, setCashRegisters] = useState([]);
+  const [unscannedProducts, setUnscannedProducts] = useState([]); // Products that weren't scanned in sale mode
   // --- Desktop only: payments state and fetch (must be at top for hook order) ---
   const [payments, setPayments] = useState([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
@@ -118,6 +120,31 @@ export default function RevisionDetailPage() {
       if (!res.ok) throw new Error("Failed to fetch revision");
       const data = await res.json();
       setRevision(data);
+      
+      // If this revision was created from a check, fetch all missing products from the check
+      if (data.checkId) {
+        try {
+          const checkRes = await fetch(`/api/stands/${data.standId}/checks/${data.checkId}`);
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            console.log('Check data:', checkData);
+            // Find ALL products that were missing from the check (not just unscanned ones)
+            const soldProductIds = data.missingProducts.map(mp => mp.productId);
+            const allMissingFromCheck = checkData.checkedProducts.filter(cp => 
+              cp.quantity > 0 && !soldProductIds.includes(cp.productId)
+            );
+            console.log('Missing from check:', {
+              soldProductIds,
+              allMissingFromCheck,
+              checkProducts: checkData.checkedProducts
+            });
+            console.log('Sample unscanned product:', allMissingFromCheck[0]);
+            setUnscannedProducts(allMissingFromCheck);
+          }
+        } catch (error) {
+          console.error("Failed to fetch missing products from check:", error);
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch revision:", error);
       toast.error("Failed to load revision data.");
@@ -365,8 +392,29 @@ export default function RevisionDetailPage() {
       0
     ) || 0;
 
-  // Filter products for mobile search
-  const filteredProducts = revision.missingProducts.filter(
+  // Prepare data for mobile (include both sold and unscanned products)
+  const soldProductsForMobile = revision.missingProducts.map((mp) => ({
+    ...mp,
+    name: mp.product?.name || "-",
+    barcode: mp.product?.barcode || "-",
+    givenQuantity: mp.givenQuantity,
+    isSold: true,
+  }));
+
+  const unscannedProductsDataForMobile = unscannedProducts.map((cp) => ({
+    id: cp.id,
+    productId: cp.productId,
+    product: cp.product,
+    missingQuantity: cp.originalQuantity || cp.quantity,
+    givenQuantity: 0, // Not scanned
+    priceAtSale: cp.product?.clientPrice || 0,
+    name: cp.product?.name || "-",
+    barcode: cp.product?.barcode || "-",
+    isSold: false, // Not sold
+  }));
+
+  const dataForMobile = [...soldProductsForMobile, ...unscannedProductsDataForMobile];
+  const filteredProductsForMobile = dataForMobile.filter(
     (mp) =>
       !searchTerm ||
       mp.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -381,7 +429,7 @@ export default function RevisionDetailPage() {
         totalRevisionPrice={totalRevisionPrice}
         fetchPayments={fetchPayments}
         revisionId={revisionId}
-        filteredProducts={filteredProducts}
+        filteredProducts={filteredProductsForMobile}
         handlePrintStock={handlePrintStock}
         revision={revision}
         contentRef={contentRef}
@@ -409,7 +457,29 @@ export default function RevisionDetailPage() {
     {
       accessorKey: "missingQuantity",
       header: "Брой",
-      cell: ({ row }) => row.original.missingQuantity,
+      cell: ({ row }) => {
+        const mp = row.original;
+        const hasDiscrepancy = mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity;
+        const isUnscanned = !mp.isSold;
+        
+        return (
+          <div className={`${hasDiscrepancy || isUnscanned ? "text-red-600 font-semibold" : ""} ${isUnscanned ? "bg-red-50 p-1 rounded" : ""}`}>
+            {hasDiscrepancy ? (
+              <div>
+                <div>{mp.givenQuantity}</div>
+                <div className="text-xs text-red-500">(искано: {mp.missingQuantity})</div>
+              </div>
+            ) : isUnscanned ? (
+              <div>
+                <div>{mp.missingQuantity}</div>
+                <div className="text-xs text-red-500">(не наличен)</div>
+              </div>
+            ) : (
+              mp.missingQuantity
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "priceAtSale",
@@ -422,23 +492,67 @@ export default function RevisionDetailPage() {
     },
   ];
 
-  // Flatten data for DataTable
-  const data = revision.missingProducts.map((mp) => ({
+  // Flatten data for DataTable - include both sold and unscanned products
+  const soldProducts = revision.missingProducts.map((mp) => ({
     ...mp,
     name: mp.product?.name || "-",
     barcode: mp.product?.barcode || "-",
+    givenQuantity: mp.givenQuantity,
+    isSold: true,
   }));
+
+  const unscannedProductsData = unscannedProducts.map((cp) => ({
+    id: cp.id,
+    productId: cp.productId,
+    product: cp.product,
+    missingQuantity: cp.quantity, // Use quantity (missing from check), not originalQuantity
+    givenQuantity: 0, // Not scanned
+    priceAtSale: cp.product?.clientPrice || 0,
+    name: cp.product?.name || "-",
+    barcode: cp.product?.barcode || "-",
+    isSold: false, // Not sold
+  }));
+
+  const data = [...soldProducts, ...unscannedProductsData];
+
+  // Debug logging
+  console.log('Revision data:', {
+    revisionId: revision?.id,
+    checkId: revision?.checkId,
+    soldProductsCount: soldProducts.length,
+    unscannedProductsCount: unscannedProductsData.length,
+    totalDataCount: data.length,
+    soldProducts: soldProducts,
+    unscannedProducts: unscannedProductsData
+  });
+
+  // Filter products for mobile search (include both sold and unscanned products)
+  const filteredProducts = data.filter(
+    (mp) =>
+      !searchTerm ||
+      mp.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      mp.product?.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const hasMissingProducts =
     revision.missingProducts && revision.missingProducts.length > 0;
+  const hasUnscannedProducts = unscannedProducts.length > 0;
 
-  // Calculate totals for print table
+  // Calculate totals for print table (only sold products)
   const totalQuantity = revision.missingProducts.reduce(
-    (sum, mp) => sum + mp.missingQuantity,
+    (sum, mp) => {
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      return sum + quantity;
+    },
     0
   );
   const totalValue = revision.missingProducts.reduce(
-    (sum, mp) => sum + mp.missingQuantity * (mp.product?.clientPrice || 0),
+    (sum, mp) => {
+      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+      return sum + quantity * (mp.product?.clientPrice || 0);
+    },
     0
   );
   const adminName = revision.user?.name || revision.user?.email || "";
@@ -583,6 +697,17 @@ export default function RevisionDetailPage() {
                       {revision.user?.name || revision.user?.email || "N/A"}
                     </p>
                   </div>
+
+                  {revision.checkId && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Свързана проверка
+                      </label>
+                      <p className="text-base font-mono text-sm">
+                        #{revision.checkId.slice(-8)}
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -615,18 +740,43 @@ export default function RevisionDetailPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base lg:text-lg">
-                      Продадени продукти
+                      Продукти от продажбата
                     </CardTitle>
-                    <Badge variant="outline">2 продукта</Badge>
+                    <div className="flex items-center gap-2">
+                      {(hasMissingProducts && hasUnscannedProducts) && (
+                        <Badge variant="destructive" className="text-xs">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Несканирани
+                        </Badge>
+                      )}
+                      <Badge variant="outline">{data.length} продукта</Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {revision.missingProducts?.length > 0 ? (
+                  {data.length > 0 ? (
                     <>
+                      {/* Warning for missing products from check */}
+                      {hasUnscannedProducts && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                          <div className="flex items-center gap-2 text-red-700">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span className="text-sm font-medium">
+                              Някои продукти от проверката не са били налични за продажба. Те са показани в червено и не са включени в продажбата.
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       <DataTable
                         columns={columns}
                         data={data}
                         searchKey="barcode"
+                        rowClassName={(row) => {
+                          const mp = row.original;
+                          const hasDiscrepancy = mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity;
+                          const isUnscanned = !mp.isSold;
+                          return hasDiscrepancy || isUnscanned ? "bg-red-50 border-l-4 border-l-red-500" : "";
+                        }}
                       />
                       {/* Payment form under DataTable */}
                       {/* <form
