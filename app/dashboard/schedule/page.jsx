@@ -62,8 +62,8 @@ export default function SchedulePage() {
 
   async function fetchStores() {
     try {
-      const res = await fetch("/api/stores");
-      if (!res.ok) {
+        const response = await fetch(`/api/stores/${storeId}/schedules?format=fullcalendar`);
+        if (!res.ok) {
         throw new Error();
       }
 
