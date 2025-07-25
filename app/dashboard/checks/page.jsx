@@ -59,7 +59,15 @@ export default function ChecksPage() {
         </TableLink>
       ),
     },
-
+    {
+      accessorKey: "revision",
+      header: "Продажба",
+      cell: ({ row }) => (
+        <TableLink href={`/dashboard/stands/${row.original.stand.id}`}>
+          {row.original.revision?.number || "-"}
+        </TableLink>
+      ),
+    },
     {
       accessorKey: "createdAt",
       header: "Дата",

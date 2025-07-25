@@ -8,6 +8,15 @@ export async function GET(req, { params }) {
     include: {
       checkedProducts: { include: { product: true } },
       user: { select: { id: true, name: true, email: true } },
+      revisions: { 
+        select: { 
+          id: true, 
+          number: true, 
+          createdAt: true, 
+          status: true,
+          missingProducts: { select: { missingQuantity: true, givenQuantity: true } }
+        } 
+      },
     },
   });
   if (!check || check.standId !== standId) {

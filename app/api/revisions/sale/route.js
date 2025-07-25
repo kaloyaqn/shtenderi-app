@@ -25,6 +25,17 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Check not found' }, { status: 404 });
     }
 
+    // Check if this check already has a revision (prevent duplicate sales)
+    const existingRevision = await prisma.revision.findFirst({
+      where: { checkId: checkId }
+    });
+
+    if (existingRevision) {
+      return NextResponse.json({ 
+        error: 'Check already has a revision/sale. Cannot create duplicate sales from the same check.' 
+      }, { status: 409 });
+    }
+
     // Get partner info from stand
     const stand = await prisma.stand.findUnique({
       where: { id: standId },

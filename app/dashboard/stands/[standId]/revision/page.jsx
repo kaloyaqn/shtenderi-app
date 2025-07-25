@@ -38,6 +38,7 @@ export default function StandRevisionPage({ params, searchParams }) {
   const [showCheck, setShowCheck] = useState(false);
   const [inputReadOnly, setInputReadOnly] = useState(false);
   const [finishing, setFinishing] = useState(false); // loading state for finish button
+  const [checkAlreadyHasRevision, setCheckAlreadyHasRevision] = useState(false); // track if check already has revision
   const { data: session } = useSession();
   const userId = session?.user?.id || null;
   const router = useRouter();
@@ -83,6 +84,16 @@ export default function StandRevisionPage({ params, searchParams }) {
       fetch(`/api/stands/${standId}/checks/${checkIdFromParams}`)
         .then(res => res.json())
         .then(check => {
+          console.log('Check data loaded:', check);
+          console.log('Check revisions:', check.revisions);
+          
+          // Check if this check already has a revision
+          if (check.revisions && check.revisions.length > 0) {
+            console.log('Check already has revision, setting error state');
+            setCheckAlreadyHasRevision(true);
+            return;
+          }
+          
           // Set up missing products for sale mode
           setRemaining(
             check.checkedProducts.map(cp => ({
@@ -97,6 +108,9 @@ export default function StandRevisionPage({ params, searchParams }) {
               quantity: cp.quantity,
             }))
           );
+        })
+        .catch(err => {
+          console.error('Error fetching check:', err);
         });
     }
   }, [checkIdFromParams, mode, standId]);
@@ -487,6 +501,8 @@ export default function StandRevisionPage({ params, searchParams }) {
         if (data.insufficient && data.insufficient.length > 0) {
           const errorList = data.insufficient.map(e => `${e.productName}: нужно ${e.needed}, налично ${e.available}`).join('\n');
           toast.error(`Недостатъчни количества в склада за:\n${errorList}`);
+        } else if (data.error && data.error.includes('already has a revision')) {
+          toast.error('Тази проверка вече е превърната в продажба. Не можете да създадете дублираща продажба.');
         } else {
           toast.error('Недостатъчни количества в склада.');
         }
@@ -568,6 +584,41 @@ export default function StandRevisionPage({ params, searchParams }) {
   // In sale mode, render split UI
   if (mode === 'sale') {
     if (saleLoading) return <LoadingScreen />;
+    
+    console.log('Sale mode render - checkAlreadyHasRevision:', checkAlreadyHasRevision);
+    
+    // Show error if check already has a revision
+    if (checkAlreadyHasRevision) {
+      return (
+        <div className="pb-15">
+          <BasicHeader title="Грешка" hasBackButton />
+          <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
+            <div className="text-center max-w-md">
+              <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Проверката вече е превърната в продажба
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Тази проверка вече има създадена продажба. Не можете да създадете дублираща продажба от същата проверка.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Button asChild>
+                  <Link href={`/dashboard/checks/${checkId}`}>
+                    Виж проверката
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href={`/dashboard/stands/${standId}`}>
+                    Назад към щанда
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="pb-15">
         <BasicHeader title={`Продажба след проверка`}>

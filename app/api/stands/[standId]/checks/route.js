@@ -10,6 +10,14 @@ export async function GET(req, { params }) {
         include: { product: true },
       },
       user: { select: { id: true, name: true, email: true } },
+      revisions: { 
+        select: { 
+          id: true, 
+          number: true, 
+          createdAt: true, 
+          status: true 
+        } 
+      },
     },
     orderBy: { createdAt: 'desc' },
   });

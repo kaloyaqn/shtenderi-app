@@ -146,16 +146,22 @@ export default function CheckIdPage() {
               <Truck /> Зареди от склад
             </Button>
           )}
-          <Button
-            className="w-full"
-            onClick={() =>
-              router.push(
-                `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
-              )
-            }
-          >
-            <BadgeDollarSignIcon /> Превърни в продажба
-          </Button>
+          {check.revisions && check.revisions.length > 0 ? (
+            <Button variant="outline" className="w-full" disabled>
+              <BadgeDollarSignIcon /> Вече превърната в продажба
+            </Button>
+          ) : (
+            <Button
+              className="w-full"
+              onClick={() =>
+                router.push(
+                  `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
+                )
+              }
+            >
+              <BadgeDollarSignIcon /> Превърни в продажба
+            </Button>
+          )}
         </BasicHeader>
         <div className="p-1 space-y-3">
           <div className="rounded-lg border bg-white p-4 mb-2">
@@ -245,15 +251,21 @@ export default function CheckIdPage() {
           </Button>
         )} */}
         <div className="h-6 w-px bg-gray-300"></div>
-        <Button
-          onClick={() =>
-            router.push(
-              `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
-            )
-          }
-        >
-          <BadgeDollarSignIcon /> Превърни в продажба
-        </Button>
+        {check.revisions && check.revisions.length > 0 ? (
+          <Button variant="outline" disabled>
+            <BadgeDollarSignIcon /> Вече превърната в продажба
+          </Button>
+        ) : (
+          <Button
+            onClick={() =>
+              router.push(
+                `/dashboard/stands/${check.stand.id}/revision?checkId=${check.id}`
+              )
+            }
+          >
+            <BadgeDollarSignIcon /> Превърни в продажба
+          </Button>
+        )}
       </BasicHeader>
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-2">
         <div className="lg:col-span-1 order-2 lg:order-1 sticky top-2 self-start z-10">
