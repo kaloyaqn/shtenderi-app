@@ -138,12 +138,24 @@ model Store {
   contact     String?                        // Лице за контакт
   phone       String?                        // Телефон
   createdAt   DateTime @default(now())
-  schedule    DateTime?  //График за проверка
 
   partner     Partner  @relation(fields: [partnerId], references: [id])
   partnerId   String                          // Външният ID на фирмата
 
   stands      Stand[]                         // Щендери в магазина
+  schedules   StoreSchedule[]                 // График за проверка
+}
+
+model StoreSchedule {
+  id        String   @id @default(uuid())
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId   String
+  date      DateTime
+  type      String?  // e.g., "check", "delivery", "maintenance"
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@unique([storeId, date])
 }
 
 model Revision {
