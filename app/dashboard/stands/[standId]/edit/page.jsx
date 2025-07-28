@@ -190,7 +190,7 @@ const reactToPrintFn = useReactToPrint({ contentRef });
             {/* QR code for stand URL */}
             <div className="flex flex-col items-center mt-8">
               <div className="mb-2 font-semibold">QR код за ревизия на щанд:</div>
-              <QRCode ref={contentRef} value={`https://shtenderi-app-production.up.railway.app/dashboard/stands/${stand.id}/revision`} size={180} />
+              <QRCode ref={contentRef} value={`https://stendo.bg/dashboard/stands/${stand.id}/revision`} size={180} />
               <div className="mt-2 text-xs text-gray-500">https://shtenderi-app-production.up.railway.app/dashboard/stands/{stand.id}/revision</div>
             </div>
 
