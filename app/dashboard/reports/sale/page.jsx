@@ -1,10 +1,12 @@
 "use client";
 
 import BasicHeader from "@/components/BasicHeader";
+import LoadingScreen from "@/components/LoadingScreen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { DataTable } from "@/components/ui/data-table";
+import DatePicker from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import TableLink from "@/components/ui/table-link";
 import { IconEye } from "@tabler/icons-react";
@@ -12,10 +14,22 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 
 export default function ReportsSale() {
+  // stands
   const [stands, setStands] = useState([]);
   const [selectedStand, setSelectedStand] = useState("");
+  //   Users
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState("");
+
+  //   dates
+  const [dateFrom, setDateFrom] = useState(null);
+  const [dateTo, setDateTo] = useState(null);
+
+  const [loading, setLoading] = useState(false);
+
+
+
+  //   Sales
   const [sales, setSales] = useState([]);
 
   const searchParams = useSearchParams();
@@ -23,22 +37,52 @@ export default function ReportsSale() {
 
   // Memoize the fetchSales function
   const fetchSales = useCallback(async () => {
+
+
     const stand = searchParams.get("stand");
     const user = searchParams.get("user");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo")
+
+    setLoading(true)
 
     try {
       const params = new URLSearchParams();
       if (stand) params.set("stand", stand);
       if (user) params.set("userId", user);
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
+      
+
 
       const res = await fetch(`/api/reports/sales?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch Sales");
 
       const data = await res.json();
-      setSales(data);
+
+      // Combine missing products and refund products into one array
+      // Add a type field to distinguish between them
+      const missingProductsWithType = data.missingProducts.map((item) => ({
+        ...item,
+        type: "missing",
+      }));
+
+      const refundProductsWithType = data.refundProducts.map((item) => ({
+        ...item,
+        type: "refund",
+      }));
+
+      const combinedData = [
+        ...missingProductsWithType,
+        ...refundProductsWithType,
+      ];
+      setSales(combinedData);
     } catch (err) {
       console.error("error fetching sales", err);
+    } finally {
+        setLoading(false)
     }
+
   }, [searchParams]);
 
   // Fetch stands and users once on mount
@@ -51,13 +95,27 @@ export default function ReportsSale() {
   useEffect(() => {
     const standParam = searchParams.get("stand");
     const userParam = searchParams.get("user");
-    
+    const dateFromParam = searchParams.get("dateFrom");
+    const dateToParam = searchParams.get("dateTo");
+
     if (standParam) {
       setSelectedStand(standParam);
     }
-    
+
     if (userParam) {
       setSelectedUser(userParam);
+    }
+
+    if (dateFromParam) {
+      setDateFrom(new Date(dateFromParam));
+    } else {
+      setDateFrom(null);
+    }
+
+    if (dateToParam) {
+      setDateTo(new Date(dateToParam));
+    } else {
+      setDateTo(null);
     }
   }, [searchParams]);
 
@@ -71,16 +129,20 @@ export default function ReportsSale() {
     const filters = {
       stand: selectedStand,
       user: selectedUser,
+      dateFrom: dateFrom,
+      dateTo: dateTo
     };
     handleSearch(filters);
   }
 
   const standOptions = [
     { value: "", label: "Всички щендери" },
-    ...(stands.length > 0 ? stands.map((stand) => ({
-      value: stand.id,
-      label: stand.name,
-    })) : [])
+    ...(stands.length > 0
+      ? stands.map((stand) => ({
+          value: stand.id,
+          label: stand.name,
+        }))
+      : []),
   ];
 
   const userOptions = [
@@ -88,7 +150,7 @@ export default function ReportsSale() {
     ...users.map((user) => ({
       value: user.id,
       label: user.name,
-    }))
+    })),
   ];
 
   async function fetchStands() {
@@ -130,123 +192,129 @@ export default function ReportsSale() {
       params.delete("user");
     }
 
+    if (filters.dateFrom && filters.dateFrom !== null) {
+        const year = filters.dateFrom.getFullYear();
+        const month = String(filters.dateFrom.getMonth() + 1).padStart(2, '0');
+        const day = String(filters.dateFrom.getDate()).padStart(2, '0');
+        params.set("dateFrom", `${year}-${month}-${day}`);
+    } else {
+        params.delete("dateFrom")
+    }
+
+    if (filters.dateTo && filters.dateTo !== null) {
+        const year = filters.dateTo.getFullYear();
+        const month = String(filters.dateTo.getMonth() + 1).padStart(2, '0');
+        const day = String(filters.dateTo.getDate()).padStart(2, '0');
+        params.set("dateTo", `${year}-${month}-${day}`);
+    } else {
+        params.delete("dateTo")
+    }
+
+
     router.push(`/dashboard/reports/sale?${params.toString()}`);
   }
 
   const columns = [
     {
-      accessorKey: "number",
-      header: "№",
-      cell: ({ row }) => row.original.number,
+      accessorKey: "type",
+      header: "Тип",
+      cell: ({ row }) => {
+        const type = row.original.type;
+        return (
+          <Badge variant={type === "missing" ? "success" : "destructive"}>
+            {type === "missing" ? "Продаден" : "Върнат"}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "product.name",
+      header: "Продукт",
+      cell: ({ row }) => row.original.product?.name || "-",
+    },
+    {
+      accessorKey: "product.barcode",
+      header: "Баркод",
+      cell: ({ row }) => row.original.product?.barcode || "-",
+    },
+    {
+      accessorKey: "missingQuantity",
+      header: "Количество",
+      cell: ({ row }) => {
+        if (row.original.type === "missing") {
+          return row.original.missingQuantity || 0;
+        } else {
+          return row.original.quantity || 0;
+        }
+      },
+    },
+    {
+      accessorKey: "priceAtSale",
+      header: "Цена",
+      cell: ({ row }) => {
+        const price =
+          row.original.type === "missing"
+            ? row.original.priceAtSale
+            : row.original.priceAtRefund;
+        return price ? `${price.toFixed(2)} лв.` : "-";
+      },
+    },
+    {
+      accessorKey: "revision.createdAt",
+      header: "Дата",
+      cell: ({ row }) => {
+        const date =
+          row.original.type === "missing"
+            ? row.original.revision?.createdAt
+            : row.original.refund?.createdAt;
+        return date ? new Date(date).toLocaleString() : "-";
+      },
+    },
+    {
+      accessorKey: "user",
+      header: "Потребител",
+      cell: ({ row }) => {
+        const user =
+          row.original.type === "missing"
+            ? row.original.revision?.user
+            : row.original.refund?.user;
+        return user?.name || "-";
+      },
     },
     {
       accessorKey: "source",
       header: "Източник",
       cell: ({ row }) => {
-        const stand = row.original.stand;
-        const storage = row.original.storage;
-        if (storage) {
-          return (
-            <TableLink href={`/dashboard/storages/${storage.id}`}>
-              {storage.name}
-            </TableLink>
-          );
-        } else if (stand) {
-          return (
-            <TableLink href={`/dashboard/stands/${stand.id}`}>
-              {stand.name}
-            </TableLink>
-          );
+        if (row.original.type === "missing") {
+          const stand = row.original.revision?.stand;
+          const storage = row.original.revision?.storage;
+          if (storage) {
+            return (
+              <TableLink href={`/dashboard/storages/${storage.id}`}>
+                {storage.name}
+              </TableLink>
+            );
+          } else if (stand) {
+            return (
+              <TableLink href={`/dashboard/stands/${stand.id}`}>
+                {stand.name}
+              </TableLink>
+            );
+          }
         } else {
-          return <span className="text-gray-400">-</span>;
-        }
-      },
-    },
-    {
-      accessorKey: "type",
-      header: "Тип",
-      cell: ({ row }) => {
-        const type = row.original.type;
-        if (!type) return null;
-        return (
-          <span
-            className={`px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 border ${
-              type === "import"
-                ? "border-blue-400 text-blue-700"
-                : "border-gray-300 text-gray-600"
-            }`}
-          >
-            {type === "import" ? "Импорт" : "Ръчно"}
-          </span>
-        );
-      },
-    },
-    {
-      accessorKey: "parnter",
-      header: "Партньор",
-      cell: ({ row }) => row.original.partner.name
-    },
-    {
-      accessorKey: "userName",
-      header: "Потребител",
-      cell: ({ row }) => row.original.user.name
+          // For refunds, use the sourceInfo that includes the actual stand/storage data
+          const sourceInfo = row.original.sourceInfo;
+          if (sourceInfo) {
+            const isStand = row.original.refund?.sourceType === "STAND";
+            const href = isStand
+              ? `/dashboard/stands/${sourceInfo.id}`
+              : `/dashboard/storages/${sourceInfo.id}`;
 
-    },
-    {
-      accessorKey: "createdAt",
-      header: "Дата",
-      cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
-    },
-    // {
-    //   accessorKey: "missingProducts",
-    //   header: "кол.",
-    //   cell: ({ row }) => row.original.missingProducts?.length || 0,
-    // },
-    {
-      accessorKey: "status",
-      header: "Статус",
-      cell: ({ row }) => {
-        const type = row.original.status;
-        if (!type) return null;
-
-        let variant = "destructive";
-        if (type === "PAID") {
-          variant = "success";
+            return <TableLink href={href}>{sourceInfo.name}</TableLink>;
+          }
         }
-        return (
-          <>
-            <Badge variant={variant}>
-              {type === "NOT_PAID" ? "Неплатена" : "Платена"}
-            </Badge>
-          </>
-        );
+        return "-";
       },
-    },
-    // {
-    //   accessorKey: "invoiceNumber",
-    //   header: "Фактура",
-    //   cell: ({ row }) => {
-    //     const invoice = invoices[row.original.number];
-    //     return invoice ? (
-    //       <TableLink href={`/dashboard/invoices/${invoice.id}`}>
-    //         {invoice.invoiceNumber}
-    //       </TableLink>
-    //     ) : (
-    //       "-"
-    //     );
-    //   },
-    // },
-    {
-      id: "actions",
-      cell: ({ row }) => (
-        <Button
-          size="sm"
-          variant="table"
-          onClick={() => router.push(`/dashboard/revisions/${row.original.id}`)}
-        >
-          <IconEye /> Виж
-        </Button>
-      ),
     },
   ];
 
@@ -257,47 +325,56 @@ export default function ReportsSale() {
         subtitle={"Направи лесно справка за твоите продажби"}
       />
 
+      {loading ? <><LoadingScreen /></> : <>
+      
+        <DataTable
+        extraFilters={
+          <>
+            <form
+              className="flex md:flex-row flex-col gap-2 w-full items-end"
+              onSubmit={handleFormSubmit}
+            >
+              <div>
+                <Label className="mb-2">Щендер</Label>
+                <Combobox
+                  options={standOptions}
+                  value={selectedStand}
+                  onValueChange={setSelectedStand}
+                  placeholder="Избери щендер..."
+                  searchPlaceholder="Търси щендери..."
+                  emptyText="Няма намерени щендери."
+                />
+              </div>
 
+              <div>
+                <Label className="mb-2">Потребител</Label>
+                <Combobox
+                  options={userOptions}
+                  value={selectedUser}
+                  onValueChange={setSelectedUser}
+                  placeholder={"Избери потребител..."}
+                  emptyText="Няма намерени потребители..."
+                />
+              </div>
 
-      <DataTable
-      extraFilters={(
-        < >
-              <form className="flex md:flex-row flex-col gap-2 w-full items-end" onSubmit={handleFormSubmit}>
+              <div>
+                <Label className="mb-2">Дата от</Label>
+                <DatePicker setDate={setDateFrom} date={dateFrom} />
+              </div>
+              <div>
+                <Label className="mb-2">Дата до</Label>
+                <DatePicker setDate={setDateTo} date={dateTo} />
+              </div>
 
-        <div>
-            <Label className='mb-2'>
-                Щендер
-            </Label>
-            <Combobox
-          options={standOptions}
-          value={selectedStand}
-          onValueChange={setSelectedStand}
-          placeholder="Избери щендер..."
-          searchPlaceholder="Търси щендери..."
-          emptyText="Няма намерени щендери."
-        />
-        </div>
-        
-        <div>
-        <Label className='mb-2'>
-            Потребител
-        </Label>
-        <Combobox
-          options={userOptions}
-          value={selectedUser}
-          onValueChange={setSelectedUser}
-          placeholder={"Избери потребител..."}
-          emptyText="Няма намерени потребители..."
-        />
-        </div>
-
-        <Button type="submit" >Търси</Button>
-      </form>
-        </>
-      )}
-      data={sales} columns={columns} />
+              <Button type="submit">Търси</Button>
+            </form>
+          </>
+        }
+        data={sales}
+        columns={columns}
+      />
+      </>}
     </>
   );
 }
-
 // da se pokazvat produktite ne prodajbite
