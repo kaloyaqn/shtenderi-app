@@ -34,6 +34,18 @@ export async function GET(req) {
       storages: user.userStorages.map(us => us.storage),
     });
   }
+
+  // Add authentication check for main users endpoint
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Add role check - only admins can access all users
+  if (session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+  }
+
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -80,6 +92,17 @@ export async function GET(req) {
 
 // Create a new user (POST)
 export async function POST(req) {
+  // Add authentication check for creating users
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Add role check - only admins can create users
+  if (session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+  }
+
   try {
     const { name, email, password, role } = await req.json();
     if (!email || !password || !role) {

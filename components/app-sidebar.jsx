@@ -65,67 +65,47 @@ const groupedDocuments = {
     { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
     { name: "Каси", url: "/dashboard/cash-registers", icon: IconCashRegister },
     { name: "Движение каси", url: "/dashboard/payments", icon: IconCashMove , adminOnly: true },
-
-    
   ],
   "Справки и счетоводни документи": [
     { name: "Импорти", url: "/dashboard/imports", icon: ImportIcon, adminOnly: true },
     { name: "Проверки", url: "/dashboard/checks", icon: CheckCheckIcon, adminOnly: false },
-
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
     { name: "Премествания", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
-
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
-        { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
-
-    
+    { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
+    { 
+      name: "Справки", 
+      icon: IconSettings, 
+      hasSubmenus: [
+        { title: "Продажба", icon: IconHelp, link: "/dashboard/reports/sale" },
+        { title: "Подменю 2", icon: IconSearch, link: "/dashboard/example2" },
+        { title: "Подменю 3", icon: IconCash, link: "/dashboard/example3" }
+      ]
+    },
   ],
   "Основни": [
     { name: "Потребители", url: "/dashboard/users", icon: User, adminOnly: true },
     { name: "Номенклатура", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
   ],
-  // "Нови": [
-  //   { name: "Каси", url: "/dashboard/cash-registers", icon: IconCashRegister, adminOnly: true },
-  //   { name: "Плащания", url: "/dashboard/payments", icon: IconCash, adminOnly: true },
-  // ],
-  // Счетоводство: [
-  //   { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
-  //   { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
-  //   { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
-  // ],
-  // Склад: [
-  //   { name: "Щендери", url: "/dashboard/stands", icon: IconFileWord },
-  //   { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
-  //   { name: "Продукти", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
-  //   { name: "Премествания", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
-  // ],
-  // Контрагенти: [
-  //   { name: "Партньори", url: "/dashboard/partners", icon: PersonStanding },
-  //   { name: "Магазини", url: "/dashboard/stores", icon: Store, adminOnly: true },
-  // ],
-  // Потребители: [
-  //   { name: "Потребители", url: "/dashboard/users", icon: User, adminOnly: true },
-  // ],
 };
-
 
 const navSecondary = [
     {
-      title: "Settings",
+      title: "Настройки",
       url: "#",
       icon: IconSettings,
     },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
+    // {
+    //   title: "Get Help",
+    //   url: "#",
+    //   icon: IconHelp,
+    // },
+    // {
+    //   title: "Search",
+    //   url: "#",
+    //   icon: IconSearch,
+    // },
 ];
 
 export function AppSidebar({
@@ -163,7 +143,7 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className={'overflow-x-hidden'}>
         <NavMain items={groupedDocuments["Начало"]}/>
         <NavDocuments navGroups={visibleNavGroups} />
         <NavSecondary items={navSecondary} className="mt-auto" />

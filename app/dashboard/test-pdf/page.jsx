@@ -12,6 +12,12 @@ const sampleProducts = [
 export default function TestPdfPage() {
   const [loading, setLoading] = useState(false);
 
+  const sendTestEmail = async () => {
+    const res = await fetch('/api/email/weekly', { method: 'POST' });
+    const data = await res.json();
+    console.log(data);
+}
+
   const handleDownloadDynamicPdf = async () => {
     setLoading(true);
     try {
@@ -52,6 +58,10 @@ export default function TestPdfPage() {
       <Button onClick={handleDownloadDynamicPdf} disabled={loading}>
         {loading ? 'Generating...' : 'Download Dynamic PDF'}
       </Button>
+
+        <button
+        onClick={sendTestEmail}
+        >test</button>
     </div>
   );
 } 

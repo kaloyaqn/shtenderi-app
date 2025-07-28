@@ -11,7 +11,6 @@ import AnnouncementModal from "@/components/announcements/NewDesign";
 import VersionBanner from "@/components/version-banner";
 import PageHelpTour from "@/components/help/PageHelpTour";
 
-
 export default async function DashboardLayout({ children }) {
   const session = await getServerSession(authOptions);
   console.log("Current user session:", session);
