@@ -27,8 +27,9 @@ export async function GET(req) {
         const barcode = searchParams.get("barcode"); // barcode filter
         const revisionType = searchParams.get("revisionType"); // import, manual
         const productId = searchParams.get("productId")?.split(','); // product filter
+        const productName = searchParams.get("productName"); // product name filter
         
-        console.log('API Debug - Received params:', { stand, userId, dateFrom, dateTo, status, type, partnerId, barcode, revisionType, productId });
+        console.log('API Debug - Received params:', { stand, userId, dateFrom, dateTo, status, type, partnerId, barcode, revisionType, productId, productName });
         
         let whereClause = {
             revision: {
@@ -53,7 +54,12 @@ export async function GET(req) {
                 ...(dateTo && {
                     createdAt: {lte: new Date(dateTo + 'T23:59:59.999Z')}
                 })
-            }
+            },
+            ...(productName && {
+                product: {
+                    name: {contains: productName, mode: 'insensitive'}
+                }
+            })
         }
 
         // Fix: If we have both dateFrom and dateTo, we need to merge the createdAt conditions
@@ -149,7 +155,12 @@ export async function GET(req) {
                 ...(dateTo && {
                     createdAt: {lte: new Date(dateTo + 'T23:59:59.999Z')}
                 })
-            }
+            },
+            ...(productName && {
+                product: {
+                    name: {contains: productName, mode: 'insensitive'}
+                }
+            })
         };
 
         // Fix: If we have both dateFrom and dateTo, we need to merge the createdAt conditions

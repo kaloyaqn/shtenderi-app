@@ -41,6 +41,8 @@ export default function ReportsSale() {
   const [productType, setProductType] = useState("");
   //   Barcode
   const [barcode, setBarcode] = useState("");
+  //   Product name
+  const [productName, setProductName] = useState("");
   //   Revision type
   const [revisionType, setRevisionType] = useState("");
   //   Sales
@@ -65,6 +67,7 @@ export default function ReportsSale() {
     const barcode = searchParams.get("barcode");
     const revisionType = searchParams.get("revisionType");
     const productBarcodes = searchParams.get("productBarcodes");
+    const productName = searchParams.get("productName");
 
     setLoading(true);
 
@@ -85,6 +88,7 @@ export default function ReportsSale() {
       } else if (barcode) {
         params.set("barcode", barcode);
       }
+      if (productName) params.set("productName", productName);
 
       const res = await fetch(`/api/reports/sales?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch Sales");
@@ -166,6 +170,7 @@ export default function ReportsSale() {
     setSelectedProducts([]);
     setProductType('');
     setBarcode('');
+    setProductName('');
     setRevisionType('');
   }
 
@@ -191,6 +196,7 @@ export default function ReportsSale() {
     const barcodeParam = searchParams.get("barcode")
     const revisionTypeParam = searchParams.get("revisionType")
     const productBarcodesParam = searchParams.get("productBarcodes")
+    const productNameParam = searchParams.get("productName")
 
     if (standParam) {
       // Handle comma-separated values for MultiCombobox
@@ -252,6 +258,10 @@ export default function ReportsSale() {
         setSelectedProducts([]);
     }
 
+    if (productNameParam) {
+        setProductName(productNameParam)
+    }
+
   }, [searchParams]);
 
   useEffect(() => {
@@ -271,6 +281,7 @@ export default function ReportsSale() {
       barcode: barcode,
       revisionType: revisionType,
       productBarcodes: selectedProducts,
+      productName: productName,
     };
     handleSearch(filters);
   }
@@ -371,6 +382,12 @@ export default function ReportsSale() {
         params.set("productBarcodes", filters.productBarcodes.join(','));
     } else {
         params.delete("productBarcodes")
+    }
+
+    if (filters.productName && filters.productName !== "") {
+        params.set("productName", filters.productName)
+    } else {
+        params.delete("productName")
     }
 
     router.push(`/dashboard/reports/sale?${params.toString()}`);
@@ -552,7 +569,100 @@ export default function ReportsSale() {
                   className="flex flex-col gap-4 w-full"
                   onSubmit={handleFormSubmit}
                 >
+                  {/* Дата */}
                   <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <div className="w-full">
+                      <Label className="mb-2">Дата от</Label>
+                      <DatePicker setDate={setDateFrom} date={dateFrom} className="w-full" triggerClassName="w-full" />
+                    </div>
+                    <div className="w-full">
+                      <Label className="mb-2">Дата до</Label>
+                      <DatePicker setDate={setDateTo} date={dateTo} className="w-full" triggerClassName="w-full" />
+                    </div>
+                  </div>
+
+                  {/* Продукт */}
+                  <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <div className="w-full">
+                      <Label className="mb-2">Продукти</Label>
+                      <MultiCombobox
+                        options={productOptions}
+                        value={selectedProducts}
+                        onValueChange={setSelectedProducts}
+                        placeholder={"Избери продукти..."}
+                        emptyText="Няма намерени продукти..."
+                        className="w-full"
+                        triggerClassName="w-full"
+                      />
+                    </div>
+                    <div className="w-full">
+                      <Label className="mb-2">Име на продукт</Label>
+                      <Input
+                        type="text"
+                        value={productName}
+                        onChange={(e) => setProductName(e.target.value)}
+                        placeholder="Въведи част от името на продукта..."
+                        className="w-full"
+                      />
+                    </div>
+                    {/* <div className="w-full">
+                      <Label className="mb-2">Баркод</Label>
+                      <Input
+                        type="text"
+                        value={barcode}
+                        onChange={(e) => setBarcode(e.target.value)}
+                        placeholder="Въведи баркод(и) разделени със запетая..."
+                        className="w-full"
+                      />
+                    </div> */}
+                  </div>
+
+                  {/* Тип */}
+                  <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <div className="w-full">
+                      <Label className={'mb-2'}>Тип</Label>
+                      <Select value={productType} onValueChange={setProductType}>
+                        <SelectTrigger className="w-full">
+                          {productType
+                            ? (productType === "missing" ? "Продадени" : "Върнати")
+                            : "Избери тип"}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="missing">Продадени</SelectItem>
+                          <SelectItem value="refund">Върнати</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-full">
+                      <Label className="mb-2">Източник</Label>
+                      <Select value={revisionType} onValueChange={setRevisionType}>
+                        <SelectTrigger className="w-full">
+                          {revisionType
+                            ? (revisionType === "import" ? "Импорт" : "Продажба")
+                            : "Избери тип"}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="import">Импорт</SelectItem>
+                          <SelectItem value="manual">Продажба</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Партньор, Щендер, Потребител */}
+                  <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <div className="w-full">
+                      <Label className="mb-2">Партньори</Label>
+                      <MultiCombobox
+                        options={partnerOptions}
+                        value={selectedPartner}
+                        onValueChange={setSelectedPartner}
+                        placeholder={"Избери партньор..."}
+                        emptyText="Няма намерени партньори..."
+                        className="w-full"
+                        triggerClassName="w-full"
+                      />
+                    </div>
                     <div className="w-full">
                       <Label className="mb-2">Щендер</Label>
                       <MultiCombobox
@@ -579,70 +689,7 @@ export default function ReportsSale() {
                       />
                     </div>
                   </div>
-                  <div className="flex flex-col md:flex-row gap-4 w-full">
-                    <div className="w-full">
-                      <Label className="mb-2">Партньори</Label>
-                      <MultiCombobox
-                        options={partnerOptions}
-                        value={selectedPartner}
-                        onValueChange={setSelectedPartner}
-                        placeholder={"Избери партньор..."}
-                        emptyText="Няма намерени партньори..."
-                        className="w-full"
-                        triggerClassName="w-full"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-4 w-full">
-                    <div className="w-full">
-                      <Label className="mb-2">Продукти</Label>
-                      <MultiCombobox
-                        options={productOptions}
-                        value={selectedProducts}
-                        onValueChange={setSelectedProducts}
-                        placeholder={"Избери продукти..."}
-                        emptyText="Няма намерени продукти..."
-                      />
-                    </div>
-                    <div className="w-full">
-                      <Label className="mb-2">Източник</Label>
-                      <Select value={revisionType} onValueChange={setRevisionType}>
-                        <SelectTrigger className="w-full">
-                          {revisionType
-                            ? (revisionType === "import" ? "Импорт" : "Продажба")
-                            : "Избери тип"}
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="import">Импорт</SelectItem>
-                          <SelectItem value="manual">Продажба</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-4 w-full">
-                    <div className="w-full">
-                      <Label className={'mb-2'}>Тип</Label>
-                      <Select value={productType} onValueChange={setProductType}>
-                        <SelectTrigger className="w-full">
-                          {productType
-                            ? (productType === "missing" ? "Продадени" : "Върнати")
-                            : "Избери тип"}
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="missing">Продадени</SelectItem>
-                          <SelectItem value="refund">Върнати</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-full">
-                      <Label className="mb-2">Дата от</Label>
-                      <DatePicker  setDate={setDateFrom} date={dateFrom} className="w-full" triggerClassName="w-full" />
-                    </div>
-                    <div className="w-full">
-                      <Label className="mb-2">Дата до</Label>
-                      <DatePicker setDate={setDateTo} date={dateTo} className="w-full" triggerClassName="w-full" />
-                    </div>
-                  </div>
+
                   <div className="flex flex-col md:flex-row gap-4 w-full">
                     <Button type="submit" className="w-full md:w-auto flex-1">
                       <Filter />
