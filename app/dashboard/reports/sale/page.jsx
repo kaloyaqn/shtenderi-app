@@ -9,6 +9,7 @@ import { DataTable } from "@/components/ui/data-table";
 import DatePicker from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TableLink from "@/components/ui/table-link";
 import { IconClearAll, IconClearFormatting, IconEye } from "@tabler/icons-react";
@@ -20,13 +21,17 @@ import { useEffect, useState, useCallback } from "react";
 export default function ReportsSale() {
   // stands
   const [stands, setStands] = useState([]);
-  const [selectedStand, setSelectedStand] = useState("");
+  const [selectedStand, setSelectedStand] = useState([]);
   //   Users
   const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedUser, setSelectedUser] = useState([]);
   //   Partners
   const [partners, setPartners] = useState([]);
-  const [selectedPartner, setSelectedPartner] = useState("");
+  const [selectedPartner, setSelectedPartner] = useState([]);
+//     Products
+  const [products, setProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+
   //   dates
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
@@ -36,6 +41,8 @@ export default function ReportsSale() {
   const [productType, setProductType] = useState("");
   //   Barcode
   const [barcode, setBarcode] = useState("");
+  //   Revision type
+  const [revisionType, setRevisionType] = useState("");
   //   Sales
   const [sales, setSales] = useState([]);
 
@@ -56,6 +63,8 @@ export default function ReportsSale() {
     const type = searchParams.get("type");
     const status = searchParams.get("status");
     const barcode = searchParams.get("barcode");
+    const revisionType = searchParams.get("revisionType");
+    const productBarcodes = searchParams.get("productBarcodes");
 
     setLoading(true);
 
@@ -69,6 +78,13 @@ export default function ReportsSale() {
       if (type) params.set("type", type);
       if (status) params.set("status", status);
       if (barcode) params.set("barcode", barcode);
+      if (revisionType) params.set("revisionType", revisionType);
+      // Prioritize product barcodes over manual barcode input
+      if (productBarcodes) {
+        params.set("barcode", productBarcodes);
+      } else if (barcode) {
+        params.set("barcode", barcode);
+      }
 
       const res = await fetch(`/api/reports/sales?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch Sales");
@@ -124,18 +140,33 @@ export default function ReportsSale() {
     }
   }
 
+    async function fetchProducts() {
+        if (products.length > 0) return;
+        try {
+            const res = await fetch("/api/products");
+            if (!res.ok) throw new Error("Failed to fetch products");
+            const data = await res.json();
+            setProducts(data);
+        } catch (err) {
+            console.error(err)
+        }
+
+    }
+
 
   function handleClear() {
     // This only resets the URL, but does not clear the form state.
     // To fully clear, also reset all filter states:
     router.replace('/dashboard/reports/sale', { shallow: true });
     setSelectedStand([]);
-    setSelectedUser(null);
+    setSelectedUser([]);
     setDateFrom(null);
     setDateTo(null);
-    setSelectedPartner(null);
+    setSelectedPartner([]);
+    setSelectedProducts([]);
     setProductType('');
     setBarcode('');
+    setRevisionType('');
   }
 
 
@@ -144,6 +175,7 @@ export default function ReportsSale() {
     fetchStands();
     fetchUsers();
     fetchPartners();
+    fetchProducts();
   }, []);
   
 
@@ -157,13 +189,23 @@ export default function ReportsSale() {
     const type = searchParams.get("type")
     const status = searchParams.get("status")
     const barcodeParam = searchParams.get("barcode")
+    const revisionTypeParam = searchParams.get("revisionType")
+    const productBarcodesParam = searchParams.get("productBarcodes")
 
     if (standParam) {
-      setSelectedStand(standParam);
+      // Handle comma-separated values for MultiCombobox
+      const standValues = standParam.split(',').filter(v => v.trim() !== '');
+      setSelectedStand(standValues);
+    } else {
+      setSelectedStand([]);
     }
 
     if (userParam) {
-      setSelectedUser(userParam);
+      // Handle comma-separated values for MultiCombobox
+      const userValues = userParam.split(',').filter(v => v.trim() !== '');
+      setSelectedUser(userValues);
+    } else {
+      setSelectedUser([]);
     }
 
     if (dateFromParam) {
@@ -179,7 +221,11 @@ export default function ReportsSale() {
     }
 
     if (partnerId) {
-        setSelectedPartner(partnerId)
+      // Handle comma-separated values for MultiCombobox
+      const partnerValues = partnerId.split(',').filter(v => v.trim() !== '');
+      setSelectedPartner(partnerValues);
+    } else {
+      setSelectedPartner([]);
     }
 
     if (type) {
@@ -192,6 +238,18 @@ export default function ReportsSale() {
 
     if (barcodeParam) {
         setBarcode(barcodeParam)
+    }
+
+    if (revisionTypeParam) {
+        setRevisionType(revisionTypeParam)
+    }
+
+    if (productBarcodesParam) {
+        // Handle comma-separated values for product MultiCombobox
+        const productBarcodeValues = productBarcodesParam.split(',').filter(v => v.trim() !== '');
+        setSelectedProducts(productBarcodeValues);
+    } else {
+        setSelectedProducts([]);
     }
 
   }, [searchParams]);
@@ -211,12 +269,13 @@ export default function ReportsSale() {
       type: productType,
       status: paymentStatus,
       barcode: barcode,
+      revisionType: revisionType,
+      productBarcodes: selectedProducts,
     };
     handleSearch(filters);
   }
 
   const standOptions = [
-    { value: "", label: "Всички щендери" },
     ...(stands.length > 0
       ? stands.map((stand) => ({
           value: stand.id,
@@ -226,7 +285,6 @@ export default function ReportsSale() {
   ];
 
   const userOptions = [
-    { value: "", label: "Всички потребители" },
     ...users.map((user) => ({
       value: user.id,
       label: user.name,
@@ -234,24 +292,29 @@ export default function ReportsSale() {
   ];
 
   const partnerOptions = [
-    {value: "", label: "Всички партньори"},
     ...partners.map((partner) => ({
         value: partner.id,
         label: partner.name,
       })),
   ]
 
+  const productOptions = [
+    ...products.map((product) => ({
+        value: product.barcode,
+        label: product.name,
+      })),  ]
+
   function handleSearch(filters) {
     const params = new URLSearchParams(searchParams);
 
-    if (filters.stand && filters.stand !== "") {
-      params.set("stand", filters.stand);
+    if (filters.stand && filters.stand.length > 0) {
+      params.set("stand", filters.stand.join(','));
     } else {
       params.delete("stand");
     }
 
-    if (filters.user && filters.user !== "") {
-      params.set("user", filters.user);
+    if (filters.user && filters.user.length > 0) {
+      params.set("user", filters.user.join(','));
     } else {
       params.delete("user");
     }
@@ -274,8 +337,8 @@ export default function ReportsSale() {
       params.delete("dateTo");
     }
 
-    if (filters.partner && filters.partner !== "") {
-        params.set("partnerId", filters.partner);
+    if (filters.partner && filters.partner.length > 0) {
+        params.set("partnerId", filters.partner.join(','));
     } else {
         params.delete("partnerId")
     }
@@ -298,6 +361,18 @@ export default function ReportsSale() {
         params.delete("barcode")
     }
 
+    if (filters.revisionType && filters.revisionType !== "") {
+        params.set("revisionType", filters.revisionType)
+    } else {
+        params.delete("revisionType")
+    }
+
+    if (filters.productBarcodes && filters.productBarcodes.length > 0) {
+        params.set("productBarcodes", filters.productBarcodes.join(','));
+    } else {
+        params.delete("productBarcodes")
+    }
+
     router.push(`/dashboard/reports/sale?${params.toString()}`);
   }
 
@@ -315,6 +390,25 @@ export default function ReportsSale() {
       },
     },
     {
+        accessorKey: "revision.type",
+        header: "Източник",
+        cell: ({ row }) => {
+            const type = row.original.revision.type;
+            if (!type) return null;
+            return (
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 border ${
+                  type === "import"
+                    ? "border-blue-400 text-blue-700"
+                    : "border-gray-300 text-gray-600"
+                }`}
+              >
+                {type === "import" ? "Импорт" : "Продажба"}
+              </span>
+            );
+          },
+    },
+    {
       accessorKey: "product.name",
       header: "Продукт",
       cell: ({ row }) => row.original.product?.name || "-",
@@ -326,7 +420,7 @@ export default function ReportsSale() {
     },
     {
       accessorKey: "missingQuantity",
-      header: "Количество",
+      header: "Кол.",
       cell: ({ row }) => {
         if (row.original.type === "missing") {
           return row.original.missingQuantity || 0;
@@ -455,83 +549,110 @@ export default function ReportsSale() {
             extraFilters={
               <>
                 <form
-                  className="flex md:flex-row flex-col gap-2 w-full items-end"
+                  className="flex flex-col gap-4 w-full"
                   onSubmit={handleFormSubmit}
                 >
-                  <div>
-                    <Label className="mb-2">Щендер</Label>
-                    <Combobox
-                      options={standOptions}
-                      value={selectedStand}
-                      onValueChange={setSelectedStand}
-                      placeholder="Избери щендер..."
-                      searchPlaceholder="Търси щендери..."
-                      emptyText="Няма намерени щендери."
-                    />
+                  <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <div className="w-full">
+                      <Label className="mb-2">Щендер</Label>
+                      <MultiCombobox
+                        options={standOptions}
+                        value={selectedStand}
+                        onValueChange={setSelectedStand}
+                        placeholder="Избери щендер..."
+                        searchPlaceholder="Търси щендери..."
+                        emptyText="Няма намерени щендери."
+                        className="w-full"
+                        triggerClassName="w-full"
+                      />
+                    </div>
+                    <div className="w-full">
+                      <Label className="mb-2">Потребител</Label>
+                      <MultiCombobox
+                        options={userOptions}
+                        value={selectedUser}
+                        onValueChange={setSelectedUser}
+                        placeholder={"Избери потребител..."}
+                        emptyText="Няма намерени потребители..."
+                        className="w-full"
+                        triggerClassName="w-full"
+                      />
+                    </div>
                   </div>
-
-                  <div>
-                    <Label className="mb-2">Потребител</Label>
-                    <Combobox
-                      options={userOptions}
-                      value={selectedUser}
-                      onValueChange={setSelectedUser}
-                      placeholder={"Избери потребител..."}
-                      emptyText="Няма намерени потребители..."
-                    />
+                  <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <div className="w-full">
+                      <Label className="mb-2">Партньори</Label>
+                      <MultiCombobox
+                        options={partnerOptions}
+                        value={selectedPartner}
+                        onValueChange={setSelectedPartner}
+                        placeholder={"Избери партньор..."}
+                        emptyText="Няма намерени партньори..."
+                        className="w-full"
+                        triggerClassName="w-full"
+                      />
+                    </div>
                   </div>
-
-                  <div>
-                    <Label className="mb-2">Партньори</Label>
-                    <Combobox
-                      options={partnerOptions}
-                      value={selectedPartner}
-                      onValueChange={setSelectedPartner}
-                      placeholder={"Избери партньор..."}
-                      emptyText="Няма намерени партньори..."
-                    />
+                  <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <div className="w-full">
+                      <Label className="mb-2">Продукти</Label>
+                      <MultiCombobox
+                        options={productOptions}
+                        value={selectedProducts}
+                        onValueChange={setSelectedProducts}
+                        placeholder={"Избери продукти..."}
+                        emptyText="Няма намерени продукти..."
+                      />
+                    </div>
+                    <div className="w-full">
+                      <Label className="mb-2">Източник</Label>
+                      <Select value={revisionType} onValueChange={setRevisionType}>
+                        <SelectTrigger className="w-full">
+                          {revisionType
+                            ? (revisionType === "import" ? "Импорт" : "Продажба")
+                            : "Избери тип"}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="import">Импорт</SelectItem>
+                          <SelectItem value="manual">Продажба</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-
-                  <div>
-                    <Label className="mb-2">Баркод</Label>
-                    <Input
-                      type="text"
-                      value={barcode}
-                      onChange={(e) => setBarcode(e.target.value)}
-                      placeholder="Въведи баркод..."
-                    />
+                  <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <div className="w-full">
+                      <Label className={'mb-2'}>Тип</Label>
+                      <Select value={productType} onValueChange={setProductType}>
+                        <SelectTrigger className="w-full">
+                          {productType
+                            ? (productType === "missing" ? "Продадени" : "Върнати")
+                            : "Избери тип"}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="missing">Продадени</SelectItem>
+                          <SelectItem value="refund">Върнати</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-full">
+                      <Label className="mb-2">Дата от</Label>
+                      <DatePicker  setDate={setDateFrom} date={dateFrom} className="w-full" triggerClassName="w-full" />
+                    </div>
+                    <div className="w-full">
+                      <Label className="mb-2">Дата до</Label>
+                      <DatePicker setDate={setDateTo} date={dateTo} className="w-full" triggerClassName="w-full" />
+                    </div>
                   </div>
-
-                  <div>
-                        <Label className={'mb-2'}>Тип</Label>
-                        <Select value={productType} onValueChange={setProductType}>
-                            <SelectTrigger>
-                                {productType
-                                    ? (productType === "missing" ? "Продадени" : "Върнати")
-                                    : "Избери тип"}
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="missing">Продадени</SelectItem>
-                                <SelectItem value="refund">Върнати</SelectItem>
-                            </SelectContent>
-                        </Select>
+                  <div className="flex flex-col md:flex-row gap-4 w-full">
+                    <Button type="submit" className="w-full md:w-auto flex-1">
+                      <Filter />
+                      Търси
+                    </Button>
+                    <Button variant={'outline'} onClick={handleClear} className="w-full md:w-auto flex-1">
+                      <X />
+                      Изчисти
+                    </Button>
                   </div>
-
-                  <div>
-                    <Label className="mb-2">Дата от</Label>
-                    <DatePicker setDate={setDateFrom} date={dateFrom} />
-                  </div>
-                  <div>
-                    <Label className="mb-2">Дата до</Label>
-                    <DatePicker setDate={setDateTo} date={dateTo} />
-                  </div>
-
-                  <Button type="submit">
-                    <Filter />
-                    Търси</Button>
-                  <Button variant={'outline'} onClick={handleClear}>
-                    <X />                 
-                    Изчисти</Button>
                 </form>
               </>
             }

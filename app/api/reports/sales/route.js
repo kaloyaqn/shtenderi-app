@@ -18,29 +18,34 @@ export async function GET(req) {
 
         
         const stand = searchParams.get('stand')?.split(',')
-        const userId = searchParams.get('userId');
+        const userId = searchParams.get('userId')?.split(',')
         const dateFrom = searchParams.get("dateFrom");
         const dateTo = searchParams.get("dateTo");
         const status = searchParams.get("status"); // paid, unpaid
         const type = searchParams.get("type"); // refund, missing
-        const partnerId = searchParams.get("partnerId");
+        const partnerId = searchParams.get("partnerId")?.split(',');
         const barcode = searchParams.get("barcode"); // barcode filter
+        const revisionType = searchParams.get("revisionType"); // import, manual
+        const productId = searchParams.get("productId")?.split(','); // product filter
         
-        console.log('API Debug - Received params:', { stand, userId, dateFrom, dateTo, status, type, partnerId, barcode });
+        console.log('API Debug - Received params:', { stand, userId, dateFrom, dateTo, status, type, partnerId, barcode, revisionType, productId });
         
         let whereClause = {
             revision: {
                 ...(stand?.length && {
                     standId: {in: stand}
                 }),
-                ...(userId && {
-                    userId: {contains: userId, mode: 'insensitive'}
+                ...(userId?.length && {
+                    userId: {in: userId}
                 }),
-                ...(partnerId && {
-                    partnerId: partnerId
+                ...(partnerId?.length && {
+                    partnerId: {in: partnerId}
                 }),
                 ...(status && {
                     status: status.toUpperCase()
+                }),
+                ...(revisionType && {
+                    type: revisionType
                 }),
                 ...(dateFrom && {
                     createdAt: {gte: new Date(dateFrom + 'T00:00:00.000Z')}
@@ -100,14 +105,33 @@ export async function GET(req) {
         // Filter missing products by barcode if specified
         let filteredMissingProducts = missingProducts;
         if (barcode) {
-            filteredMissingProducts = missingProducts.filter(mp => 
-                mp.product?.barcode?.toLowerCase().includes(barcode.toLowerCase())
-            );
+            const barcodes = barcode.split(',').map(b => b.trim().toLowerCase());
+            filteredMissingProducts = missingProducts.filter(mp => {
+                const productBarcode = mp.product?.barcode?.toLowerCase();
+                return productBarcode && barcodes.some(b => productBarcode.includes(b));
+            });
         }
 
-        console.log('API Debug - Missing products count:', filteredMissingProducts.length);
-        if (filteredMissingProducts.length > 0) {
-            console.log('API Debug - First missing product date:', filteredMissingProducts[0].revision.createdAt);
+        // Aggregate missing products by product (group duplicates and sum quantities)
+        const aggregatedMissingProducts = filteredMissingProducts.reduce((acc, item) => {
+            const productId = item.productId;
+            if (!acc[productId]) {
+                acc[productId] = { ...item };
+            } else {
+                // Sum quantities and keep the most recent revision
+                acc[productId].missingQuantity += item.missingQuantity;
+                if (new Date(item.revision.createdAt) > new Date(acc[productId].revision.createdAt)) {
+                    acc[productId].revision = item.revision;
+                }
+            }
+            return acc;
+        }, {});
+
+        const finalMissingProducts = Object.values(aggregatedMissingProducts);
+
+        console.log('API Debug - Missing products count:', finalMissingProducts.length);
+        if (finalMissingProducts.length > 0) {
+            console.log('API Debug - First missing product date:', finalMissingProducts[0].revision.createdAt);
         }
 
         // Fetch refund products with similar filters
@@ -116,8 +140,8 @@ export async function GET(req) {
                 ...(stand?.length && {
                     sourceId: {in: stand}
                 }),
-                ...(userId && {
-                    userId: {contains: userId, mode: 'insensitive'}
+                ...(userId?.length && {
+                    userId: {in: userId}
                 }),
                 ...(dateFrom && {
                     createdAt: {gte: new Date(dateFrom + 'T00:00:00.000Z')}
@@ -169,14 +193,33 @@ export async function GET(req) {
         // Filter refund products by barcode if specified
         let filteredRefundProducts = refundProducts;
         if (barcode) {
-            filteredRefundProducts = refundProducts.filter(rp => 
-                rp.product?.barcode?.toLowerCase().includes(barcode.toLowerCase())
-            );
+            const barcodes = barcode.split(',').map(b => b.trim().toLowerCase());
+            filteredRefundProducts = refundProducts.filter(rp => {
+                const productBarcode = rp.product?.barcode?.toLowerCase();
+                return productBarcode && barcodes.some(b => productBarcode.includes(b));
+            });
         }
 
-        console.log('API Debug - Refund products count:', filteredRefundProducts.length);
-        if (filteredRefundProducts.length > 0) {
-            console.log('API Debug - First refund product date:', filteredRefundProducts[0].refund.createdAt);
+        // Aggregate refund products by product (group duplicates and sum quantities)
+        const aggregatedRefundProducts = filteredRefundProducts.reduce((acc, item) => {
+            const productId = item.productId;
+            if (!acc[productId]) {
+                acc[productId] = { ...item };
+            } else {
+                // Sum quantities and keep the most recent refund
+                acc[productId].quantity += item.quantity;
+                if (new Date(item.refund.createdAt) > new Date(acc[productId].refund.createdAt)) {
+                    acc[productId].refund = item.refund;
+                }
+            }
+            return acc;
+        }, {});
+
+        const finalRefundProducts = Object.values(aggregatedRefundProducts);
+
+        console.log('API Debug - Refund products count:', finalRefundProducts.length);
+        if (finalRefundProducts.length > 0) {
+            console.log('API Debug - First refund product date:', finalRefundProducts[0].refund.createdAt);
         }
 
         // Fetch source information for refunds (stands and storages)
@@ -215,7 +258,7 @@ export async function GET(req) {
         const storesLookup = Object.fromEntries(stores.map(s => [s.id, s]));
 
         // Add source information to refund products
-        const refundProductsWithSource = filteredRefundProducts.map(rp => {
+        const refundProductsWithSource = finalRefundProducts.map(rp => {
             const sourceInfo = rp.refund.sourceType === 'STAND' 
                 ? standsLookup[rp.refund.sourceId]
                 : storagesLookup[rp.refund.sourceId];
@@ -249,7 +292,7 @@ export async function GET(req) {
         }
 
         // Combine data based on type filter
-        let missingProductsWithType = filteredMissingProducts.map((item) => ({
+        let missingProductsWithType = finalMissingProducts.map((item) => ({
             ...item,
             type: "missing",
         }));

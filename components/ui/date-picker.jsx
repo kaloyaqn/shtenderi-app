@@ -14,7 +14,7 @@ export default function DatePicker({ date = null, setDate }) {
   return (
     <>
       <Popover>
-        <PopoverTrigger asChild>
+        <PopoverTrigger className="!w-full" asChild>
           <Button
             variant="outline"
             data-empty={!date}
