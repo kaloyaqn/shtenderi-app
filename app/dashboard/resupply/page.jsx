@@ -657,8 +657,8 @@ export default function GeneralResupplyPage() {
                                         disabled={loading}
                                         placeholder="0"
                                       />
-                                      <span className="text-xs text-gray-500 whitespace-nowrap">
-                                        / {p.quantity || p.maxQuantity}
+                                      <span className="text-base font-bold  text-red-700! whitespace-nowrap">
+                                        / {p.quantity || p.maxQuantity || 0}
                                       </span>
                                     </div>
                                   </div>
