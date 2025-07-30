@@ -61,28 +61,31 @@ export async function GET(request, { params }) {
     }
 
     // Fetch revisions (sales) with payment and invoice details
-    const revisions = await prisma.revision.findMany({
-      where: revisionWhereClause,
-      include: {
-        user: true,
-        partner: true,
-        stand: true,
-        storage: true,
-        payments: {
-          include: {
-            invoice: true,
+    let revisions = [];
+    if (!type || type === "missing") {
+      revisions = await prisma.revision.findMany({
+        where: revisionWhereClause,
+        include: {
+          user: true,
+          partner: true,
+          stand: true,
+          storage: true,
+          payments: {
+            include: {
+              invoice: true,
+            },
+          },
+          missingProducts: {
+            include: {
+              product: true,
+            },
           },
         },
-        missingProducts: {
-          include: {
-            product: true,
-          },
+        orderBy: {
+          createdAt: "desc",
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+      });
+    }
 
     // Build where clause for refunds
     let refundWhereClause = {
@@ -110,44 +113,47 @@ export async function GET(request, { params }) {
     const standIds = standsWithPartner.map(stand => stand.id);
 
     // Fetch refunds with payment and invoice details
-    const refunds = await prisma.refund.findMany({
-      where: {
-        sourceType: "STAND",
-        sourceId: {
-          in: standIds,
+    let refunds = [];
+    if (!type || type === "refund") {
+      refunds = await prisma.refund.findMany({
+        where: {
+          sourceType: "STAND",
+          sourceId: {
+            in: standIds,
+          },
+          ...(dateFrom && dateTo ? {
+            createdAt: {
+              gte: new Date(dateFrom + 'T00:00:00.000Z'),
+              lte: new Date(dateTo + 'T23:59:59.999Z'),
+            },
+          } : dateFrom ? {
+            createdAt: {
+              gte: new Date(dateFrom + 'T00:00:00.000Z'),
+            },
+          } : dateTo ? {
+            createdAt: {
+              lte: new Date(dateTo + 'T23:59:59.999Z'),
+            },
+          } : {}),
         },
-        ...(dateFrom && dateTo ? {
-          createdAt: {
-            gte: new Date(dateFrom + 'T00:00:00.000Z'),
-            lte: new Date(dateTo + 'T23:59:59.999Z'),
+        include: {
+          user: true,
+          creditNotes: {
+            include: {
+              invoice: true,
+            },
           },
-        } : dateFrom ? {
-          createdAt: {
-            gte: new Date(dateFrom + 'T00:00:00.000Z'),
-          },
-        } : dateTo ? {
-          createdAt: {
-            lte: new Date(dateTo + 'T23:59:59.999Z'),
-          },
-        } : {}),
-      },
-      include: {
-        user: true,
-        creditNotes: {
-          include: {
-            invoice: true,
+          refundProducts: {
+            include: {
+              product: true,
+            },
           },
         },
-        refundProducts: {
-          include: {
-            product: true,
-          },
+        orderBy: {
+          createdAt: "desc",
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+      });
+    }
 
     // Add source info to refunds
     const refundsWithSource = await Promise.all(

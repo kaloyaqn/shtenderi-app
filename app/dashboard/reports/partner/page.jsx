@@ -7,11 +7,15 @@ import DatePicker from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import TableLink from "@/components/ui/table-link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Filter, X } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 
 export default function PartnerReport() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   // States
   const [partners, setPartners] = useState([]);
   const [selectedPartner, setSelectedPartner] = useState(null);
@@ -38,8 +42,32 @@ export default function PartnerReport() {
     fetchPartners();
   }, []);
 
+  // Sync with URL parameters on mount and fetch data
+  useEffect(() => {
+    const partner = searchParams.get("partner");
+    const dateFromParam = searchParams.get("dateFrom");
+    const dateToParam = searchParams.get("dateTo");
+    const statusParam = searchParams.get("status");
+    const typeParam = searchParams.get("type");
+    const revisionTypeParam = searchParams.get("revisionType");
+
+    if (partner) setSelectedPartner(partner);
+    if (dateFromParam) setDateFrom(new Date(dateFromParam));
+    if (dateToParam) setDateTo(new Date(dateToParam));
+    if (statusParam) setStatus(statusParam);
+    if (typeParam) setType(typeParam);
+    if (revisionTypeParam) setRevisionType(revisionTypeParam);
+  }, [searchParams]);
+
+  // Fetch data when filters change
+  useEffect(() => {
+    if (selectedPartner) {
+      fetchPartnerSales();
+    }
+  }, [fetchPartnerSales]);
+
   // Fetch partner sales
-  async function fetchPartnerSales() {
+  const fetchPartnerSales = useCallback(async () => {
     if (!selectedPartner) return;
     
     setLoading(true);
@@ -71,11 +99,31 @@ export default function PartnerReport() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [selectedPartner, dateFrom, dateTo, status, type, revisionType]);
 
   function handleFormSubmit(e) {
     e.preventDefault();
-    fetchPartnerSales();
+    
+    // Update URL with current filters
+    const params = new URLSearchParams();
+    if (selectedPartner) params.set("partner", selectedPartner);
+    if (dateFrom) {
+      const year = dateFrom.getFullYear();
+      const month = String(dateFrom.getMonth() + 1).padStart(2, "0");
+      const day = String(dateFrom.getDate()).padStart(2, "0");
+      params.set("dateFrom", `${year}-${month}-${day}`);
+    }
+    if (dateTo) {
+      const year = dateTo.getFullYear();
+      const month = String(dateTo.getMonth() + 1).padStart(2, "0");
+      const day = String(dateTo.getDate()).padStart(2, "0");
+      params.set("dateTo", `${year}-${month}-${day}`);
+    }
+    if (status && status !== "all") params.set("status", status);
+    if (type && type !== "all") params.set("type", type);
+    if (revisionType && revisionType !== "all") params.set("revisionType", revisionType);
+    
+    router.push(`/dashboard/reports/partner?${params.toString()}`);
   }
 
   function handleClear() {
@@ -86,6 +134,7 @@ export default function PartnerReport() {
     setType("all");
     setRevisionType("all");
     setSales([]);
+    router.push("/dashboard/reports/partner");
   }
 
   const columns = [
