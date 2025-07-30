@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { bg } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 
-export default function DatePicker({ date = null, setDate }) {
+export default function DatePicker({ date = null, setDate, className }) {
   return (
     <>
       <Popover>
@@ -18,7 +19,7 @@ export default function DatePicker({ date = null, setDate }) {
           <Button
             variant="outline"
             data-empty={!date}
-            className="data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal"
+            className={cn("data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal", className)}
           >
             <CalendarIcon />
             {date ? format(date, "PPP", { locale: bg }) : <span>Избери дата</span>}

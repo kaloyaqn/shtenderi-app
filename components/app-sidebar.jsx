@@ -13,7 +13,8 @@ import {
   IconCashRegister,
   IconCash,
   IconPaywall,
-  IconCashMove
+  IconCashMove,
+  IconReport
 } from "@tabler/icons-react"
 import {
     BoxIcon,
@@ -76,10 +77,10 @@ const groupedDocuments = {
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
     { 
       name: "Справки", 
-      icon: IconSettings, 
+      icon: IconReport, 
       hasSubmenus: [
-        { title: "Продажба", icon: IconHelp, link: "/dashboard/reports/sale" },
-        { title: "Подменю 2", icon: IconSearch, link: "/dashboard/example2" },
+        { title: "Продажби", link: "/dashboard/reports/sale" },
+        { title: "Партньор", icon: IconSearch, link: "/dashboard/reports/partner" },
         { title: "Подменю 3", icon: IconCash, link: "/dashboard/example3" }
       ]
     },
