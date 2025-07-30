@@ -92,7 +92,7 @@ export function NavDocuments({ navGroups, className, ...props }) {
                                 className="py-1 h-auto text-xs ml-2"
                               >
                                 <Link className="w-full" href={submenu.link}>
-                                  <SubmenuIcon className="size-4 mr-2" />
+                                  {/* <SubmenuIcon className="size-4 mr-2" /> */}
                                   {submenu.title}
                                 </Link>
                               </SidebarMenuButton>

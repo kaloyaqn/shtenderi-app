@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useRef } from "react";
-import { ArrowUpDown, Pencil, Search, Trash2 } from "lucide-react";
+import { ArrowUpDown, Infinity, InfinityIcon, Pencil, Search, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -221,7 +221,7 @@ export function DataTable({
   return (
     <div>
       {!noFilters && (
-        <Card className="flex px-4 items-center md:flex-row flex-col gap-4 mb-2 md:w-auto w-full ">
+        <Card className="flex px-4 items-end md:flex-row flex-col gap-4 mb-2 md:w-auto w-full ">
           {searchKey && (
             <div className="relative w-full md:mb-0 mb-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -285,12 +285,12 @@ export function DataTable({
               }}
             >
               <SelectTrigger>
-                {table.getState().pagination.pageSize}
+                {table.getState().pagination.pageSize === 99999 ? <><Infinity /></> :table.getState().pagination.pageSize }
               </SelectTrigger>
               <SelectContent>
-                {[10, 20, 30, 50, 100].map((size) => (
+                {[10, 20, 30, 50, 100, 99999].map((size) => (
                   <SelectItem key={size} value={String(size)}>
-                    {size}
+                    {size === 99999 ? <><InfinityIcon /></> : size}
                   </SelectItem>
                 ))}
               </SelectContent>
