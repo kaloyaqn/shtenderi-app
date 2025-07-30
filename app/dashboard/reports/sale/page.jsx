@@ -398,6 +398,7 @@ export default function ReportsSale() {
       accessorKey: "type",
       header: "Тип",
       cell: ({ row }) => {
+        if (!row.original) return "-";
         const type = row.original.type;
         return (
           <Badge variant={type === "missing" ? "success" : "destructive"}>
@@ -410,7 +411,8 @@ export default function ReportsSale() {
         accessorKey: "revision.type",
         header: "Източник",
         cell: ({ row }) => {
-            const type = row.original.revision.type;
+            if (!row.original) return "-";
+            const type = row.original.revision?.type;
             if (!type) return null;
             return (
               <span
@@ -428,17 +430,24 @@ export default function ReportsSale() {
     {
       accessorKey: "product.name",
       header: "Продукт",
-      cell: ({ row }) => row.original.product?.name || "-",
+      cell: ({ row }) => {
+        if (!row.original) return "-";
+        return row.original.product?.name || "-";
+      },
     },
     {
       accessorKey: "product.barcode",
       header: "Баркод",
-      cell: ({ row }) => row.original.product?.barcode || "-",
+      cell: ({ row }) => {
+        if (!row.original) return "-";
+        return row.original.product?.barcode || "-";
+      },
     },
     {
       accessorKey: "missingQuantity",
       header: "Кол.",
       cell: ({ row }) => {
+        if (!row.original) return "-";
         if (row.original.type === "missing") {
           return row.original.missingQuantity || 0;
         } else {
@@ -450,6 +459,7 @@ export default function ReportsSale() {
       accessorKey: "revision.priceAtSale",
       header: "Цена",
       cell: ({ row }) => {
+        if (!row.original) return "-";
         let price;
         if (row.original.type === "missing") {
           price = row.original.priceAtSale;
@@ -467,6 +477,7 @@ export default function ReportsSale() {
       accessorKey: "revision.createdAt",
       header: "Дата",
       cell: ({ row }) => {
+        if (!row.original) return "-";
         const date =
           row.original.type === "missing"
             ? row.original.revision?.createdAt
@@ -478,6 +489,7 @@ export default function ReportsSale() {
       accessorKey: "user",
       header: "Потребител",
       cell: ({ row }) => {
+        if (!row.original) return "-";
         const user =
           row.original.type === "missing"
             ? row.original.revision?.user
@@ -489,6 +501,7 @@ export default function ReportsSale() {
       accessorKey: "partner",
       header: "Партньор",
       cell: ({ row }) => {
+        if (!row.original) return "-";
         // Try to get partner from both possible sources
         let partner = null;
 
@@ -515,6 +528,7 @@ export default function ReportsSale() {
       accessorKey: "source",
       header: "Източник",
       cell: ({ row }) => {
+        if (!row.original) return "-";
         if (row.original.type === "missing") {
           const stand = row.original.revision?.stand;
           const storage = row.original.revision?.storage;
