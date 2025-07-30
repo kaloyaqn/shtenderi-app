@@ -46,7 +46,21 @@ export default function TransfersPage() {
         },
         {
             accessorKey: 'destinationStorageName',
-            header: 'За склад',
+            header: 'За',
+            cell: ({ row }) => {
+                const transfer = row.original;
+                if (transfer.destinationType === 'STAND') {
+                    return (
+                        <div>
+                            <div className="font-medium">{transfer.destinationStorageName}</div>
+                            <div className="text-sm text-gray-500">
+                                {transfer.destinationStoreName ? `— ${transfer.destinationStoreName}` : 'Щанд'}
+                            </div>
+                        </div>
+                    );
+                }
+                return transfer.destinationStorageName;
+            },
         },
         {
             accessorKey: 'user.name',
@@ -86,8 +100,8 @@ export default function TransfersPage() {
     return (
         <div className="">
             <BasicHeader 
-            title={'Премествания между складове'}
-            subtitle={"Управлявай преместванията между складовете"}
+            title={'Премествания'}
+            subtitle={"Управлявай преместванията между складове и щендери"}
             />
                     <DataTable
                         columns={columns}

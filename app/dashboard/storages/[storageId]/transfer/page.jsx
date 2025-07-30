@@ -166,28 +166,19 @@ export default function StorageTransferPage({ params }) {
         const error = await res.json();
         throw new Error(error.error || "Грешка при прехвърляне.");
       }
+      
+      const result = await res.json();
+      
       if (destinationType === "STAND") {
-        // Create a revision for the destination stand
-        const revisionRes = await fetch("/api/revisions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            standId: destinationId,
-            userId: session?.user?.id,
-            missingProducts: selectedProducts.map(({ productId, quantity }) => ({ productId, missingQuantity: quantity })),
-          }),
-        });
-        if (!revisionRes.ok) {
-          const error = await revisionRes.json();
-          throw new Error(error.error || "Грешка при създаване на ревизия.");
-        }
-        const revision = await revisionRes.json();
-        toast.success("Прехвърлянето и ревизията са успешни!");
-        router.push(`/dashboard/revisions/${revision.id}`);
+        // For stand transfers, redirect to transfers page for confirmation
+        toast.success("Трансферът е създаден и очаква потвърждение!");
+        router.push("/dashboard/transfers");
         return;
+      } else {
+        // For storage-to-storage transfers, redirect to storage page
+        toast.success("Прехвърлянето е успешно!");
+        router.push(`/dashboard/storages/${storageId}`);
       }
-      toast.success("Прехвърлянето е успешно!");
-      router.push(`/dashboard/storages/${storageId}`);
     } catch (error) {
       toast.error(error.message);
     } finally {

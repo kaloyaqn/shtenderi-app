@@ -17,85 +17,45 @@ export async function POST(req) {
 
     try {
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Validate stock levels in the source storage
+            // 1. Get Stand and Partner info
+            const stand = await tx.stand.findUnique({
+                where: { id: destinationStandId },
+                include: { store: { include: { partner: true } } }
+            });
+            if (!stand || !stand.store?.partner) {
+                throw new Error('Stand or associated partner not found.');
+            }
+
+            // 2. Validate that products exist and have sufficient stock, but do not move stock yet
             for (const product of products) {
-                const storageProduct = await tx.storageProduct.findFirst({
-                    where: {
-                        storageId: sourceStorageId,
-                        productId: product.productId,
-                    },
+                const p = await tx.product.findUnique({ where: { id: product.productId } });
+                if (!p) throw new Error(`Product with ID ${product.productId} not found.`);
+
+                const sp = await tx.storageProduct.findFirst({
+                    where: { storageId: sourceStorageId, productId: product.productId }
                 });
-                if (!storageProduct || storageProduct.quantity < product.quantity) {
-                    throw new Error(`Insufficient stock for product ID: ${product.productId}`);
+                if (!sp || sp.quantity < product.quantity) {
+                    throw new Error(`Insufficient stock for ${p.name}.`);
                 }
             }
 
-            // 2. Decrement stock from source storage
-            for (const product of products) {
-                await tx.storageProduct.updateMany({
-                    where: {
-                        storageId: sourceStorageId,
-                        productId: product.productId,
-                    },
-                    data: {
-                        quantity: {
-                            decrement: product.quantity,
-                        },
-                    },
-                });
-            }
-
-            // 3. Increment stock on destination stand (upsert)
-            for (const product of products) {
-                await tx.standProduct.upsert({
-                    where: {
-                        standId_productId: {
-                            standId: destinationStandId,
-                            productId: product.productId,
-                        },
-                    },
-                    update: {
-                        quantity: {
-                            increment: product.quantity,
-                        },
-                    },
-                    create: {
-                        standId: destinationStandId,
-                        productId: product.productId,
-                        quantity: product.quantity,
-                    },
-                });
-            }
-
-            // 4. Create a Revision to log this as a "Sale"
-            const stand = await tx.stand.findUnique({
-                where: { id: destinationStandId },
-                include: { store: true },
-            });
-            if (!stand) throw new Error('Destination stand not found.');
-
-            const lastRevision = await tx.revision.findFirst({
-                orderBy: { number: 'desc' },
-                select: { number: true },
-            });
-            const nextNumber = (lastRevision?.number || 0) + 1;
-
-            const revision = await tx.revision.create({
+            // 3. Create Transfer record in PENDING state (instead of immediately moving stock)
+            const transfer = await tx.transfer.create({
                 data: {
-                    number: nextNumber,
-                    standId: destinationStandId,
-                    partnerId: stand.store.partnerId,
+                    sourceStorageId,
+                    destinationStorageId: destinationStandId, // Using destinationStorageId for stand transfers
                     userId: session.user.id,
-                    missingProducts: {
+                    status: 'PENDING',
+                    products: {
                         create: products.map(p => ({
                             productId: p.productId,
-                            missingQuantity: p.quantity,
-                        }))
-                    }
+                            quantity: p.quantity,
+                        })),
+                    },
                 },
             });
 
-            return revision;
+            return { message: "Transfer initiated successfully and is pending confirmation.", transferId: transfer.id };
         });
 
         return NextResponse.json(result, { status: 201 });

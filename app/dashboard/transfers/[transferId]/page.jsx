@@ -53,7 +53,16 @@ export default function TransferDetailPage() {
     const handleConfirm = async () => {
         setConfirming(true);
         try {
-            const response = await fetch(`/api/transfers/${transferId}/confirm`, {
+            // Determine if this is a storage-to-stand transfer
+            const isStandTransfer = transfer.destinationStorageId && 
+                !transfer.destinationStorageId.includes('storage') && 
+                transfer.destinationStorageId.length > 10; // Stand IDs are typically longer
+            
+            const endpoint = isStandTransfer 
+                ? `/api/transfers/${transferId}/confirm-stand`
+                : `/api/transfers/${transferId}/confirm`;
+            
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password }),
@@ -65,7 +74,17 @@ export default function TransferDetailPage() {
                 throw new Error(data.error || 'Failed to confirm transfer.');
             }
             
-            toast.success('Трансферът е потвърден успешно!');
+            if (isStandTransfer) {
+                toast.success('Трансферът е потвърден и ревизията е създадена успешно!');
+                // Redirect to the created revision
+                if (data.revisionId) {
+                    router.push(`/dashboard/revisions/${data.revisionId}`);
+                    return;
+                }
+            } else {
+                toast.success('Трансферът е потвърден успешно!');
+            }
+            
             await fetchTransfer(); // Re-fetch data to update UI
             setPassword('');
 
@@ -109,8 +128,10 @@ export default function TransferDetailPage() {
             <CardHeader>
                 <CardTitle>Потвърждение на трансфер</CardTitle>
                 <CardDescription>
-                    Моля, въведете паролата си, за да потвърдите получаването на стоките.
-                    Това ще актуализира наличностите в двата склада.
+                    {transfer.destinationType === 'STAND' 
+                        ? 'Моля, въведете паролата си, за да потвърдите преместването към щанда. Това ще създаде продажба и ще актуализира наличностите.'
+                        : 'Моля, въведете паролата си, за да потвърдите получаването на стоките. Това ще актуализира наличностите в двата склада.'
+                    }
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex items-end gap-4">

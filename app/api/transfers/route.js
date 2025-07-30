@@ -31,21 +31,27 @@ export async function GET(req) {
                 return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
             }
 
-            const [sourceStorage, destinationStorage] = await Promise.all([
+            const [sourceStorage, destinationStorage, destinationStand] = await Promise.all([
                 prisma.storage.findUnique({ where: { id: transfer.sourceStorageId }, select: { name: true } }),
-                prisma.storage.findUnique({ where: { id: transfer.destinationStorageId }, select: { name: true } })
+                prisma.storage.findUnique({ where: { id: transfer.destinationStorageId }, select: { name: true } }),
+                prisma.stand.findUnique({ 
+                    where: { id: transfer.destinationStorageId }, 
+                    select: { name: true, store: { select: { name: true } } }
+                })
             ]);
 
             const enrichedTransfer = {
                 ...transfer,
                 sourceStorageName: sourceStorage?.name || 'Unknown',
-                destinationStorageName: destinationStorage?.name || 'Unknown',
+                destinationStorageName: destinationStorage?.name || destinationStand?.name || 'Unknown',
+                destinationType: destinationStand ? 'STAND' : 'STORAGE',
+                destinationStoreName: destinationStand?.store?.name || null,
             };
             return NextResponse.json(enrichedTransfer);
         }
 
         // Fetch all transfers
-        const [transfers, storages] = await Promise.all([
+        const [transfers, storages, stands] = await Promise.all([
             prisma.transfer.findMany({
                 include: {
                     user: {
@@ -74,16 +80,33 @@ export async function GET(req) {
                     id: true,
                     name: true,
                 }
+            }),
+            prisma.stand.findMany({
+                select: {
+                    id: true,
+                    name: true,
+                    store: {
+                        select: {
+                            name: true,
+                        }
+                    }
+                }
             })
         ]);
 
         const storageMap = new Map(storages.map(s => [s.id, s.name]));
+        const standMap = new Map(stands.map(s => [s.id, { name: s.name, storeName: s.store?.name }]));
 
-        const enrichedTransfers = transfers.map(transfer => ({
-            ...transfer,
-            sourceStorageName: storageMap.get(transfer.sourceStorageId) || 'Unknown',
-            destinationStorageName: storageMap.get(transfer.destinationStorageId) || 'Unknown',
-        }));
+        const enrichedTransfers = transfers.map(transfer => {
+            const destinationStand = standMap.get(transfer.destinationStorageId);
+            return {
+                ...transfer,
+                sourceStorageName: storageMap.get(transfer.sourceStorageId) || 'Unknown',
+                destinationStorageName: storageMap.get(transfer.destinationStorageId) || destinationStand?.name || 'Unknown',
+                destinationType: destinationStand ? 'STAND' : 'STORAGE',
+                destinationStoreName: destinationStand?.storeName || null,
+            };
+        });
 
         return NextResponse.json(enrichedTransfers);
 
