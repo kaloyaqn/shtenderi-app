@@ -707,7 +707,7 @@ export default function StandDetailPage({ params }) {
               <IconTransferIn /> Презареди от склад
             </Button>
           </Link>
-          <Button
+          {/* <Button
             variant="outline"
             onClick={async () => {
               const res = await fetch(`/api/stands/${standId}/export-xml`);
@@ -725,7 +725,7 @@ export default function StandDetailPage({ params }) {
           >
             <FilePlus />
             Експорт
-          </Button>
+          </Button> */}
           <div className="h-6 w-px md:block hidden bg-gray-300"></div>
           <Link
             className="md:w-auto w-full"

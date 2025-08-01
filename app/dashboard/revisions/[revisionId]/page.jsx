@@ -594,9 +594,7 @@ export default function RevisionDetailPage() {
         title={`Продажба #${revision.number}`}
         subtitle="Всички данни за твоята продажба"
       >
-        <Button variant={"outline"} onClick={handlePrintStock}>
-          <Printer /> Принтирай
-        </Button>
+
         <Button onClick={handleSendToClient} variant="outline">
           {" "}
           <Send /> Изпрати
@@ -620,8 +618,12 @@ export default function RevisionDetailPage() {
           </Button> */}
         <div className="h-6 w-px bg-gray-300"></div>
 
-        <Button variant="default" onClick={() => setResupplyDialogOpen(true)}>
+        {/* <Button variant="default" onClick={() => setResupplyDialogOpen(true)}>
           <Truck /> Зареди от склад
+        </Button> */}
+
+<Button variant={""} onClick={handlePrintStock}>
+          <Printer /> Принтирай
         </Button>
       </BasicHeader>
 
