@@ -50,7 +50,7 @@ import ProductOffer from "@/components/offers/productOffer";
 import { IconInvoice } from "@tabler/icons-react";
 import CreateProductPage from "./create/page";
 
-function EditableCell({ value, onSave, type = "text", min, max }) {
+function EditableCell({ value, onSave, type = "text", min, max, fieldName }) {
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value ?? "");
   const [loading, setLoading] = useState(false);
@@ -151,7 +151,18 @@ function EditableCell({ value, onSave, type = "text", min, max }) {
       {value === null || value === undefined || value === "" ? (
         <span className="text-muted-foreground">—</span>
       ) : (
-        value
+        <>
+          {value}
+          {(type === "number" || type === "numeric") && value !== 0 && fieldName && fieldName === "deliveryPrice" && (
+            <span className="text-muted-foreground ml-1">лв</span>
+          )}
+          {(type === "number" || type === "numeric") && value !== 0 && fieldName && fieldName === "clientPrice" && (
+            <span className="text-muted-foreground ml-1">лв</span>
+          )}
+          {(type === "number" || type === "numeric") && value !== 0 && fieldName && fieldName === "pcd" && (
+            <span className="text-muted-foreground ml-1">лв</span>
+          )}
+        </>
       )}
     </span>
   );
@@ -305,6 +316,13 @@ export default function ProductsPage() {
   // offer button
   const [offerButton, setOfferButton] = useState(false);
 
+  // State for edit dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  
+  // State for create dialog
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -324,9 +342,35 @@ export default function ProductsPage() {
   }, []);
 
   const handleProductUpdated = (updatedProduct) => {
+    // Optimistically update the local state immediately
     setData((prev) =>
       prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
     );
+    
+    // Show success feedback
+    toast.success("Продуктът е успешно обновен!");
+    
+    // Keep the dialog open - user can continue editing or close manually
+    // The dialog will stay open until they click "Close" or "Cancel"
+  };
+
+  const handleEditProduct = (product) => {
+    setEditingProduct(product);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setEditingProduct(null);
+  };
+
+  const handleProductCreated = (newProduct) => {
+    // Optimistically add the new product to the list
+    setData((prev) => [...prev, newProduct]);
+  };
+
+  const handleCloseCreateDialog = () => {
+    setCreateDialogOpen(false);
   };
 
   useEffect(() => {
@@ -494,6 +538,13 @@ export default function ProductsPage() {
   const handleUpdateProductField = async (id, field, newValue) => {
     const product = data.find((p) => p.id === id);
     if (!product) return;
+    
+    // Optimistically update the local state immediately
+    const optimisticUpdate = { ...product, [field]: newValue };
+    setData((prev) =>
+      prev.map((p) => (p.id === id ? optimisticUpdate : p))
+    );
+    
     // Build patch with all required fields, using newValue for the edited field
     const patch = {
       name: product.name,
@@ -508,21 +559,35 @@ export default function ProductsPage() {
       quantity:
         field === "quantity" ? parseInt(newValue, 10) : product.quantity,
     };
-    const res = await fetch(`/api/products/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (res.ok) {
-      // Update local state for the edited product only
-      const updated = await res.json();
+    
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      
+      if (res.ok) {
+        // Update with server response to ensure consistency
+        const updated = await res.json();
+        setData((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, ...updated } : p))
+        );
+        toast.success("Успешно записано!");
+      } else {
+        // Revert optimistic update on error
+        setData((prev) =>
+          prev.map((p) => (p.id === id ? product : p))
+        );
+        const err = await res.json();
+        toast.error(err.error || "Грешка при запис");
+      }
+    } catch (error) {
+      // Revert optimistic update on network error
       setData((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...updated } : p))
+        prev.map((p) => (p.id === id ? product : p))
       );
-      toast.success("Успешно записано!");
-    } else {
-      const err = await res.json();
-      toast.error(err.error || "Грешка при запис");
+      toast.error("Грешка при запис");
     }
   };
 
@@ -603,13 +668,18 @@ export default function ProductsPage() {
       cell: ({ row }) => {
         if (!row) return null;
         return (
-          <EditableCell
+          <>
+                    <EditableCell
             type="number"
             value={row.original.deliveryPrice}
+            fieldName="deliveryPrice"
             onSave={(val) =>
               handleUpdateProductField(row.original.id, "deliveryPrice", val)
             }
           />
+          <span> ({(row.original.deliveryPrice * 1.95583).toFixed(2)}€)</span>
+
+          </>
         );
       },
     },
@@ -619,13 +689,20 @@ export default function ProductsPage() {
       cell: ({ row }) => {
         if (!row) return null;
         return (
-          <EditableCell
+
+
+          <>
+                    <EditableCell
             type="number"
             value={row.original.clientPrice}
+            fieldName="clientPrice"
             onSave={(val) =>
               handleUpdateProductField(row.original.id, "clientPrice", val)
             }
           />
+          <span> ({(row.original.clientPrice * 1.95583).toFixed(2)})€ </span>
+          
+          </>
         );
       },
     },
@@ -635,13 +712,19 @@ export default function ProductsPage() {
       cell: ({ row }) => {
         if (!row) return null;
         return (
-          <EditableCell
+          <>
+                    <EditableCell
             type="number"
             value={row.original.pcd}
+            fieldName="pcd"
             onSave={(val) =>
               handleUpdateProductField(row.original.id, "pcd", val)
             }
           />
+
+<span> ({(row.original.pcd * 1.95583).toFixed(2)})€ </span>
+
+          </>
         );
       },
     },
@@ -718,25 +801,12 @@ export default function ProductsPage() {
         if (!product) return null;
         return (
           <div className="flex items-center gap-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="table">
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold">Редактирай продукт</DialogTitle>
-                </DialogHeader>
-                <EditProductPage
-                  fetchProducts={fetchProducts}
-                  productId={product.id}
-                  onProductUpdated={handleProductUpdated}
-                  rowId={row.original.id}
-                  setUpdatedRowId={setUpdatedRowId}
-                />
-              </DialogContent>
-            </Dialog>
+            <Button 
+              variant="table"
+              onClick={() => handleEditProduct(product)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
             <Button
               variant="table"
               onClick={() => {
@@ -777,23 +847,10 @@ export default function ProductsPage() {
         <Button variant="outline" onClick={() => setOfferButton(!offerButton)}>
           <IconInvoice /> {offerButton ? <> Скрий оферта</> : <>Оферта</>}
         </Button>
-{/* 
-        <Button onClick={() => router.push("/dashboard/products/create")}>
+
+        <Button onClick={() => setCreateDialogOpen(true)}>
           <PlusIcon /> Добави продукт
-        </Button> */}
-        <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                <PlusIcon /> Добави продукт
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="font-semibold text-lg">Добави продукт</DialogTitle>
-                </DialogHeader>
-                  <CreateProductPage fetchProducts={fetchProducts}/>
-              </DialogContent>
-            </Dialog>
+        </Button>
       </BasicHeader>
 
       {importError && <div className="text-red-500 mb-4">{importError}</div>}
@@ -811,6 +868,39 @@ export default function ProductsPage() {
         rowClassName={getRowClassName}
         updatedRowId={updatedRowId}
       />
+
+      {/* Edit Product Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              Редактирай продукт: {editingProduct?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <EditProductPage
+              product={editingProduct}
+              onProductUpdated={handleProductUpdated}
+              onClose={handleCloseEditDialog}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Product Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              Добави нов продукт
+            </DialogTitle>
+          </DialogHeader>
+          <CreateProductPage
+            onProductCreated={handleProductCreated}
+            onClose={handleCloseCreateDialog}
+          />
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
-export default function CreateProductPage({ fetchProducts }) {
+export default function CreateProductPage({ onProductCreated, onClose }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -48,10 +49,20 @@ export default function CreateProductPage({ fetchProducts }) {
         throw new Error(result.error || "Грешка при създаване на продукт");
       }
 
-      fetchProducts();
+      // Optimistically add the new product to the list
+      onProductCreated(result);
+      
+      // Show success message
+      toast.success("Продуктът е успешно създаден!");
+      
+      // Keep dialog open for potential further creation
+      setLoading(false);
+      
+      // Reset form
+      e.target.reset();
+      
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -123,8 +134,8 @@ export default function CreateProductPage({ fetchProducts }) {
       {error && <div className="text-red-500 text-sm">{error}</div>}
 
       <div className="flex justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={() => router.back()}>
-          Отказ
+        <Button type="button" variant="outline" onClick={onClose}>
+          Затвори
         </Button>
         <Button type="submit" disabled={loading}>
           {loading ? "Създаване..." : "Създай"}

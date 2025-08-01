@@ -7,11 +7,17 @@ import DatePicker from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import TableLink from "@/components/ui/table-link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Filter, X } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+import CreatePaymentRevisionForm from "@/components/forms/payments-revision/CreatePaymentRevisionForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function PartnerReport() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   // States
   const [partners, setPartners] = useState([]);
   const [selectedPartner, setSelectedPartner] = useState(null);
@@ -22,24 +28,13 @@ export default function PartnerReport() {
   const [revisionType, setRevisionType] = useState("all");
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedRevision, setSelectedRevision] = useState(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
-  // Fetch partners
-  useEffect(() => {
-    async function fetchPartners() {
-      try {
-        const res = await fetch("/api/reports/partners");
-        if (!res.ok) throw new Error("Failed to fetch partners");
-        const data = await res.json();
-        setPartners(data);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-    fetchPartners();
-  }, []);
+
 
   // Fetch partner sales
-  async function fetchPartnerSales() {
+  const fetchPartnerSales = useCallback(async () => {
     if (!selectedPartner) return;
     
     setLoading(true);
@@ -71,11 +66,93 @@ export default function PartnerReport() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [selectedPartner, dateFrom, dateTo, status, type, revisionType]);
+
+  // Fetch payments for a specific revision
+  const fetchPayments = useCallback(async (revisionId) => {
+    try {
+      const res = await fetch(`/api/revisions/${revisionId}/payments`);
+      if (!res.ok) throw new Error("Failed to fetch payments");
+      const data = await res.json();
+      return data.payments || [];
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }, []);
+
+  // Refresh sales data after payment
+  const handlePaymentSuccess = useCallback(() => {
+    // Small delay to ensure the payment is processed
+    setTimeout(() => {
+      fetchPartnerSales();
+      setIsPaymentDialogOpen(false);
+      setSelectedRevision(null);
+    }, 500);
+  }, [fetchPartnerSales]);
+
+  // Fetch partners
+  useEffect(() => {
+    async function fetchPartners() {
+      try {
+        const res = await fetch("/api/reports/partners");
+        if (!res.ok) throw new Error("Failed to fetch partners");
+        const data = await res.json();
+        setPartners(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    fetchPartners();
+  }, []);
+
+  // Sync with URL parameters on mount and fetch data
+  useEffect(() => {
+    const partner = searchParams.get("partner");
+    const dateFromParam = searchParams.get("dateFrom");
+    const dateToParam = searchParams.get("dateTo");
+    const statusParam = searchParams.get("status");
+    const typeParam = searchParams.get("type");
+    const revisionTypeParam = searchParams.get("revisionType");
+
+    if (partner) setSelectedPartner(partner);
+    if (dateFromParam) setDateFrom(new Date(dateFromParam));
+    if (dateToParam) setDateTo(new Date(dateToParam));
+    if (statusParam) setStatus(statusParam);
+    if (typeParam) setType(typeParam);
+    if (revisionTypeParam) setRevisionType(revisionTypeParam);
+  }, [searchParams]);
+
+  // Fetch data when filters change
+  useEffect(() => {
+    if (selectedPartner) {
+      fetchPartnerSales();
+    }
+  }, [fetchPartnerSales]);
 
   function handleFormSubmit(e) {
     e.preventDefault();
-    fetchPartnerSales();
+    
+    // Update URL with current filters
+    const params = new URLSearchParams();
+    if (selectedPartner) params.set("partner", selectedPartner);
+    if (dateFrom) {
+      const year = dateFrom.getFullYear();
+      const month = String(dateFrom.getMonth() + 1).padStart(2, "0");
+      const day = String(dateFrom.getDate()).padStart(2, "0");
+      params.set("dateFrom", `${year}-${month}-${day}`);
+    }
+    if (dateTo) {
+      const year = dateTo.getFullYear();
+      const month = String(dateTo.getMonth() + 1).padStart(2, "0");
+      const day = String(dateTo.getDate()).padStart(2, "0");
+      params.set("dateTo", `${year}-${month}-${day}`);
+    }
+    if (status && status !== "all") params.set("status", status);
+    if (type && type !== "all") params.set("type", type);
+    if (revisionType && revisionType !== "all") params.set("revisionType", revisionType);
+    
+    router.push(`/dashboard/reports/partner?${params.toString()}`);
   }
 
   function handleClear() {
@@ -86,6 +163,7 @@ export default function PartnerReport() {
     setType("all");
     setRevisionType("all");
     setSales([]);
+    router.push("/dashboard/reports/partner");
   }
 
   const columns = [
@@ -174,7 +252,7 @@ export default function PartnerReport() {
     },
     {
       accessorKey: "paymentMethod",
-      header: "Начин на плащане",
+      header: "плащане",
       cell: ({ row }) => {
         const payment = row.original.paymentInfo;
         if (!payment) return "-";
@@ -197,8 +275,7 @@ export default function PartnerReport() {
         const date = row.original.createdAt;
         return date ? new Date(date).toLocaleDateString('bg-BG') : "-";
       },
-    },
-
+    }
   ];
 
   return (
@@ -318,6 +395,7 @@ export default function PartnerReport() {
             )}
           </>
         )}
+
       </div>
     </>
   );

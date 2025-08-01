@@ -13,45 +13,42 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoadingScreen from "@/components/LoadingScreen";
+import { toast } from "sonner";
 
 // The image field in your form is just a text input for a URL (type='link' is not a valid input type in HTML, so it falls back to text).
 // If you want to preview the image, you need to render an <img> tag with the value of the image field.
 // Also, make sure the value you enter is a valid image URL.
 
 export default function EditProductPage({
-  productId,
-  fetchProducts,
+  product,
   onProductUpdated,
-  rowId,
-  setUpdatedRowId
+  onClose
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [product, setProduct] = useState(null);
-  const [imageUrl, setImageUrl] = useState(""); // for live preview
+  const [imageUrl, setImageUrl] = useState(product?.image || ""); // for live preview
 
-  useEffect(() => {
-    if (!productId) return;
-
-    setLoading(true);
-    const fetchProduct = async () => {
-      try {
-        const response = await fetch(`/api/products/${productId}`);
-        if (!response.ok) throw new Error("Failed to fetch product");
-        const data = await response.json();
-        setProduct(data);
-        setImageUrl(data.image || "");
-      } catch (error) {
-        console.error("Error fetching product:", error);
-        setError("Грешка при зареждане на продукт");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProduct();
-  }, [productId]);
+  // No need to fetch - we already have the product data
+  // useEffect(() => {
+  //   if (!productId) return;
+  //   setLoading(true);
+  //   const fetchProduct = async () => {
+  //     try {
+  //       const response = await fetch(`/api/products/${productId}`);
+  //       if (!response.ok) throw new Error("Failed to fetch product");
+  //       const data = await response.json();
+  //       setProduct(data);
+  //       setImageUrl(data.image || "");
+  //     } catch (error) {
+  //       console.error("Error fetching product:", error);
+  //       setError("Грешка при зареждане на продукт");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchProduct();
+  // }, [productId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,8 +66,11 @@ export default function EditProductPage({
       image: formData.get("image"),
     };
 
+    // Close dialog immediately for optimistic UX
+    onClose();
+
     try {
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await fetch(`/api/products/${product.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -84,28 +84,25 @@ export default function EditProductPage({
         throw new Error(result.error || "Грешка при редактиране на продукт");
       }
 
+      // Update local state optimistically
       onProductUpdated(result);
-      setUpdatedRowId(rowId)
+      
     } catch (err) {
-      setError(err.message);
+      // Show error via toast since dialog is already closed
+      toast.error(err.message || "Грешка при редактиране на продукт");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading || !product) {
-    return <LoadingScreen />
-  }
-
-  if (error) {
-    return <div className="text-red-500 text-center py-10">{error}</div>;
+  if (!product) {
+    return <div className="text-red-500 text-center py-10">Продуктът не е намерен</div>;
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div className="grid gap-2">
-          {rowId}
           <Label htmlFor="name">Име *</Label>
           <Input
             id="name"
@@ -205,8 +202,8 @@ export default function EditProductPage({
       {error && <div className="text-red-500 text-sm">{error}</div>}
 
       <div className="flex justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={() => router.back()}>
-          Отказ
+        <Button type="button" variant="outline" onClick={onClose}>
+          Затвори
         </Button>
         <Button type="submit" disabled={loading}>
           {loading ? "Запазване..." : "Запази"}

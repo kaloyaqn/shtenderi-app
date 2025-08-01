@@ -327,15 +327,25 @@ export default function GeneralResupplyPage() {
         const error = await res.json();
         throw new Error(error.error || "Грешка при трансфер.");
       }
-      toast.success("Трансферът е успешен!");
-      // Optionally redirect or reset state
-      setMode("");
-      setSourceId("");
-      setDestinationId("");
-      setProductsInSource([]);
-      setSelectedProducts([]);
-      setBarcodeInput("");
-      setStep(1);
+      
+      const result = await res.json();
+      
+      if (mode === "storage-to-stand") {
+        // For stand transfers, redirect to transfers page for confirmation
+        toast.success("Трансферът е създаден и очаква потвърждение!");
+        router.push("/dashboard/transfers");
+        return;
+      } else {
+        toast.success("Трансферът е успешен!");
+        // Reset state for other transfer types
+        setMode("");
+        setSourceId("");
+        setDestinationId("");
+        setProductsInSource([]);
+        setSelectedProducts([]);
+        setBarcodeInput("");
+        setStep(1);
+      }
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -657,8 +667,8 @@ export default function GeneralResupplyPage() {
                                         disabled={loading}
                                         placeholder="0"
                                       />
-                                      <span className="text-xs text-gray-500 whitespace-nowrap">
-                                        / {p.quantity || p.maxQuantity}
+                                      <span className="text-base font-bold  text-red-700! whitespace-nowrap">
+                                        / {p.quantity || p.maxQuantity || 0}
                                       </span>
                                     </div>
                                   </div>

@@ -14,6 +14,7 @@ import Link from 'next/link';
 import BasicHeader from '@/components/BasicHeader';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const Html5QrcodeScanner = dynamic(
   () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
@@ -387,6 +388,7 @@ export default function StandRevisionPage({ params, searchParams }) {
   const [saleLoading, setSaleLoading] = useState(false);
   const [storages, setStorages] = useState([]);
   const [selectedStorage, setSelectedStorage] = useState('');
+  const [showEmptySaleConfirm, setShowEmptySaleConfirm] = useState(false);
   const saleInputRef = useRef();
 
   // When entering sale mode, load only missing products from the check
@@ -475,13 +477,19 @@ export default function StandRevisionPage({ params, searchParams }) {
 
   // On finish in sale mode, use the new sale API that handles automatic zeroing
   const handleFinishSale = async () => {
-    setFinishing(true);
-    setFinished(true);
     if (!selectedStorage) {
       toast.error('Моля, изберете склад.');
-      setFinishing(false);
       return;
     }
+
+    // Check if no products are scanned
+    if (saleChecked.length === 0) {
+      setShowEmptySaleConfirm(true);
+      return;
+    }
+
+    setFinishing(true);
+    setFinished(true);
     
     try {
       const res = await fetch('/api/revisions/sale', {
@@ -505,6 +513,55 @@ export default function StandRevisionPage({ params, searchParams }) {
           toast.error('Тази проверка вече е превърната в продажба. Не можете да създадете дублираща продажба.');
         } else {
           toast.error('Недостатъчни количества в склада.');
+        }
+        try { new Audio('/error.mp3').play(); } catch {}
+        setFinishing(false);
+        return;
+      }
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Грешка при запис на продажбата');
+      }
+      
+      const data = await res.json();
+      setRevisionId(data.id);
+      toast.success('Продажбата е записана успешно!');
+      // Redirect to revision details page
+      router.push(`/dashboard/revisions/${data.id}`);
+    } catch (err) {
+      toast.error(err.message);
+      try { new Audio('/error.mp3').play(); } catch {}
+    } finally {
+      setFinishing(false);
+    }
+  };
+
+  // Handle empty sale confirmation
+  const handleConfirmEmptySale = async () => {
+    setShowEmptySaleConfirm(false);
+    setFinishing(true);
+    setFinished(true);
+    
+    try {
+      const res = await fetch('/api/revisions/sale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          standId,
+          userId,
+          checkId,
+          saleChecked: [], // Empty array for empty sale
+          selectedStorage,
+        }),
+      });
+      
+      if (res.status === 409) {
+        const data = await res.json();
+        if (data.error && data.error.includes('already has a revision')) {
+          toast.error('Тази проверка вече е превърната в продажба. Не можете да създадете дублираща продажба.');
+        } else {
+          toast.error('Грешка при създаване на празна продажба.');
         }
         try { new Audio('/error.mp3').play(); } catch {}
         setFinishing(false);
@@ -624,7 +681,7 @@ export default function StandRevisionPage({ params, searchParams }) {
         <BasicHeader title={`Продажба след проверка`}>
           <Button
             onClick={handleFinishSale}
-            disabled={saleChecked.length === 0 && saleUnchecked.length === 0 || finishing || !selectedStorage}
+            disabled={saleUnchecked.length === 0 || finishing || !selectedStorage}
             size="lg"
             className="w-full! h-15 mt-3 mb-4"
           >
@@ -703,6 +760,26 @@ export default function StandRevisionPage({ params, searchParams }) {
             </div>
           </div>
         </div>
+
+        {/* Empty Sale Confirmation Dialog */}
+        <Dialog open={showEmptySaleConfirm} onOpenChange={setShowEmptySaleConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Потвърждение за празна продажба</DialogTitle>
+              <DialogDescription>
+                Не сте сканирали нито един продукт. Желаете ли да превърнете проверката в продажба?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEmptySaleConfirm(false)}>
+                Отказ
+              </Button>
+              <Button onClick={handleConfirmEmptySale}>
+                Да, превърни в продажба
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

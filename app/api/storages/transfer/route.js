@@ -83,39 +83,36 @@ async function handleStorageToStandTransfer(sourceStorageId, standId, products, 
             throw new Error('Stand or associated partner not found.');
         }
 
-        // 2. Validate stock and perform movements from source storage
-        await validateAndMoveStock(tx, sourceStorageId, products);
-
-        // 3. Upsert products on the destination stand
+        // 2. Validate that products exist and have sufficient stock, but do not move stock yet
         for (const product of products) {
-            await tx.standProduct.upsert({
-                where: { standId_productId: { standId, productId: product.productId } },
-                update: { quantity: { increment: product.quantity } },
-                create: { standId, productId: product.productId, quantity: product.quantity },
+            const p = await tx.product.findUnique({ where: { id: product.productId } });
+            if (!p) throw new Error(`Product with ID ${product.productId} not found.`);
+
+            const sp = await tx.storageProduct.findFirst({
+                where: { storageId: sourceStorageId, productId: product.productId }
             });
+            if (!sp || sp.quantity < product.quantity) {
+                throw new Error(`Insufficient stock for ${p.name}.`);
+            }
         }
 
-        // 4. Get next revision number
-        const lastRevision = await tx.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
-        const nextNumber = (lastRevision?.number || 0) + 1;
-
-        // 5. Create a Revision (as a sale document)
-        const revision = await tx.revision.create({
+        // 3. Create Transfer record in PENDING state (instead of immediately moving stock)
+        const transfer = await tx.transfer.create({
             data: {
-                number: nextNumber,
-                standId: standId,
-                partnerId: stand.store.partner.id,
-                userId: userId,
-                missingProducts: {
+                sourceStorageId,
+                destinationStorageId: standId, // Using destinationStorageId for stand transfers
+                userId,
+                status: 'PENDING',
+                products: {
                     create: products.map(p => ({
                         productId: p.productId,
-                        missingQuantity: p.quantity,
+                        quantity: p.quantity,
                     })),
                 },
             },
         });
 
-        return { message: 'Storage-to-stand transfer successful', revisionId: revision.id };
+        return { message: "Transfer initiated successfully and is pending confirmation.", transferId: transfer.id };
     });
 }
 
