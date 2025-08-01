@@ -677,7 +677,7 @@ export default function ProductsPage() {
               handleUpdateProductField(row.original.id, "deliveryPrice", val)
             }
           />
-          <span> ({(row.original.deliveryPrice * 1.95583).toFixed(2)}€)</span>
+          <span> ({(row.original.deliveryPrice / 1.95583).toFixed(2)}€)</span>
 
           </>
         );
@@ -700,7 +700,7 @@ export default function ProductsPage() {
               handleUpdateProductField(row.original.id, "clientPrice", val)
             }
           />
-          <span> ({(row.original.clientPrice * 1.95583).toFixed(2)})€ </span>
+          <span> ({(row.original.clientPrice / 1.95583).toFixed(2)})€ </span>
           
           </>
         );
@@ -722,7 +722,7 @@ export default function ProductsPage() {
             }
           />
 
-<span> ({(row.original.pcd * 1.95583).toFixed(2)})€ </span>
+<span> ({(row.original.pcd /  1.95583).toFixed(2)})€ </span>
 
           </>
         );
