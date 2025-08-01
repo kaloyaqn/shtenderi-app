@@ -4,7 +4,7 @@ import { useState, useEffect, use, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { Plus, Pencil, Trash2, Upload, Barcode, ImportIcon, LucideUpload, Warehouse, BoxIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Barcode, ImportIcon, LucideUpload, Warehouse, BoxIcon, Download } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -169,6 +169,18 @@ export default function StorageDetailPage({ params }) {
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleExportClick = () => {
+    // Create a download link for the XML export
+    const link = document.createElement('a');
+    link.href = `/api/storages/${storageId}/export-xml`;
+    link.download = `storage-${storageId}.xml`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Експортът започна!');
   };
 
   const handleFileChange = async (e) => {
@@ -356,9 +368,14 @@ export default function StorageDetailPage({ params }) {
           ))}
         </div>
         {userIsAdmin && (
-          <Button className="fixed bottom-6 right-6 rounded-full shadow-lg" size="icon" onClick={handleImportClick}>
-            <ImportIcon />
-          </Button>
+          <div className="fixed bottom-6 right-6 flex flex-col gap-2">
+            <Button className="rounded-full shadow-lg" size="icon" onClick={handleExportClick}>
+              <Download />
+            </Button>
+            <Button className="rounded-full shadow-lg" size="icon" onClick={handleImportClick}>
+              <ImportIcon />
+            </Button>
+          </div>
         )}
         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
         {/* Dialogs for edit, delete, refund, etc. remain functional */}
@@ -484,6 +501,11 @@ export default function StorageDetailPage({ params }) {
   return (
     <div className="">
       <BasicHeader subtitle={"Упраялавай стоката в склада"} title={storage ? `Склад: ${storage.name}` : "Зареждане..."}>
+      <Button
+      onClick={handleExportClick}
+      variant={'outline'}>
+            <Download />  Експорт
+            </Button>
       <Button
       onClick={handleImportClick}
       variant={'outline'}>
