@@ -50,7 +50,7 @@ import ProductOffer from "@/components/offers/productOffer";
 import { IconInvoice } from "@tabler/icons-react";
 import CreateProductPage from "./create/page";
 
-function EditableCell({ value, onSave, type = "text", min, max }) {
+function EditableCell({ value, onSave, type = "text", min, max, fieldName }) {
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value ?? "");
   const [loading, setLoading] = useState(false);
@@ -151,7 +151,18 @@ function EditableCell({ value, onSave, type = "text", min, max }) {
       {value === null || value === undefined || value === "" ? (
         <span className="text-muted-foreground">—</span>
       ) : (
-        value
+        <>
+          {value}
+          {(type === "number" || type === "numeric") && value !== 0 && fieldName && fieldName === "deliveryPrice" && (
+            <span className="text-muted-foreground ml-1">лв</span>
+          )}
+          {(type === "number" || type === "numeric") && value !== 0 && fieldName && fieldName === "clientPrice" && (
+            <span className="text-muted-foreground ml-1">лв</span>
+          )}
+          {(type === "number" || type === "numeric") && value !== 0 && fieldName && fieldName === "pcd" && (
+            <span className="text-muted-foreground ml-1">лв</span>
+          )}
+        </>
       )}
     </span>
   );
@@ -657,13 +668,18 @@ export default function ProductsPage() {
       cell: ({ row }) => {
         if (!row) return null;
         return (
-          <EditableCell
+          <>
+                    <EditableCell
             type="number"
             value={row.original.deliveryPrice}
+            fieldName="deliveryPrice"
             onSave={(val) =>
               handleUpdateProductField(row.original.id, "deliveryPrice", val)
             }
           />
+          <span> ({(row.original.deliveryPrice * 1.95583).toFixed(2)}€)</span>
+
+          </>
         );
       },
     },
@@ -673,13 +689,20 @@ export default function ProductsPage() {
       cell: ({ row }) => {
         if (!row) return null;
         return (
-          <EditableCell
+
+
+          <>
+                    <EditableCell
             type="number"
             value={row.original.clientPrice}
+            fieldName="clientPrice"
             onSave={(val) =>
               handleUpdateProductField(row.original.id, "clientPrice", val)
             }
           />
+          <span> ({(row.original.clientPrice * 1.95583).toFixed(2)})€ </span>
+          
+          </>
         );
       },
     },
@@ -689,13 +712,19 @@ export default function ProductsPage() {
       cell: ({ row }) => {
         if (!row) return null;
         return (
-          <EditableCell
+          <>
+                    <EditableCell
             type="number"
             value={row.original.pcd}
+            fieldName="pcd"
             onSave={(val) =>
               handleUpdateProductField(row.original.id, "pcd", val)
             }
           />
+
+<span> ({(row.original.pcd * 1.95583).toFixed(2)})€ </span>
+
+          </>
         );
       },
     },
