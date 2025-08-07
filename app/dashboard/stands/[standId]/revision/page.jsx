@@ -681,7 +681,7 @@ export default function StandRevisionPage({ params, searchParams }) {
         <BasicHeader title={`Продажба след проверка`}>
           <Button
             onClick={handleFinishSale}
-            disabled={saleUnchecked.length === 0 || finishing || !selectedStorage}
+            disabled={finishing || !selectedStorage}
             size="lg"
             className="w-full! h-15 mt-3 mb-4"
           >
