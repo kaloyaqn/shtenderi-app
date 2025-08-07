@@ -3,23 +3,15 @@
 import { useEffect, useState, useRef, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import dynamic from 'next/dynamic';
-import { CheckCircle, XCircle, Barcode, Package, BarcodeIcon, PlusIcon, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Barcode, Package, PlusIcon, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import BasicHeader from '@/components/BasicHeader';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-
-const Html5QrcodeScanner = dynamic(
-  () => import('html5-qrcode').then(mod => mod.Html5Qrcode),
-  { ssr: false }
-);
 
 export default function StandRevisionPage({ params, searchParams }) {
   const { standId } = use(params);
@@ -30,26 +22,16 @@ export default function StandRevisionPage({ params, searchParams }) {
   const [remaining, setRemaining] = useState([]); // [{barcode, name, remaining}]
   const [checked, setChecked] = useState([]); // [{barcode, name, checked}]
   const [finished, setFinished] = useState(false);
-  const [report, setReport] = useState(null);
   const inputRef = useRef();
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const scannerRef = useRef(null);
   const [revisionId, setRevisionId] = useState(null);
   const [standName, setStandName] = useState('');
-  const [showCheck, setShowCheck] = useState(false);
-  const [inputReadOnly, setInputReadOnly] = useState(false);
   const [finishing, setFinishing] = useState(false); // loading state for finish button
   const [checkAlreadyHasRevision, setCheckAlreadyHasRevision] = useState(false); // track if check already has revision
   const { data: session } = useSession();
   const userId = session?.user?.id || null;
   const router = useRouter();
 
-  // Detect mobile
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setInputReadOnly(window.innerWidth <= 768);
-    }
-  }, []);
+
 
   // Fetch products for this stand
   useEffect(() => {
@@ -116,63 +98,14 @@ export default function StandRevisionPage({ params, searchParams }) {
     }
   }, [checkIdFromParams, mode, standId]);
 
-  useEffect(() => {
-    if (!scannerOpen) return;
-    let html5QrCode;
-    let running = true;
-    import('html5-qrcode').then(({ Html5Qrcode, Html5QrcodeSupportedFormats }) => {
-      html5QrCode = new Html5Qrcode('barcode-scanner');
-      html5QrCode.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 300, height: 120 },
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.EAN_8,
-          ],
-        },
-        (decodedText) => {
-          if (running) {
-            setScannerOpen(false);
-            setTimeout(() => {
-              if (inputRef.current) {
-                inputRef.current.value = decodedText;
-                const event = new Event('input', { bubbles: true });
-                inputRef.current.dispatchEvent(event);
-                inputRef.current.form?.dispatchEvent(new Event('submit', { bubbles: true }));
-              }
-            }, 200);
-            html5QrCode.stop();
-          }
-        },
-        (error) => {
-          // ignore scan errors
-        }
-      );
-      scannerRef.current = html5QrCode;
-    });
-    return () => {
-      running = false;
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current = null;
-      }
-    };
-  }, [scannerOpen]);
-
   // Always autofocus barcode input when scanner closes or after reset
   useEffect(() => {
-    if (!scannerOpen && !finished) {
+    if (!finished) {
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
-  }, [scannerOpen, finished]);
+  }, [finished]);
 
   // Handle barcode scan
   const handleScan = async (e) => {
@@ -191,39 +124,12 @@ export default function StandRevisionPage({ params, searchParams }) {
       return;
     }
     if (!prod) {
-      // Try to fetch product by barcode
-      let productData = null;
+      // Product not found in stand inventory - show error
+      toast.error('Продуктът не съществува в инвентара на този щендер.');
       try {
-        const res = await fetch(`/api/products?barcode=${barcode}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0) {
-            productData = data[0];
-          }
-        }
-      } catch {}
-      // Check if fetched product is inactive
-      if (productData && productData.active === false) {
-        toast.error('Продуктът е неактивен, моля свържете се с администратор');
-        try {
-          new Audio('/error.mp3').play();
-        } catch (err) {}
-        e.target.reset();
-        inputRef.current?.focus();
-        return;
-      }
-      if (!productData) {
-        toast.error('Продукт с този баркод не е намерен.');
-        try {
-          new Audio('/error.mp3').play();
-        } catch (err) {}
-        e.target.reset();
-        inputRef.current?.focus();
-        return;
-      }
-      // No pendingProducts logic here
+        new Audio('/error.mp3').play();
+      } catch (err) {}
       e.target.reset();
-      setShowCheck(true);
       inputRef.current?.focus();
       return;
     }
@@ -266,9 +172,14 @@ export default function StandRevisionPage({ params, searchParams }) {
     setChecked(prev => {
       const idx = prev.findIndex(p => p.barcode === barcode);
       if (idx !== -1) {
-        return prev.map((p, i) => i === idx ? { ...p, checked: p.checked + 1 } : p);
+        // If product already exists, update it and move to front
+        const updated = prev.map((p, i) => i === idx ? { ...p, checked: p.checked + 1 } : p);
+        const item = updated[idx];
+        const withoutItem = updated.filter((_, i) => i !== idx);
+        return [item, ...withoutItem];
       } else {
-        return [...prev, { barcode, name: prod.product.name, checked: 1 }];
+        // If new product, add to front
+        return [{ barcode, name: prod.product.name, checked: 1 }, ...prev];
       }
     });
     // Play success sound
@@ -276,8 +187,6 @@ export default function StandRevisionPage({ params, searchParams }) {
       new Audio('/success.mp3').play();
     } catch (err) {}
     e.target.reset();
-    setShowCheck(true);
-    setTimeout(() => setShowCheck(false), 2000);
     inputRef.current?.focus();
   };
 
@@ -286,7 +195,6 @@ export default function StandRevisionPage({ params, searchParams }) {
     setFinishing(true);
     setFinished(true);
     const missing = remaining.filter(p => p.remaining > 0);
-    setReport(missing);
     if (mode === 'check') {
       // Create a check
       const checkedProducts = products.map(p => {
@@ -314,7 +222,6 @@ export default function StandRevisionPage({ params, searchParams }) {
         setFinishing(false);
       }
     } else if (mode === 'sale') {
-      // No pendingProducts logic here
       // Build missingProducts: only from missing
       const missingProducts = [
         ...missing.map(m => {
@@ -349,27 +256,9 @@ export default function StandRevisionPage({ params, searchParams }) {
     }
   };
 
-  // Reset revision
-  const handleReset = () => {
-    setRemaining(products.map(p => ({
-      barcode: p.product.barcode,
-      name: p.product.name,
-      remaining: p.quantity,
-    })));
-    setChecked([]);
-    setFinished(false);
-    setReport(null);
-    inputRef.current?.focus();
-  };
 
-  // Before rendering, sort remaining so checked are on the bottom
-  const sortedRemaining = [...remaining].sort((a, b) => {
-    if (a.remaining === 0 && b.remaining !== 0) return 1;
-    if (a.remaining !== 0 && b.remaining === 0) return -1;
-    return 0;
-  });
 
-  // Merge products for display (no pendingProducts)
+  // Merge products for display
   const allProducts = [
     ...products.map(p => {
       const rem = remaining.find(r => r.barcode === p.product.barcode);
@@ -465,9 +354,14 @@ export default function StandRevisionPage({ params, searchParams }) {
     setSaleChecked(prev => {
       const idx = prev.findIndex(p => p.barcode === barcode);
       if (idx !== -1) {
-        return prev.map((p, i) => i === idx ? { ...p, checked: p.checked + 1 } : p);
+        // If product already exists, update it and move to front
+        const updated = prev.map((p, i) => i === idx ? { ...p, checked: p.checked + 1 } : p);
+        const item = updated[idx];
+        const withoutItem = updated.filter((_, i) => i !== idx);
+        return [item, ...withoutItem];
       } else {
-        return [...prev, { barcode: uncheckedProd.barcode, name: uncheckedProd.name, checked: 1, productId: uncheckedProd.productId, clientPrice: uncheckedProd.clientPrice, maxQuantity: uncheckedProd.maxQuantity }];
+        // If new product, add to front
+        return [{ barcode: uncheckedProd.barcode, name: uncheckedProd.name, checked: 1, productId: uncheckedProd.productId, clientPrice: uncheckedProd.clientPrice, maxQuantity: uncheckedProd.maxQuantity }, ...prev];
       }
     });
     try { new Audio('/success.mp3').play(); } catch {}
@@ -822,8 +716,6 @@ export default function StandRevisionPage({ params, searchParams }) {
               autoComplete="off"
               inputMode="numeric"
               pattern="[0-9]*"
-              readOnly={inputReadOnly}
-              onFocus={() => setInputReadOnly(false)}
             />
             <Button type="submit" className=""> <PlusIcon /> Добави</Button>
           </form>
