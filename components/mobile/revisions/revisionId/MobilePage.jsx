@@ -124,7 +124,11 @@ export default function MobilePageRevisionId({
                 {/* PRINT STOCK BUTTON */}
                 {revision && (
                     <PrintStockButton 
-                        missingProducts={revision.missingProducts}
+                        missingProducts={revision.missingProducts.map(mp => ({
+                            ...mp,
+                            missingQuantity: mp.givenQuantity ?? mp.missingQuantity
+                        }))}
+                        revisionNumber={revision.number}
                     />
                 )}
                 {/* PRINT STOCK BUTTON */}

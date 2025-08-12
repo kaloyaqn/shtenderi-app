@@ -385,12 +385,11 @@ export default function RevisionDetailPage() {
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   // Calculate total price of revision
   const totalRevisionPrice =
-    revision?.missingProducts?.reduce(
-      (sum, mp) =>
-        sum +
-        mp.missingQuantity * (mp.priceAtSale ?? mp.product?.clientPrice ?? 0),
-      0
-    ) || 0;
+    revision?.missingProducts?.reduce((sum, mp) => {
+      const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+      const quantity = mp.givenQuantity ?? mp.missingQuantity ?? 0;
+      return sum + price * quantity;
+    }, 0) || 0;
 
   // Prepare data for mobile (include both sold and unscanned products)
   const soldProductsForMobile = revision.missingProducts.map((mp) => ({
