@@ -48,7 +48,7 @@ const extraNavItems = [
 const adminNavItems = [
   { href: "/dashboard/partners", label: "Партньори", icon: PersonStanding },
   { href: "/dashboard/checks", label: "Проверки", icon: CheckCheckIcon },
-  { href: "/dashboard/revisions", label: "Ревизии", icon: FileText },
+  { href: "/dashboard/revisions", label: "Продажби", icon: FileText },
   { href: "/dashboard/products", label: "Продукти", icon: Package },
   { href: "/dashboard/stores", label: "Магазини", icon: Store },
   { href: "/dashboard/users", label: "Потребители", icon: Users },
