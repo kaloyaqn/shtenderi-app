@@ -225,7 +225,11 @@ export default function PartnerReport() {
       cell: ({ row }) => {
         if (row.original.type === "missing") {
           const products = row.original.missingProducts || [];
-          const total = products.reduce((sum, mp) => sum + ((mp.priceAtSale || 0) * (mp.missingQuantity || 0)), 0);
+          const total = products.reduce((sum, mp) => {
+            const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+            const quantity = (mp.givenQuantity ?? mp.missingQuantity ?? 0);
+            return sum + price * quantity;
+          }, 0);
           return total > 0 ? `${total.toFixed(2)} лв.` : "-";
         } else {
           const products = row.original.refundProducts || [];

@@ -1,197 +1,90 @@
-'use client'
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { partnerSchema } from "@/lib/validations/partnerScheme";
 
-export default function CreatePartnerPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [address, setAddress] = useState("")
-  const [country, setCountry] = useState("")
-  const [city, setCity] = useState("")
+// Field configuration for auto-generation
+const fields = [
+  { name: "name", label: "Име на фирмата *", placeholder: "Въведете име", type: "text" },
+  { name: "bulstat", label: "ЕИК/Булстат", placeholder: "Въведете булстат", type: "text" },
+  { name: "country", label: "Държава", placeholder: "Въведете държава", type: "text" },
+  { name: "city", label: "Град", placeholder: "Въведете град", type: "text" },
+  { name: "address", label: "Адрес", placeholder: "Въведете адрес", type: "text" },
+  { name: "mol", label: "МОЛ", placeholder: "Въведете МОЛ", type: "text" },
+  { name: "percentageDiscount", label: "Процентна отстъпка", placeholder: "0", type: "number", step: "0.01", min: "0", max: "100" },
+  { name: "contactPerson", label: "Лице за контакт", placeholder: "Въведете лице за контакт", type: "text" },
+  { name: "phone", label: "Телефон", placeholder: "Въведете телефон", type: "text" },
+];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+export default function CreatePartnerPage({ fetchPartners }) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm({
+    resolver: zodResolver(partnerSchema),
+    defaultValues: fields.reduce((acc, field) => {
+      acc[field.name] = field.type === "number" ? 0 : "";
+      return acc;
+    }, {}),
+  });
 
-    const formData = new FormData(e.target)
-    const data = {
-      id: formData.get('id')?.trim(),
-      name: formData.get('name')?.trim(),
-      bulstat: formData.get('bulstat')?.trim(),
-      contactPerson: formData.get('contactPerson')?.trim(),
-      phone: formData.get('phone')?.trim(),
-      address: address.trim(),
-      country: country.trim(),
-      city: city.trim(),
-      mol: formData.get('mol')?.trim(),
-      percentageDiscount: Number(formData.get('percentageDiscount')) || 0,
-    }
-
+  const onSubmit = async (data) => {
     try {
-      const response = await fetch('/api/partners', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch("/api/partners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Грешка при създаване");
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Грешка при създаване на партньор')
-      }
-
-      router.push('/dashboard/partners')
-      router.refresh()
+      toast.success("Успешно създадохте партньор");
+      fetchPartners();
+      reset();
     } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+      toast.error(err.message);
     }
-  }
+  };
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Добави партньор</CardTitle>
-            <CardDescription>
-              Въведете информация за новия партньор
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="id">ID *</Label>
-                  <Input
-                    id="id"
-                    name="id"
-                    required
-                    placeholder="Въведете ID на партньора"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Име на фирмата *</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    required
-                    placeholder="Въведете име на фирмата"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="bulstat">Булстат</Label>
-                  <Input
-                    id="bulstat"
-                    name="bulstat"
-                    placeholder="Въведете булстат"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="contactPerson">Лице за контакт</Label>
-                  <Input
-                    id="contactPerson"
-                    name="contactPerson"
-                    placeholder="Въведете лице за контакт"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Телефон</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    placeholder="Въведете телефон"
-                  />
-                </div>
-
-
-
-                <div className="grid gap-2">
-                  <Label htmlFor="country">Държава</Label>
-                  <Input
-                    id="country"
-                    name="country"
-                    placeholder="Въведете държава (по избор)"
-                    value={country}
-                    onChange={e => setCountry(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="city">Град</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    placeholder="Въведете град (по избор)"
-                    value={city}
-                    onChange={e => setCity(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="address">Адрес</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    placeholder="Въведете адрес на партньора (по избор)"
-                    value={address}
-                    onChange={e => setAddress(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="mol">МОЛ</Label>
-                  <Input
-                    id="mol"
-                    name="mol"
-                    placeholder="Въведете МОЛ (Материално отговорно лице)"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="percentageDiscount">Процентна отстъпка</Label>
-                  <Input id="percentageDiscount" name="percentageDiscount" type="number" step="0.01" min="0" max="100" placeholder="0" />
-                </div>
-              </div>
-
-              {error && (
-                <div className="text-red-500 text-sm">{error}</div>
-              )}
-
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                >
-                  Отказ
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Създаване...' : 'Създай'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-4">
+        {fields.map((field) => (
+          <div key={field.name} className="grid gap-2">
+            <Label htmlFor={field.name}>{field.label}</Label>
+            <Input
+              id={field.name}
+              type={field.type}
+              placeholder={field.placeholder}
+              step={field.step}
+              min={field.min}
+              max={field.max}
+              {...register(field.name, {
+                valueAsNumber: field.type === "number",
+              })}
+            />
+            {errors[field.name] && (
+              <p className="text-red-500 text-sm">
+                {errors[field.name]?.message}
+              </p>
+            )}
+          </div>
+        ))}
       </div>
-    </div>
-  )
-} 
+
+      <div className="flex justify-end space-x-4">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Създаване..." : "Създай"}
+        </Button>
+      </div>
+    </form>
+  );
+}
