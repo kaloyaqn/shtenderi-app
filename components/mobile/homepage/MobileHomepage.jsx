@@ -83,7 +83,7 @@ export default function MobileHomepage({ session }) {
               </span>
             </Card>
           </Link>
-          <Link href="/dashboard/checking">
+          <Link href="/dashboard/checks">
             <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
               <CheckCheck className="h-8 w-8 text-lime-600 mb-2" />
               <span className="font-semibold text-gray-900">
@@ -91,7 +91,7 @@ export default function MobileHomepage({ session }) {
               </span>
             </Card>
           </Link>
-          <Link href="/dashboard/checking">
+          <Link href="/dashboard/refunds">
             <Card className="hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center py-6">
               <IconTruckReturn className="h-8 w-8 text-red-600 mb-2" />
               <span className="font-semibold text-gray-900">

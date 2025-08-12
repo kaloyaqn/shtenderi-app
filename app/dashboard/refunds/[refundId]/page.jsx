@@ -43,8 +43,6 @@ export default function RefundDetailPage() {
   const router = useRouter();
   const [refund, setRefund] = useState(null);
   const [loading, setLoading] = useState(true);
-  const printRef = useRef();
-  const handlePrint = useReactToPrint({ content: () => printRef.current });
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [storages, setStorages] = useState([]);
   const [selectedStorage, setSelectedStorage] = useState("");
@@ -64,6 +62,9 @@ export default function RefundDetailPage() {
   const [creditProducts, setCreditProducts] = useState([]);
   const [creditNoteError, setCreditNoteError] = useState("");
   const [savingCreditNote, setSavingCreditNote] = useState(false);
+
+  const contentRef = useRef(null);
+  const reactToPrintFn = useReactToPrint({ contentRef });
 
   useEffect(() => {
     if (!refundId) return;
@@ -290,7 +291,7 @@ export default function RefundDetailPage() {
             </div>
           )}
         </div>
-        <Button onClick={handlePrint} className="ml-auto">Принтирай върнатите продукти</Button>
+        <Button onClick={reactToPrintFn} className="ml-auto">Принтирай върнатите продукти</Button>
         <Button
           onClick={openReturnDialog}
           disabled={returned}
@@ -330,7 +331,7 @@ export default function RefundDetailPage() {
       hasBackButton
       title={'Детайли за връщане'}
       >
-          <Button onClick={handlePrint} variant="outline">
+          <Button onClick={reactToPrintFn} variant="outline">
             {" "}
             <Printer /> Принтирай
           </Button>
@@ -477,17 +478,30 @@ export default function RefundDetailPage() {
       </Dialog>
       {/* Printable table */}
       <div
-        ref={printRef}
+        ref={contentRef}
         className="hidden print:block bg-white p-8 text-black"
       >
         <div className="flex justify-between items-center mb-4">
-          <div className="text-xl font-bold">Върнати продукти</div>
+          <div className="text-xl font-bold">Връщане № {refund.id.slice(-8)}</div>
           <div className="text-md">
             Дата: {new Date(refund.createdAt).toLocaleDateString("bg-BG")}
           </div>
         </div>
-        <div className="mb-2">
-          <b>Източник:</b> {refund.sourceType} - {refund.sourceName}
+        <div className="flex items-center justify-between mb-4">
+          <div className="mb-2">
+            <div className="font-semibold">Източник:</div>
+            <div>Тип: {refund.sourceType}</div>
+            <div>Име: {refund.sourceName}</div>
+          </div>
+          <div className="mb-2 text-right">
+            <div className="font-semibold">Потребител:</div>
+            <div>{refund.user?.name || refund.user?.email || "-"}</div>
+            <div>Дата: {new Date(refund.createdAt).toLocaleString("bg-BG")}</div>
+          </div>
+        </div>
+        <div className="mb-4">
+          <div className="font-semibold">Основание за връщане:</div>
+          <div>{refund.note || "Няма основание"}</div>
         </div>
         <table className="w-full border border-black mb-4">
           <thead>
@@ -495,7 +509,7 @@ export default function RefundDetailPage() {
               <th className="border border-black px-2 py-1">Име на продукта</th>
               <th className="border border-black px-2 py-1">EAN код</th>
               <th className="border border-black px-2 py-1">Количество</th>
-              <th className="border border-black px-2 py-1">Ед. цена</th>
+              <th className="border border-black px-2 py-1">Единична цена с ДДС</th>
               <th className="border border-black px-2 py-1">Обща стойност</th>
             </tr>
           </thead>
@@ -514,7 +528,34 @@ export default function RefundDetailPage() {
               );
             })}
           </tbody>
+          <tfoot>
+            <tr className="font-bold bg-gray-100">
+              <td className="p-2 border text-right" colSpan={2}>Общо:</td>
+              <td className="p-2 border text-center">
+                {refund.refundProducts.reduce((sum, rp) => sum + rp.quantity, 0)}
+              </td>
+              <td className="p-2 border"></td>
+              <td className="p-2 border text-right">
+                {refund.refundProducts.reduce((sum, rp) => {
+                  const price = rp.priceAtRefund ?? rp.product?.clientPrice ?? 0;
+                  return sum + (price * rp.quantity);
+                }, 0).toFixed(2)}
+              </td>
+            </tr>
+          </tfoot>
         </table>
+        <div className="mt-6">
+          Изготвил: <b>{refund.user?.name || refund.user?.email || "-"}</b>
+        </div>
+        {returned && returnedStorage && (
+          <div className="mt-4 p-3 border border-green-300 bg-green-50 rounded">
+            <div className="font-semibold text-green-800">Върнато в склад:</div>
+            <div>{returnedStorage.name}</div>
+            <div className="text-sm text-green-600">
+              Дата: {new Date(returnedAt).toLocaleString("bg-BG")}
+            </div>
+          </div>
+        )}
       </div>
       {creditNotesSummary && creditNotesSummary.length > 0 && (
         <div className="mt-8">
