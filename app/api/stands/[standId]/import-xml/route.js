@@ -70,9 +70,8 @@ export async function POST(req, context) {
         });
       } else {
         const updateData = {
-          name: product.name,
           deliveryPrice: deliveryPrice,
-          // Do NOT update clientPrice
+          // Do NOT update name or clientPrice if product already exists
         };
         updateData.quantity = { increment: product.quantity };
         if (product.shouldActivate) {

@@ -60,9 +60,8 @@ export async function POST(req, { params }) {
       if (dbProduct) {
         // Increment the global product quantity
         const updateData = {
-          name: product.name,
           deliveryPrice: deliveryPrice,
-          // Do NOT update clientPrice
+          // Do NOT update name or clientPrice if product already exists
           quantity: { increment: xmlQuantity },
         };
         if (product.shouldActivate) {

@@ -34,9 +34,8 @@ export async function POST(req) {
 
         if (existingProduct) {
           const updateData = {
-            name: product.name,
             deliveryPrice: deliveryPrice,
-            // Do NOT update clientPrice
+            // Do NOT update name or clientPrice if product already exists
           };
           if (updateQuantities) {
             updateData.quantity = { increment: parseInt(product.quantity, 10) || 0 };
