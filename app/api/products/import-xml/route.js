@@ -33,14 +33,6 @@ export async function POST(req) {
         });
 
         if (existingProduct) {
-          console.log('[IMPORT-XML][PRODUCTS] Found existing product:', {
-            id: existingProduct.id,
-            barcode: existingProduct.barcode,
-            currentName: existingProduct.name,
-            xmlName: product.name,
-            namesMatch: existingProduct.name === product.name
-          });
-          
           const updateData = {
             deliveryPrice: deliveryPrice,
             // Do NOT update name or clientPrice if product already exists
@@ -52,16 +44,9 @@ export async function POST(req) {
             updateData.active = true;
           }
           console.log('[IMPORT-XML][PRODUCTS] Updating product with:', updateData);
-          console.log('[IMPORT-XML][PRODUCTS] Fields being updated:', Object.keys(updateData));
           const updatedProduct = await prisma.product.update({
             where: { id: existingProduct.id },
             data: updateData,
-          });
-          console.log('[IMPORT-XML][PRODUCTS] Product after update:', {
-            id: updatedProduct.id,
-            barcode: updatedProduct.barcode,
-            name: updatedProduct.name,
-            nameChanged: updatedProduct.name !== existingProduct.name
           });
           updatedProducts.push(updatedProduct);
         } else {

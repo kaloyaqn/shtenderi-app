@@ -12,8 +12,11 @@ import { partnerSchema } from "@/lib/validations/partnerScheme";
 const fields = [
   { name: "name", label: "Име на фирмата *", placeholder: "Въведете име", type: "text" },
   { name: "bulstat", label: "ЕИК/Булстат", placeholder: "Въведете булстат", type: "text" },
+  { name: "country", label: "Държава", placeholder: "Въведете държава", type: "text" },
+  { name: "city", label: "Град", placeholder: "Въведете град", type: "text" },
   { name: "address", label: "Адрес", placeholder: "Въведете адрес", type: "text" },
   { name: "mol", label: "МОЛ", placeholder: "Въведете МОЛ", type: "text" },
+  { name: "percentageDiscount", label: "Процентна отстъпка", placeholder: "0", type: "number", step: "0.01", min: "0", max: "100" },
   { name: "contactPerson", label: "Лице за контакт", placeholder: "Въведете лице за контакт", type: "text" },
   { name: "phone", label: "Телефон", placeholder: "Въведете телефон", type: "text" },
 ];
