@@ -58,6 +58,14 @@ export async function POST(req, { params }) {
       }
 
       if (dbProduct) {
+        console.log('[IMPORT-XML][STORAGE] Found existing product:', {
+          id: dbProduct.id,
+          barcode: dbProduct.barcode,
+          currentName: dbProduct.name,
+          xmlName: product.name,
+          namesMatch: dbProduct.name === product.name
+        });
+        
         // Increment the global product quantity
         const updateData = {
           deliveryPrice: deliveryPrice,
@@ -69,9 +77,16 @@ export async function POST(req, { params }) {
           console.log('[IMPORT-XML][STORAGE] Activating product:', product.barcode);
         }
         console.log('[IMPORT-XML][STORAGE] Updating product with:', updateData);
-        await prisma.product.update({
+        console.log('[IMPORT-XML][STORAGE] Fields being updated:', Object.keys(updateData));
+        const updatedProduct = await prisma.product.update({
           where: { id: dbProduct.id },
           data: updateData,
+        });
+        console.log('[IMPORT-XML][STORAGE] Product after update:', {
+          id: updatedProduct.id,
+          barcode: updatedProduct.barcode,
+          name: updatedProduct.name,
+          nameChanged: updatedProduct.name !== dbProduct.name
         });
       } else {
         // If it doesn't exist, create it
