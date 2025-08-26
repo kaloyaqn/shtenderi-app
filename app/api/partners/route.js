@@ -1,33 +1,33 @@
 import { partnerService } from '@/lib/services/partner-service.js';
-import { withAuth } from '@/lib/utils/auth-middleware.js';
-import { ApiResponse, ApiError } from '@/lib/utils/api-response.js';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // GET: Връща всички партньори с магазини
-export const GET = withAuth(async (req, session) => {
+export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return new Response('Unauthorized', { status: 401 });
     const partners = await partnerService.getAllPartners(session.user);
-    return ApiResponse.success(partners);
+    return Response.json(partners);
   } catch (error) {
     console.error('[PARTNERS_GET_ERROR]', error);
-    if (error instanceof ApiError) {
-      return ApiResponse.error(error.message, error.status);
-    }
-    return ApiResponse.error('Failed to fetch partners');
+    return new Response('Failed to fetch partners', { status: 500 });
   }
-});
+}
 
 // POST: Създава нов партньор
-export const POST = withAuth(async (req, session) => {
+export async function POST(req) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return new Response('Unauthorized', { status: 401 });
+    if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 });
+
     const body = await req.json();
     const partner = await partnerService.createPartner(body);
-    return ApiResponse.success(partner, 201);
+    return Response.json(partner, { status: 201 });
   } catch (error) {
     console.error('[PARTNERS_POST_ERROR]', error);
-    if (error instanceof ApiError) {
-      return ApiResponse.error(error.message, error.status);
-    }
-    return ApiResponse.error('Failed to create partner');
+    return new Response(error?.message || 'Failed to create partner', { status: 500 });
   }
-}, { roles: ['ADMIN'] });
+}
   
