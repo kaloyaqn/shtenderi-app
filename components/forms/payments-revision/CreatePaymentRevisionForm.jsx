@@ -38,10 +38,13 @@ export default function CreatePaymentRevisionForm({ revision, revisionId, totalP
 //         mp.missingQuantity * (mp.priceAtSale ?? mp.product?.clientPrice ?? 0),
 //       0
 //     ) || 0;
-  // Overpayment check
+  // Overpayment check (use integer cents to avoid floating point errors)
   const enteredAmount = parseFloat(amount) || 0;
-  const willOverpay = enteredAmount + totalPaid > totalRevisionPrice;
-  const isFullyPaid = totalPaid >= totalRevisionPrice;
+  const enteredCents = Math.round((isNaN(enteredAmount) ? 0 : enteredAmount) * 100);
+  const paidCents = Math.round((isNaN(totalPaid) ? 0 : totalPaid) * 100);
+  const totalPriceCents = Math.round((isNaN(totalRevisionPrice) ? 0 : totalRevisionPrice) * 100);
+  const willOverpay = enteredCents + paidCents > totalPriceCents;
+  const isFullyPaid = paidCents >= totalPriceCents;
   const isAmountInvalid = isNaN(parseFloat(amount)) || parseFloat(amount) <= 0;
 
   async function handlePayment(e) {
