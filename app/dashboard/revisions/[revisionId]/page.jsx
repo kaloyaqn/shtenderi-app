@@ -1133,6 +1133,7 @@ export default function RevisionDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {showPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <form
@@ -1199,6 +1200,8 @@ export default function RevisionDetailPage() {
         <div className="mt-2 text-green-700">Payment successful!</div>
       )}
       {/* Below the payment form (desktop only): */}
+
+
     </div>
   );
 }
