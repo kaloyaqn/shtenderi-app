@@ -249,8 +249,15 @@ export default function ReportsSale() {
       },
     },
     {
+      accessorKey: "deliveryPrice",
+      header: "Доставна",
+      cell: ({row}) => {
+        return row.original.product.deliveryPrice + "лв."
+      }
+    },
+    {
       accessorKey: "revision.priceAtSale",
-      header: "Цена",
+      header: "Продажна",
       cell: ({ row }) => {
         if (!row.original) return "-";
         let price;
@@ -265,7 +272,28 @@ export default function ReportsSale() {
         }
         return price ? `${price.toFixed(2)} лв.` : "-";
       },
-      },
+    },
+    {
+      accessorKey: "diff",
+      header: "Разлика",
+      cell: ({row}) => {
+        let price;
+        if (row.original.type === "missing") {
+          price = row.original.priceAtSale;
+        } else {
+          price = row.original.priceAtRefund;
+        }
+        // If price is not found, try product.clientPrice
+        if (!price && row.original.product && row.original.product.clientPrice) {
+          price = row.original.product.clientPrice;
+        }
+
+        const diff = price - row.original.product.deliveryPrice;
+
+        return diff.toFixed(2) + "лв."
+      }
+
+    },
     {
       accessorKey: "revision.createdAt",
       header: "Дата",
