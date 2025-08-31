@@ -173,6 +173,7 @@ model Revision {
   type       String   @default("manual") // NEW FIELD: origin of revision (e.g., 'import', 'manual', etc.)
   status     RevisionStatus @default(NOT_PAID) // <-- new field
   checkId    String?  // Reference to the check that generated this sale
+  saleAmount Decimal  @default(0) @db.Decimal(10,2) // Total sale amount (calculated from MissingProduct)
 
   check      Check?   @relation(fields: [checkId], references: [id]) // Optional relationship with check
 
