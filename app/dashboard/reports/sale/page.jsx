@@ -188,37 +188,31 @@ export default function ReportsSale() {
 
   const columns = [
     {
-      accessorKey: "type",
+      id: "typeAndSource",
       header: "Тип",
       cell: ({ row }) => {
         if (!row.original) return "-";
         const type = row.original.type;
+        const revisionType = row.original.revision?.type;
         return (
-          <Badge variant={type === "missing" ? "success" : "destructive"}>
-            {type === "missing" ? "Продаден" : "Върнат"}
-          </Badge>
-        );
-      },
-    },
-    {
-        accessorKey: "revision.type",
-        header: "Източник",
-        cell: ({ row }) => {
-            if (!row.original) return "-";
-            const type = row.original.revision?.type;
-            if (!type) return null;
-            return (
-              <span
+          <div className="flex flex-col gap-1">
+            <Badge variant={type === "missing" ? "success" : "destructive"}>
+              {type === "missing" ? "Продаден" : "Върнат"}
+            </Badge>
+            {revisionType && (
+              <Badge
                 className={`px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 border ${
-                  type === "import"
+                  revisionType === "import"
                     ? "border-blue-400 text-blue-700"
                     : "border-gray-300 text-gray-600"
                 }`}
               >
-                {type === "import" ? "Импорт" : "Продажба"}
-              </span>
-            );
-          },
+                {revisionType === "import" ? "Импорт" : "Продажба"}
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "product.name",
@@ -247,12 +241,42 @@ export default function ReportsSale() {
           return row.original.quantity || 0;
         }
       },
+      footer: ({ table }) => {
+        const rows = table.getRowModel().rows;
+        const totalQty = rows.reduce((sum, row) => {
+          const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+          return sum + (isNaN(qty) ? 0 : qty);
+        }, 0);
+        return (
+          <>
+            <p>Koл. общо:</p>
+            <strong>{totalQty}</strong>
+          </>
+        );
+      },
     },
     {
       accessorKey: "deliveryPrice",
       header: "Доставна",
       cell: ({row}) => {
-        return row.original.product.deliveryPrice + "лв."
+        const unitDelivery = row.original.product?.deliveryPrice || 0;
+        const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+        const totalDelivery = unitDelivery * qty;
+        return `${totalDelivery.toFixed(2)} лв.`
+      },
+      footer: ({ table }) => {
+        const rows = table.getRowModel().rows;
+        const total = rows.reduce((sum, row) => {
+          const unitDelivery = row.original.product?.deliveryPrice || 0;
+          const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+          return sum + unitDelivery * qty;
+        }, 0);
+        return (
+          <>
+            <p>Доставна общо:</p>
+            <strong>{total.toFixed(2)} лв.</strong>
+          </>
+        );
       }
     },
     {
@@ -270,7 +294,31 @@ export default function ReportsSale() {
         if (!price && row.original.product && row.original.product.clientPrice) {
           price = row.original.product.clientPrice;
         }
-        return price ? `${price.toFixed(2)} лв.` : "-";
+        const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+        const totalClient = (price || 0) * qty;
+        return price !== undefined ? `${totalClient.toFixed(2)} лв.` : "-";
+      },
+      footer: ({ table }) => {
+        const rows = table.getRowModel().rows;
+        const total = rows.reduce((sum, row) => {
+          let price;
+          if (row.original.type === "missing") {
+            price = row.original.priceAtSale;
+          } else {
+            price = row.original.priceAtRefund;
+          }
+          if (!price && row.original.product && row.original.product.clientPrice) {
+            price = row.original.product.clientPrice;
+          }
+          const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+          return sum + (price || 0) * qty;
+        }, 0);
+        return (
+          <>
+            <p>Продажна общо:</p>
+            <strong>{total.toFixed(2)} лв.</strong>
+          </>
+        );
       },
       },
       {
@@ -287,13 +335,46 @@ export default function ReportsSale() {
           if (!price && row.original.product && row.original.product.clientPrice) {
             price = row.original.product.clientPrice;
           }
-  
-          const diff = price - row.original.product.deliveryPrice;
-  
-          return diff.toFixed(2) + "лв."
-        }
-  
+
+          const unitDelivery = row.original.product?.deliveryPrice || 0;
+          const unitDiff = (price || 0) - unitDelivery;
+          const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+          const totalDiff = unitDiff * qty;
+
+          return totalDiff.toFixed(2) + "лв."
+        },
+        footer: ({ table }) => {
+          // Get all visible rows
+          const rows = table.getRowModel().rows;
+
+          const total = rows.reduce((sum, row) => {
+            let price;
+            if (row.original.type === "missing") {
+              price = row.original.priceAtSale;
+            } else {
+              price = row.original.priceAtRefund;
+            }
+            if (!price && row.original.product && row.original.product.clientPrice) {
+              price = row.original.product.clientPrice;
+            }
+            const unitDelivery = row.original.product?.deliveryPrice || 0;
+            const unitDiff = (price || 0) - unitDelivery;
+            const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+            const totalDiff = unitDiff * qty;
+
+            return sum + (isNaN(totalDiff) ? 0 : totalDiff);
+          }, 0);
+
+
+          return (
+            <>
+              <p>Разлика общо:</p>
+              <strong>{total.toFixed(2)} лв.</strong>
+            </>
+          )
+        },
       },
+
     {
       accessorKey: "revision.createdAt",
       header: "Дата",
@@ -319,68 +400,71 @@ export default function ReportsSale() {
       },
     },
         {
-      accessorKey: "partner",
-      header: "Партньор",
-      cell: ({ row }) => {
-        if (!row.original) return "-";
-        // Try to get partner from both possible sources
-        let partner = null;
+          accessorKey: "partnerAndSource",
+          header: "Партньор / Източник",
+          cell: ({ row }) => {
+            if (!row.original) return "-";
 
-        // For missing type, partner is on revision
-        if (row.original.type === "missing") {
-          partner = row.original.revision?.partner;
-        } else if (row.original.type === "refund") {
-          // For refund type, partner is now directly on the refund product
-          partner = row.original.partner;
-        }
+            // Get partner
+            let partner = null;
+            if (row.original.type === "missing") {
+              partner = row.original.revision?.partner;
+            } else if (row.original.type === "refund") {
+              partner = row.original.partner;
+            }
 
-        if (partner && partner.id && partner.name) {
-          return (
-            <TableLink href={`/dashboard/partners/${partner.id}`}>
-              {partner.name}
-            </TableLink>
-          );
-        }
+            // Get source
+            let sourceNode = "-";
+            if (row.original.type === "missing") {
+              const stand = row.original.revision?.stand;
+              const storage = row.original.revision?.storage;
+              if (storage) {
+                sourceNode = (
+                  <TableLink href={`/dashboard/storages/${storage.id}`}>
+                    {storage.name}
+                  </TableLink>
+                );
+              } else if (stand) {
+                sourceNode = (
+                  <TableLink className={'text-xs'} href={`/dashboard/stands/${stand.id}`}>
+                    {stand.name}
+                  </TableLink>
+                );
+              }
+            } else {
+              const sourceInfo = row.original.sourceInfo;
+              if (sourceInfo) {
+                const isStand = row.original.refund?.sourceType === "STAND";
+                const href = isStand
+                  ? `/dashboard/stands/${sourceInfo.id}`
+                  : `/dashboard/storages/${sourceInfo.id}`;
+                sourceNode = (
+                  <TableLink className='text-xs' href={href}>{sourceInfo.name}</TableLink>
+                );
+              }
+            }
 
-        return "-";
-      },
-    },
-    {
-      accessorKey: "source",
-      header: "Източник",
-      cell: ({ row }) => {
-        if (!row.original) return "-";
-        if (row.original.type === "missing") {
-          const stand = row.original.revision?.stand;
-          const storage = row.original.revision?.storage;
-          if (storage) {
+            // Render both partner and source, stacked
             return (
-              <TableLink href={`/dashboard/storages/${storage.id}`}>
-                {storage.name}
-              </TableLink>
+              <div className="flex flex-col gap-1">
+                <div>
+                  <span className="text-xs text-muted-foreground">Партньор: </span>
+                  {partner && partner.id && partner.name ? (
+                    <TableLink className={'text-xs'} href={`/dashboard/partners/${partner.id}`}>
+                      {partner.name}
+                    </TableLink>
+                  ) : (
+                    "-"
+                  )}
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Източник: </span>
+                  {sourceNode}
+                </div>
+              </div>
             );
-          } else if (stand) {
-            return (
-              <TableLink href={`/dashboard/stands/${stand.id}`}>
-                {stand.name}
-              </TableLink>
-            );
-          }
-        } else {
-          // For refunds, use the sourceInfo that includes the actual stand/storage data
-          const sourceInfo = row.original.sourceInfo;
-          if (sourceInfo) {
-            const isStand = row.original.refund?.sourceType === "STAND";
-            const href = isStand
-              ? `/dashboard/stands/${sourceInfo.id}`
-              : `/dashboard/storages/${sourceInfo.id}`;
-
-            return <TableLink href={href}>{sourceInfo.name}</TableLink>;
-          }
-        }
-        return "-";
-      },
-    },
+          },
+        },
   ];
 
   return (
