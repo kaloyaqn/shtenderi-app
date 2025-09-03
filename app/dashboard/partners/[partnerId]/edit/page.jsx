@@ -1,94 +1,118 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { use } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { use } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import useSWR from "swr";
+import { fetcher } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 
 export default function EditPartnerPage({ params }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [partner, setPartner] = useState(null)
-  const [address, setAddress] = useState("")
-  const [mol, setMol] = useState("")
-  const [country, setCountry] = useState("")
-  const [city, setCity] = useState("")
-  const partnerId = use(params).partnerId
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [partner, setPartner] = useState(null);
+  const [address, setAddress] = useState("");
+  const [mol, setMol] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [priceGroupId, setPriceGroupId] = useState(null);
+  const [percentageDiscount, setPercentageDiscount] = useState(0);
+  const partnerId = use(params).partnerId;
+
+  const {
+    data: priceGroups,
+    error: swrError,
+    isLoading,
+  } = useSWR("/api/price-groups", fetcher);
 
   useEffect(() => {
     const fetchPartner = async () => {
       try {
-        const response = await fetch(`/api/partners/${partnerId}`)
-        if (!response.ok) throw new Error('Failed to fetch partner')
-        const data = await response.json()
-        setPartner(data)
-        setAddress(data.address || "")
-        setMol(data.mol || "")
-        setCountry(data.country || "")
-        setCity(data.city || "")
+        const response = await fetch(`/api/partners/${partnerId}`);
+        if (!response.ok) throw new Error("Failed to fetch partner");
+        const data = await response.json();
+        setPartner(data);
+        setAddress(data.address || "");
+        setMol(data.mol || "");
+        setCountry(data.country || "");
+        setCity(data.city || "");
+        setPriceGroupId(data.priceGroupId || null);
+        setPercentageDiscount(data.percentageDiscount || 0);
       } catch (error) {
-        console.error('Error fetching partner:', error)
-        setError('Грешка при зареждане на партньор')
+        console.error("Error fetching partner:", error);
+        setError("Грешка при зареждане на партньор");
       }
-    }
+    };
 
-    fetchPartner()
-  }, [partnerId])
+    fetchPartner();
+  }, [partnerId]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-    const formData = new FormData(e.target)
+    const formData = new FormData(e.target);
+    const percentageDiscountValue = Number(formData.get("percentageDiscount")) || 0;
+
     const data = {
-      name: formData.get('name')?.trim(),
-      bulstat: formData.get('bulstat')?.trim(),
-      contactPerson: formData.get('contactPerson')?.trim(),
-      phone: formData.get('phone')?.trim(),
+      name: formData.get("name")?.trim(),
+      bulstat: formData.get("bulstat")?.trim(),
+      contactPerson: formData.get("contactPerson")?.trim(),
+      phone: formData.get("phone")?.trim(),
       address: address.trim(),
       country: country.trim(),
       city: city.trim(),
       mol: mol.trim(),
-      percentageDiscount: Number(formData.get('percentageDiscount')) || 0,
-    }
+      percentageDiscount: percentageDiscountValue,
+      priceGroupId:
+        percentageDiscountValue !== 0
+          ? null
+          : (priceGroupId === "null" || priceGroupId === "" ? null : priceGroupId),
+    };
 
     try {
       const response = await fetch(`/api/partners/${partnerId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Грешка при редактиране на партньор')
+        throw new Error(result.error || "Грешка при редактиране на партньор");
       }
 
-      router.push('/dashboard/partners')
-      router.refresh()
+      router.push("/dashboard/partners");
+      router.refresh();
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (!partner) {
-    return <div>Зареждане...</div>
+    return <div>Зареждане...</div>;
   }
 
   return (
@@ -157,8 +181,52 @@ export default function EditPartnerPage({ params }) {
 
                 <div className="grid gap-2">
                   <Label htmlFor="percentageDiscount">Процентна отстъпка</Label>
-                  <Input id="percentageDiscount" name="percentageDiscount" type="number" step="0.01" min="0" max="100" defaultValue={partner.percentageDiscount ?? ''} placeholder="0" />
+                  <Input
+                    id="percentageDiscount"
+                    name="percentageDiscount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    defaultValue={percentageDiscount ?? 0}
+                    onChange={(e) => setPercentageDiscount(e.target.value)}
+                    placeholder="0"
+                  />
                 </div>
+
+                {priceGroups &&
+                  (percentageDiscount === null ||
+                    percentageDiscount === 0 ||
+                    percentageDiscount === "0") && (
+                    <div className="">
+                      <Label htmlFor="price_group_id" className="mb-2">
+                        Избери ценова група
+                      </Label>
+                      <Select
+                        onValueChange={(val) =>
+                          setPriceGroupId(val === "null" ? null : val)
+                        }
+                        value={priceGroupId ?? "null"}
+                        name="price_group_id"
+                        id="price_group_id"
+                      >
+                        <SelectTrigger className="w-full">
+                          {priceGroups.find((pg) => pg.id === priceGroupId)
+                            ?.name || "Избери ценова група"}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem key="null" value="null">
+                            Няма
+                          </SelectItem>
+                          {priceGroups.map((pg) => (
+                            <SelectItem key={pg.id} value={pg.id}>
+                              {pg.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                 <div className="grid gap-2">
                   <Label htmlFor="country">Държава</Label>
@@ -167,7 +235,7 @@ export default function EditPartnerPage({ params }) {
                     name="country"
                     placeholder="Въведете държава (по избор)"
                     value={country}
-                    onChange={e => setCountry(e.target.value)}
+                    onChange={(e) => setCountry(e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -177,7 +245,7 @@ export default function EditPartnerPage({ params }) {
                     name="city"
                     placeholder="Въведете град (по избор)"
                     value={city}
-                    onChange={e => setCity(e.target.value)}
+                    onChange={(e) => setCity(e.target.value)}
                   />
                 </div>
 
@@ -188,7 +256,7 @@ export default function EditPartnerPage({ params }) {
                     name="address"
                     placeholder="Въведете адрес на партньора (по избор)"
                     value={address}
-                    onChange={e => setAddress(e.target.value)}
+                    onChange={(e) => setAddress(e.target.value)}
                   />
                 </div>
 
@@ -199,14 +267,12 @@ export default function EditPartnerPage({ params }) {
                     name="mol"
                     placeholder="Въведете МОЛ (Материално отговорно лице)"
                     value={mol}
-                    onChange={e => setMol(e.target.value)}
+                    onChange={(e) => setMol(e.target.value)}
                   />
                 </div>
               </div>
 
-              {error && (
-                <div className="text-red-500 text-sm">{error}</div>
-              )}
+              {error && <div className="text-red-500 text-sm">{error}</div>}
 
               <div className="flex justify-end space-x-4">
                 <Button
@@ -217,7 +283,7 @@ export default function EditPartnerPage({ params }) {
                   Отказ
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? 'Запазване...' : 'Запази'}
+                  {loading ? "Запазване..." : "Запази"}
                 </Button>
               </div>
             </form>
@@ -225,5 +291,5 @@ export default function EditPartnerPage({ params }) {
         </Card>
       </div>
     </div>
-  )
-} 
+  );
+}

@@ -91,7 +91,7 @@ export default function MobilePageRevisionId({
             {revision.checkId && (
               <div>
                 <span className="text-xs text-gray-500">Свързана проверка</span>
-                <p className="text-base font-mono text-xs">
+                <p className="font-mono text-xs">
                   #{revision.checkId.slice(-8)}
                 </p>
               </div>

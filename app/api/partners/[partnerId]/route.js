@@ -1,8 +1,14 @@
 import { getPartnerById, updatePartner, deletePartner } from '@/lib/partners/partner'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 // GET: Fetch a single partner, optionally with stores
 export async function GET(req, { params }) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session) return new Response('Unauthorized', { status: 401 })
+    if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
+
     const { partnerId } = params
     const url = new URL(req.url, 'http://localhost')
     const includeStores = url.searchParams.get('includeStores') === '1'
@@ -22,8 +28,20 @@ export async function GET(req, { params }) {
 // PUT: Update a partner
 export async function PUT(req, { params }) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session) return new Response('Unauthorized', { status: 401 })
+    if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
+
     const { partnerId } = params
     const body = await req.json()
+
+    // If priceGroupId is explicitly null, ensure it is set as null in the update
+    if (body.hasOwnProperty("priceGroupId")) {
+      if (body.priceGroupId === "null" || body.priceGroupId === "") {
+        body.priceGroupId = null;
+      }
+    }
+
     const partner = await updatePartner(partnerId, body)
     return Response.json(partner)
   } catch (error) {
@@ -40,6 +58,10 @@ export async function PUT(req, { params }) {
 // DELETE: Delete a partner
 export async function DELETE(req, { params }) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session) return new Response('Unauthorized', { status: 401 })
+    if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
+
     const { partnerId } = params
     await deletePartner(partnerId)
     return new Response(null, { status: 204 })
