@@ -30,7 +30,7 @@ model Product {
   id          String   @id @default(uuid())
   name        String
   barcode     String   @unique
-  code        String?  @unique
+  pcode        String?  @unique
   clientPrice Float    // цена на продажба (за магазини)
   deliveryPrice Float  @default(0) // цена на доставка (от XML)
   pcd         String?  // препоръчкителна цена доставчик

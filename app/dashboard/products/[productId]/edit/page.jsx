@@ -59,6 +59,7 @@ export default function EditProductPage({
     const data = {
       name: formData.get("name")?.trim(),
       barcode: formData.get("barcode")?.trim(),
+      pcode: formData.get("pcode")?.trim(),
       pcd: formData.get("pcd")?.trim() || null,
       active: formData.get("active") === "on",
       clientPrice: Number(formData.get("clientPrice")),
@@ -121,6 +122,17 @@ export default function EditProductPage({
             required
             defaultValue={product.barcode}
             placeholder="Сканирайте или въведете баркод"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="barcode">Продуктов код</Label>
+          <Input
+            id="pcode"
+            name="pcode"
+            required
+            defaultValue={product.pcode}
+            placeholder="Продуктов код"
           />
         </div>
 
