@@ -1,5 +1,10 @@
 import { prisma } from '@/lib/prisma';
 
+/**
+ * Returns a number (float) for the effective price, never an object.
+ * Use this function as-is in your API, but make sure to `await` it and pass the result directly
+ * as a float to your Prisma create/update calls (e.g., priceAtSale: await getEffectivePrice(...))
+ */
 export async function getEffectivePrice({ productId, partnerId }) {
   const [product, partner] = await Promise.all([
     prisma.product.findUnique({ where: { id: productId }, select: { clientPrice: true } }),

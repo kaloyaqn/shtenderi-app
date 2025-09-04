@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getEffectivePrice } from '@/lib/pricing/get-effective-price';
 
 export async function POST(req) {
   try {
@@ -43,7 +44,7 @@ export async function POST(req) {
         store: { 
           select: { 
             partnerId: true, 
-            partner: { select: { percentageDiscount: true } } 
+            partner: { select: { percentageDiscount: true, priceGroup: true } }
           } 
         } 
       }
@@ -64,6 +65,7 @@ export async function POST(req) {
     const nextNumber = last?.number ? last.number + 1 : 1;
 
     // Process the sale with automatic zeroing
+    // Patch for: Sale revision error due to undefined partnerId in getEffectivePrice
     const result = await prisma.$transaction(async (tx) => {
       // 1. Handle transfer for checked products (if any)
       if (saleChecked.length > 0) {
@@ -124,7 +126,7 @@ export async function POST(req) {
           productId: checked.productId,
           missingQuantity: missingQuantityFromCheck, // Missing quantity from check (what was requested)
           givenQuantity: checked.checked, // Actually scanned/transferred
-          clientPrice: checked.clientPrice,
+          clientPrice: checked.clientPrice
         });
       }
 
@@ -133,20 +135,34 @@ export async function POST(req) {
       // Only products that were actually transferred and sold should affect stand quantities
 
       // 4. Create revision (ONLY for checked products - actually sold)
+
+      // Defensive: If partnerId is undefined, do not call getEffectivePrice with undefined partnerId
+      let safePartnerId = partnerId;
+      if (!safePartnerId) {
+        // Try to fetch partnerId from stand.store.partnerId again, or fallback to null
+        safePartnerId = stand?.store?.partnerId || null;
+      }
+
+      const missingProductsWithPrice = await Promise.all(
+        missingProducts.map(async mp => ({
+          productId: mp.productId,
+          missingQuantity: mp.missingQuantity,
+          givenQuantity: mp.givenQuantity,
+          priceAtSale: safePartnerId
+            ? await getEffectivePrice({ productId: mp.productId, partnerId: safePartnerId })
+            : mp.clientPrice ?? 0 // fallback to clientPrice if partnerId is not available
+        }))
+      );
+
       const revision = await tx.revision.create({
         data: {
           number: nextNumber,
           standId,
-          partnerId,
+          partnerId: safePartnerId,
           userId,
           checkId, // Store reference to the check
           missingProducts: {
-            create: missingProducts.map(mp => ({
-              productId: mp.productId,
-              missingQuantity: mp.missingQuantity,
-              givenQuantity: mp.givenQuantity,
-              priceAtSale: mp.clientPrice * (1 - partnerDiscount / 100),
-            }))
+            create: missingProductsWithPrice
           }
         },
         include: { missingProducts: true }

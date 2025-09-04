@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getEffectivePrice } from '@/lib/pricing/get-effective-price';
 
 export async function GET(req) {
     const session = await getServerSession(authOptions);
@@ -26,6 +27,8 @@ export async function GET(req) {
                     }
                 }
             });
+            
+            
 
             if (!transfer) {
                 return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
@@ -36,12 +39,25 @@ export async function GET(req) {
                 prisma.storage.findUnique({ where: { id: transfer.destinationStorageId }, select: { name: true } }),
                 prisma.stand.findUnique({ 
                     where: { id: transfer.destinationStorageId }, 
-                    select: { name: true, store: { select: { name: true } } }
+                    select: { name: true, store: { select: { name: true, partnerId: true } } }
                 })
             ]);
 
+            // Compute effective prices if destination is a stand with a partner
+            const partnerId = destinationStand?.store?.partnerId || null;
+            let productsWithEffective = transfer.products;
+            if (partnerId) {
+                productsWithEffective = await Promise.all(
+                  transfer.products.map(async (tp) => {
+                    const effectivePrice = await getEffectivePrice({ productId: tp.productId, partnerId });
+                    return { ...tp, effectivePrice };
+                  })
+                );
+            }
+
             const enrichedTransfer = {
                 ...transfer,
+                products: productsWithEffective,
                 sourceStorageName: sourceStorage?.name || 'Unknown',
                 destinationStorageName: destinationStorage?.name || destinationStand?.name || 'Unknown',
                 destinationType: destinationStand ? 'STAND' : 'STORAGE',
@@ -66,6 +82,7 @@ export async function GET(req) {
                                 select: {
                                     name: true,
                                     barcode: true,
+                                    clientPrice: true,
                                 }
                             }
                         }
@@ -88,6 +105,7 @@ export async function GET(req) {
                     store: {
                         select: {
                             name: true,
+                            partnerId: true,
                         }
                     }
                 }
@@ -95,18 +113,31 @@ export async function GET(req) {
         ]);
 
         const storageMap = new Map(storages.map(s => [s.id, s.name]));
-        const standMap = new Map(stands.map(s => [s.id, { name: s.name, storeName: s.store?.name }]));
+        const standMap = new Map(stands.map(s => [s.id, { name: s.name, storeName: s.store?.name, partnerId: s.store?.partnerId }]));
 
-        const enrichedTransfers = transfers.map(transfer => {
+        const enrichedTransfers = await Promise.all(
+          transfers.map(async (transfer) => {
             const destinationStand = standMap.get(transfer.destinationStorageId);
+            const partnerId = destinationStand?.partnerId || null;
+            let productsWithEffective = transfer.products;
+            if (partnerId) {
+              productsWithEffective = await Promise.all(
+                transfer.products.map(async (tp) => {
+                  const effectivePrice = await getEffectivePrice({ productId: tp.productId, partnerId });
+                  return { ...tp, effectivePrice };
+                })
+              );
+            }
             return {
-                ...transfer,
-                sourceStorageName: storageMap.get(transfer.sourceStorageId) || 'Unknown',
-                destinationStorageName: storageMap.get(transfer.destinationStorageId) || destinationStand?.name || 'Unknown',
-                destinationType: destinationStand ? 'STAND' : 'STORAGE',
-                destinationStoreName: destinationStand?.storeName || null,
+              ...transfer,
+              products: productsWithEffective,
+              sourceStorageName: storageMap.get(transfer.sourceStorageId) || 'Unknown',
+              destinationStorageName: storageMap.get(transfer.destinationStorageId) || destinationStand?.name || 'Unknown',
+              destinationType: destinationStand ? 'STAND' : 'STORAGE',
+              destinationStoreName: destinationStand?.storeName || null,
             };
-        });
+          })
+        );
 
         return NextResponse.json(enrichedTransfers);
 

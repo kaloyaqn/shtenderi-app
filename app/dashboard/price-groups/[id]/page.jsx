@@ -13,12 +13,6 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
-const fields = [
-  { name: "price_group_id", label: "Име на група", placeholder: "Въведи име на групата", type: "text", required: true },
-  { name: "product_id" },
-  { name: "price" },
-];
-
 export default function PriceGroupView() {
   const params = useParams();
   const [buttonsIsLoading, setButtonIsLoading] = useState(false);
@@ -29,6 +23,8 @@ export default function PriceGroupView() {
 
   const { data: allProducts, error: allProductsError, isLoading: allProductsLoading } =
     useSWR('/api/products', fetcher);
+
+  const {data: pgInfo, error: pgError, isLoading:pgIsLoading } = useSWR(`/api/price-groups/${params.id}/price-group`, fetcher);
 
   // Normalize
   const safeGroupProducts = Array.isArray(groupProducts) ? groupProducts : [];
@@ -99,7 +95,14 @@ export default function PriceGroupView() {
         groupPrice: prices[id] ?? (gpEntry?.price ?? ""), // editable value shown in input
         _inBaseline: groupIds.has(id),
       };
-    }).filter(Boolean),
+    }).filter(Boolean)
+      // Newly selected (in addIds) should appear first (top)
+      .sort((a, b) => {
+        const aNew = addIds.has(a.id);
+        const bNew = addIds.has(b.id);
+        if (aNew === bNew) return 0;
+        return aNew ? -1 : 1;
+      }),
     [selectedIds, productById, safeGroupProducts, groupIds, prices]
   );
 
@@ -162,6 +165,7 @@ export default function PriceGroupView() {
     },
     { accessorKey: "name", header: "Име" },
     { accessorKey: "pcode", header: "Код" },
+    { accessorKey: "barcode", header: "Баркод"},
   ];
 
   const handleSubmit = async () => {
@@ -199,7 +203,7 @@ export default function PriceGroupView() {
   return (
     <>
       <BasicHeader 
-      title={`Ценова група ${groupProducts[0].priceGroup.name}`}
+      title={`Ценова група ${pgInfo && pgInfo.name || ""}`}
       subtitle={`Добави, редактирай или премахни продукти в ценовата група.`}
       >
         <Button className="px-4 py-2 border rounded-md" disabled={buttonsIsLoading} onClick={handleSubmit}>
@@ -213,7 +217,14 @@ export default function PriceGroupView() {
       <div className="grid grid-cols-2 gap-4 w-full">
         <div className="col-span-1 border border-gray-200 rounded-md p-4 py-6">
             {allProductsLoading ? <><LoadingScreen /></> : <>
-          <DataTable searchKey="pcode" columns={columns} data={safeAllProducts} />
+          <DataTable
+          searchKey='pcode'
+                  filterableColumns={[
+                    { id: "name", title: "Име на продукт" },
+                    { id: "barcode", title: "Баркод" },
+                  ]}
+
+          columns={columns} data={safeAllProducts} />
             
             </>}
         </div>
