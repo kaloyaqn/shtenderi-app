@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import bcrypt from 'bcrypt';
+import { getEffectivePrice } from '@/lib/pricing/get-effective-price';
 
 export async function POST(req, { params }) {
     const session = await getServerSession(authOptions);
@@ -51,8 +52,18 @@ export async function POST(req, { params }) {
             // 3. Get the destination stand info
             const stand = await tx.stand.findUnique({
                 where: { id: transfer.destinationStorageId }, // Using destinationStorageId for stand ID
-                include: { store: { include: { partner: true } } }
+                include: { 
+                    store: { 
+                        select: { 
+                            partnerId: true, 
+                            partner: { select: { id: true } } 
+                        } 
+                    } 
+                }
             });
+            // To get the partnerId:
+            // Try stand.store.partner_id first (if using snake_case), otherwise fallback to stand.store.partner.id
+            const partnerId = stand?.store?.partner_id || stand?.store?.partner?.id;
             
             if (!stand || !stand.store?.partner) {
                 throw new Error('Stand or associated partner not found.');
@@ -96,20 +107,43 @@ export async function POST(req, { params }) {
             });
             const nextNumber = (lastRevision?.number || 0) + 1;
 
+            // Build missingProducts array for revision, using transfer.products
+            const missingProducts = transfer.products.map(p => ({
+                productId: p.productId,
+                missingQuantity: p.quantity,
+                givenQuantity: p.quantity,
+                clientPrice: null // fallback, will be replaced below
+            }));
+
+            // Defensive: If partnerId is undefined, do not call getEffectivePrice with undefined partnerId
+            let safePartnerId = partnerId;
+            if (!safePartnerId) {
+                safePartnerId = stand?.store?.partner_id || stand?.store?.partner?.id || null;
+            }
+
+            const missingProductsWithPrice = await Promise.all(
+                missingProducts.map(async mp => ({
+                    productId: mp.productId,
+                    missingQuantity: mp.missingQuantity,
+                    givenQuantity: mp.givenQuantity,
+                    priceAtSale: safePartnerId
+                        ? await getEffectivePrice({ productId: mp.productId, partnerId: safePartnerId })
+                        : mp.clientPrice ?? 0
+                }))
+            );
+
             // 7. Create a Revision (as a sale document)
             const revision = await tx.revision.create({
                 data: {
                     number: nextNumber,
                     standId: transfer.destinationStorageId, // This is the stand ID
-                    partnerId: stand.store.partner.id,
+                    partnerId: safePartnerId,
                     userId: session.user.id,
                     missingProducts: {
-                        create: transfer.products.map(p => ({
-                            productId: p.productId,
-                            missingQuantity: p.quantity,
-                        })),
-                    },
+                        create: missingProductsWithPrice
+                    }
                 },
+                include: { missingProducts: true }
             });
 
             // 8. Update transfer status

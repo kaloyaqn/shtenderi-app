@@ -20,8 +20,19 @@ export async function POST(req) {
             // 1. Get Stand and Partner info
             const stand = await tx.stand.findUnique({
                 where: { id: destinationStandId },
-                include: { store: { include: { partner: true } } }
+                select: { 
+                    id: true,
+                    store: { 
+                        select: { 
+                            id: true,
+                            partnerId: true,
+                            partner: { select: { id: true } }
+                        } 
+                    }
+                }
             });
+            // To get the partner id:
+            const partnerId = stand?.store?.partner_id || stand?.store?.partner?.id;
             if (!stand || !stand.store?.partner) {
                 throw new Error('Stand or associated partner not found.');
             }
