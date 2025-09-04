@@ -29,6 +29,7 @@ model Stand {
 model Product {
   id          String   @id @default(uuid())
   name        String
+  invoiceName String? @map("invoice_name")
   barcode     String   @unique
   pcode        String?  @unique
   clientPrice Float    // цена на продажба (за магазини)

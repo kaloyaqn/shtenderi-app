@@ -58,6 +58,7 @@ export default function EditProductPage({
     const formData = new FormData(e.target);
     const data = {
       name: formData.get("name")?.trim(),
+      invoiceName: formData.get("invoiceName")?.trim() || null,
       barcode: formData.get("barcode")?.trim(),
       pcode: formData.get("pcode")?.trim(),
       pcd: formData.get("pcd")?.trim() || null,
@@ -111,6 +112,16 @@ export default function EditProductPage({
             required
             defaultValue={product.name}
             placeholder="Въведете име на продукта"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="invoiceName">Име за документи</Label>
+          <Input
+            id="invoiceName"
+            name="invoiceName"
+            defaultValue={product.invoiceName || ""}
+            placeholder="Алтернативно име за фактури/кредитни известия"
           />
         </div>
 
