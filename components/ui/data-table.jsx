@@ -275,6 +275,7 @@ export function DataTable({
               />
             )
           )}
+
           {/* Inject extra filters here, e.g. status Select */}
           {extraFilters}
           <div className="ml-auto flex items-center gap-2">
@@ -286,7 +287,7 @@ export function DataTable({
               }}
             >
               <SelectTrigger>
-                {table.getState().pagination.pageSize === 99999 ? <><Infinity /></> :table.getState().pagination.pageSize }
+                {table.getState().pagination.pageSize === 99999 ? <><Infinity /></> : table.getState().pagination.pageSize}
               </SelectTrigger>
               <SelectContent>
                 {[10, 20, 30, 50, 100, 99999].map((size) => (

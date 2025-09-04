@@ -9,7 +9,7 @@ export async function POST(req) {
         // if (session.user.role !== "ADMIN") return new Response("Forbidden", {status: 403});
 
         const { price_group_id, price, product_id } = await req.json();
-        if (!price_group_id || !price || !product_id) {
+        if (!price_group_id || price == null || !product_id) {
             return NextResponse.json({ error: "Invalid request" }, { status: 400 });
         }
 
@@ -34,12 +34,8 @@ export async function POST(req) {
         // Create the price group product with correct relation connections
         const groupProduct = await prisma.priceGroupProduct.create({
             data: {
-                priceGroup: {
-                    connect: { id: price_group_id }
-                },
-                product: {
-                    connect: { id: product_id }
-                },
+                priceGroup: { connect: { id: price_group_id } },
+                product: { connect: { id: product_id } },
                 price
             },
         });
@@ -54,7 +50,6 @@ export async function POST(req) {
 export async function GET(req, { params }) {
     const { id } = await params;
     try {
-        // Fix: Use prisma instance and correct table/column names in snake_case
         const products = await prisma.priceGroupProduct.findMany({
             include: {
                 product: true,
@@ -66,6 +61,58 @@ export async function GET(req, { params }) {
         });
 
         return NextResponse.json(products);
+    } catch (err) {
+        return NextResponse.json({ error: "Error", details: err?.message || err }, { status: 500 });
+    }
+}
+
+export async function PUT(req, { params }) {
+    try {
+        const { id: priceGroupId } = await params;
+        const body = await req.json();
+        const upserts = Array.isArray(body.upserts) ? body.upserts : [];
+        const remove = Array.isArray(body.remove) ? body.remove : [];
+
+        // Basic validation
+        if (!priceGroupId) {
+            return NextResponse.json({ error: "Missing priceGroupId" }, { status: 400 });
+        }
+
+        // Build transactional ops
+        const ops = [];
+
+        // Upserts
+        for (const row of upserts) {
+            const productId = row?.productId;
+            const price = Number(row?.price);
+            if (!productId || Number.isNaN(price) || price < 0) continue;
+            ops.push(
+                prisma.priceGroupProduct.upsert({
+                    where: { priceGroupId_productId: { priceGroupId, productId } },
+                    create: { priceGroupId, productId, price },
+                    update: { price },
+                })
+            );
+        }
+
+        // Deletes
+        if (remove.length > 0) {
+            ops.push(
+                prisma.priceGroupProduct.deleteMany({
+                    where: { priceGroupId, productId: { in: remove } },
+                })
+            );
+        }
+
+        const result = ops.length > 0 ? await prisma.$transaction(ops) : [];
+
+        // Return latest state
+        const latest = await prisma.priceGroupProduct.findMany({
+            include: { product: true, priceGroup: true },
+            where: { priceGroupId },
+        });
+
+        return NextResponse.json({ ok: true, changes: result.length, items: latest });
     } catch (err) {
         return NextResponse.json({ error: "Error", details: err?.message || err }, { status: 500 });
     }
