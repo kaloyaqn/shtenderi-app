@@ -82,7 +82,7 @@ export default function GeneralResupplyPage() {
     setLoading(true);
 
     let url = "";
-    if (mode === "stand-to-stand") url = `/api/stands/${sourceId}/products`;
+    if (mode === "stand-to-stand" || mode === "stand-to-storage") url = `/api/stands/${sourceId}/products`;
     if (mode === "storage-to-storage" || mode === "storage-to-stand")
       url = `/api/storages/${sourceId}/products`;
 
@@ -101,17 +101,37 @@ export default function GeneralResupplyPage() {
   }, [sourceId, mode]);
 
   const handleMode = () => {
-    let source = searchParams.get("source");
-    let storage_from = searchParams.get("storage_from_id");
+    const sp = searchParams;
+    const qsMode = sp.get("mode");
+    const source = sp.get("source");
+    const storage_from = sp.get("storage_from_id") || sp.get("storage_from") || sp.get("storageid");
+    const stand_from = sp.get("stand_from_id") || sp.get("stand_from") || sp.get("standid");
+    const storage_to = sp.get("storage_to_id") || sp.get("storage_to") || sp.get("storageid");
 
+    if (qsMode) {
+      setMode(qsMode);
+      // Pre-fill IDs when provided
+      if (qsMode === "stand-to-storage") {
+        if (stand_from) setSourceId(stand_from);
+        if (storage_to) setDestinationId(storage_to);
+        return;
+      }
+      if (qsMode === "storage-to-stand") {
+        if (storage_from) setSourceId(storage_from);
+        return;
+      }
+      if (qsMode === "stand-to-stand") {
+        if (stand_from) setSourceId(stand_from);
+        return;
+      }
+    }
+
+    // Backward compatibility with older query params
     if (source === "stand") {
       setMode("stand-to-stand");
     } else if (source === "storage") {
       setMode("storage-to-stand");
-
-      if (storage_from) {
-        setSourceId(storage_from);
-      }
+      if (storage_from) setSourceId(storage_from);
     }
   };
 
@@ -241,7 +261,7 @@ export default function GeneralResupplyPage() {
   };
 
   const getSourceName = () => {
-    if (mode === "stand-to-stand") {
+    if (mode === "stand-to-stand" || mode === "stand-to-storage") {
       const stand = allStands.find((s) => s.id === sourceId);
       return stand
         ? `${stand.name}${stand.store?.name ? ` — ${stand.store.name}` : ""}`
@@ -261,7 +281,7 @@ export default function GeneralResupplyPage() {
         ? `${stand.name}${stand.store?.name ? ` — ${stand.store.name}` : ""}`
         : "";
     }
-    if (mode === "storage-to-storage") {
+    if (mode === "storage-to-storage" || mode === "stand-to-storage") {
       const storage = allStorages.find((s) => s.id === destinationId);
       return storage?.name || "";
     }
@@ -313,6 +333,12 @@ export default function GeneralResupplyPage() {
           })),
         };
         url = "/api/storages/transfer";
+      } else if (mode === "stand-to-storage") {
+        payload = {
+          destinationStorageId: destinationId,
+          products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+        };
+        url = `/api/stands/${sourceId}/transfer-to-storage`;
       } else {
         toast.error("Невалиден тип трансфер.");
         setLoading(false);
@@ -379,7 +405,7 @@ export default function GeneralResupplyPage() {
                 className="w-full"
                 onValueChange={handleModeChange}
               >
-                <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 h-auto">
+                <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 h-auto">
                   <TabsTrigger
                     value="stand-to-stand"
                     className="flex items-center space-x-2 py-3"
@@ -400,6 +426,13 @@ export default function GeneralResupplyPage() {
                   >
                     <Package className="h-4 w-4" />
                     <span>Склад → Щанд</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="stand-to-storage"
+                    className="flex items-center space-x-2 py-3"
+                  >
+                    <Package className="h-4 w-4" />
+                    <span>Щанд → Склад</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -424,7 +457,7 @@ export default function GeneralResupplyPage() {
                           ? "Изходен щанд"
                           : "Изходен склад"}
                       </label>
-                      {mode === "stand-to-stand" && (
+                      {mode === "stand-to-stand" || mode === "stand-to-storage" ? (
                         <Select
                           value={sourceId}
                           onValueChange={setSourceId}
@@ -444,7 +477,7 @@ export default function GeneralResupplyPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                      )}
+                      ) : null}
                       {(mode === "storage-to-storage" ||
                         mode === "storage-to-stand") && (
                         <Select
@@ -501,7 +534,7 @@ export default function GeneralResupplyPage() {
                           </SelectContent>
                         </Select>
                       )}
-                      {mode === "storage-to-storage" && (
+                      {mode === "storage-to-storage" || mode === "stand-to-storage" ? (
                         <Select
                           value={destinationId}
                           onValueChange={setDestinationId}
@@ -520,7 +553,7 @@ export default function GeneralResupplyPage() {
                               ))}
                           </SelectContent>
                         </Select>
-                      )}
+                      ) : null}
                       {mode === "storage-to-stand" && (
                         <Select
                           value={destinationId}

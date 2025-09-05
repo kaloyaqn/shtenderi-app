@@ -34,8 +34,9 @@ export async function GET(req) {
                 return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
             }
 
-            const [sourceStorage, destinationStorage, destinationStand] = await Promise.all([
+            const [sourceStorage, sourceStand, destinationStorage, destinationStand] = await Promise.all([
                 prisma.storage.findUnique({ where: { id: transfer.sourceStorageId }, select: { name: true } }),
+                prisma.stand.findUnique({ where: { id: transfer.sourceStorageId }, select: { name: true } }),
                 prisma.storage.findUnique({ where: { id: transfer.destinationStorageId }, select: { name: true } }),
                 prisma.stand.findUnique({ 
                     where: { id: transfer.destinationStorageId }, 
@@ -58,7 +59,7 @@ export async function GET(req) {
             const enrichedTransfer = {
                 ...transfer,
                 products: productsWithEffective,
-                sourceStorageName: sourceStorage?.name || 'Unknown',
+                sourceStorageName: sourceStorage?.name || sourceStand?.name || 'Unknown',
                 destinationStorageName: destinationStorage?.name || destinationStand?.name || 'Unknown',
                 destinationType: destinationStand ? 'STAND' : 'STORAGE',
                 destinationStoreName: destinationStand?.store?.name || null,
@@ -118,6 +119,7 @@ export async function GET(req) {
         const enrichedTransfers = await Promise.all(
           transfers.map(async (transfer) => {
             const destinationStand = standMap.get(transfer.destinationStorageId);
+            const sourceStand = standMap.get(transfer.sourceStorageId);
             const partnerId = destinationStand?.partnerId || null;
             let productsWithEffective = transfer.products;
             if (partnerId) {
@@ -131,7 +133,7 @@ export async function GET(req) {
             return {
               ...transfer,
               products: productsWithEffective,
-              sourceStorageName: storageMap.get(transfer.sourceStorageId) || 'Unknown',
+              sourceStorageName: storageMap.get(transfer.sourceStorageId) || sourceStand?.name || 'Unknown',
               destinationStorageName: storageMap.get(transfer.destinationStorageId) || destinationStand?.name || 'Unknown',
               destinationType: destinationStand ? 'STAND' : 'STORAGE',
               destinationStoreName: destinationStand?.storeName || null,
