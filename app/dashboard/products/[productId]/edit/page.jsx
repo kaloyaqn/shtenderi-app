@@ -28,6 +28,7 @@ export default function EditProductPage({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [imageUrl, setImageUrl] = useState(product?.image || ""); // for live preview
+  const [isActive, setIsActive] = useState(!!product?.active);
 
   // No need to fetch - we already have the product data
   // useEffect(() => {
@@ -62,7 +63,7 @@ export default function EditProductPage({
       barcode: formData.get("barcode")?.trim(),
       pcode: formData.get("pcode")?.trim(),
       pcd: formData.get("pcd")?.trim() || null,
-      active: formData.get("active") === "on",
+      active: isActive,
       clientPrice: Number(formData.get("clientPrice")),
       deliveryPrice: Number(formData.get("deliveryPrice")),
       image: formData.get("image"),
@@ -137,11 +138,10 @@ export default function EditProductPage({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="barcode">Продуктов код</Label>
+          <Label htmlFor="pcode">Продуктов код</Label>
           <Input
             id="pcode"
             name="pcode"
-            required
             defaultValue={product.pcode}
             placeholder="Продуктов код"
           />
@@ -213,7 +213,8 @@ export default function EditProductPage({
             id="active"
             name="active"
             type="checkbox"
-            defaultChecked={product.active}
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
             className="w-5 h-5"
           />
           <span className="text-xs text-muted-foreground">
