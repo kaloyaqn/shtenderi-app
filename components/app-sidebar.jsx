@@ -21,6 +21,7 @@ import {
     CheckCheckIcon,
     CircleDollarSignIcon,
     FileMinus,
+    GroupIcon,
     HomeIcon,
     ImportIcon,
     PackageOpenIcon,
@@ -86,8 +87,9 @@ const groupedDocuments = {
     },
   ],
   "Основни": [
-    { name: "Потребители", url: "/dashboard/users", icon: User, adminOnly: true },
     { name: "Номенклатура", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
+    { name: "Ценови групи", url: "/dashboard/price-groups", icon: GroupIcon, adminOnly: true },
+    { name: "Потребители", url: "/dashboard/users", icon: User, adminOnly: true },
   ],
 };
 

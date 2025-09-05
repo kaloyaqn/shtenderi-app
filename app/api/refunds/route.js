@@ -10,19 +10,33 @@ export async function POST(req) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-    const { sourceType, sourceId, products, note } = await req.json();
+    const { sourceType, sourceId, products, note, usePriceAtSale = false, revisionId = null } = await req.json();
     if (!sourceType || !sourceId || !Array.isArray(products) || products.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     // Create refund
-    // Fetch partner's percentageDiscount if needed (if refund is for a stand, get the stand's partner)
+    // Determine pricing path
     let partnerDiscount = 0;
-    if (sourceType === 'STAND') {
-      const stand = await prisma.stand.findUnique({
-        where: { id: sourceId },
-        select: { store: { select: { partner: { select: { percentageDiscount: true } } } } }
+    let priceAtSaleByProductId = {};
+    if (usePriceAtSale && revisionId) {
+      const revision = await prisma.revision.findUnique({
+        where: { id: revisionId },
+        include: { missingProducts: true },
       });
-      partnerDiscount = stand?.store?.partner?.percentageDiscount || 0;
+      if (revision?.missingProducts?.length) {
+        for (const mp of revision.missingProducts) {
+          priceAtSaleByProductId[mp.productId] = Number(mp.priceAtSale ?? 0);
+        }
+      }
+    } else {
+      // Fetch partner's percentageDiscount if needed (if refund is for a stand, get the stand's partner)
+      if (sourceType === 'STAND') {
+        const stand = await prisma.stand.findUnique({
+          where: { id: sourceId },
+          select: { store: { select: { partner: { select: { percentageDiscount: true } } } } }
+        });
+        partnerDiscount = stand?.store?.partner?.percentageDiscount || 0;
+      }
     }
     // For storage refunds, you may want to fetch the partner if needed
     const refund = await prisma.refund.create({
@@ -35,7 +49,9 @@ export async function POST(req) {
           create: products.map(p => ({
             productId: p.productId,
             quantity: p.quantity,
-            priceAtRefund: p.clientPrice * (1 - partnerDiscount / 100),
+            priceAtRefund: usePriceAtSale
+              ? (typeof p.priceAtSale === 'number' ? p.priceAtSale : (priceAtSaleByProductId[p.productId] ?? 0))
+              : p.clientPrice * (1 - partnerDiscount / 100),
           }))
         }
       },

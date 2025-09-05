@@ -78,14 +78,16 @@ export default function PartnersPage() {
       },
     },
     {
-      accessorKey: "percentageDiscount",
+      accessorKey: "discounts",
       header: "%",
       cell: ({ row }) => {
         const PD = row.original.percentageDiscount;
+        const group = row.original.priceGroup?.name || "";
         return (
-          <>
+          <div className="flex flex-col gap-1">
             <Badge variant="outline">{PD || 0}%</Badge>
-          </>
+            {group && <Badge variant="success">{group}</Badge>}
+          </div>
         );
       },
     },
@@ -193,7 +195,6 @@ export default function PartnersPage() {
   }
   return (
     <div className="">
-
       <BasicHeader title={"Партньори"} subtitle={"Управлявай партньорите си."}>
         {userIsAdmin && (
           <Dialog>
@@ -208,7 +209,7 @@ export default function PartnersPage() {
               <DialogHeader>
                 <DialogTitle>Създай партньор</DialogTitle>
               </DialogHeader>
-              <CreatePartnerPage fetchPartners={fetchPartners}/>
+              <CreatePartnerPage fetchPartners={fetchPartners} />
             </DialogContent>
           </Dialog>
         )}

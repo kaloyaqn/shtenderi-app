@@ -519,7 +519,7 @@ export default function RefundDetailPage() {
               const total = price * rp.quantity;
               return (
                 <tr key={rp.id}>
-                  <td className="border border-black px-2 py-1">{rp.product?.name || "-"}</td>
+                  <td className="border border-black px-2 py-1">{rp.product?.invoiceName || rp.product?.name || "-"}</td>
                   <td className="border border-black px-2 py-1">{rp.product?.barcode || "-"}</td>
                   <td className="border border-black px-2 py-1 text-center">{rp.quantity}</td>
                   <td className="border border-black px-2 py-1 text-right">{price.toFixed(2)}</td>

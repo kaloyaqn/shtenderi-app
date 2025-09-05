@@ -31,7 +31,6 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-
   EditIcon,
   Printer,
   Send,
@@ -611,6 +610,12 @@ export default function RevisionDetailPage() {
           onClick={() => router.push(`/dashboard/revisions/${revisionId}/edit`)}
         >
           <EditIcon /> Редактирай
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => router.push(`/dashboard/revisions/${revisionId}/refund`)}
+        >
+          <AlertTriangle /> Рекламация
         </Button>
         {/* <Button variant="outline" onClick={() => setRepeatDialogOpen(true)}>
           <Repeat />  Повтори продажба

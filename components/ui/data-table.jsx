@@ -275,6 +275,7 @@ export function DataTable({
               />
             )
           )}
+
           {/* Inject extra filters here, e.g. status Select */}
           {extraFilters}
           <div className="ml-auto flex items-center gap-2">
@@ -286,7 +287,7 @@ export function DataTable({
               }}
             >
               <SelectTrigger>
-                {table.getState().pagination.pageSize === 99999 ? <><Infinity /></> :table.getState().pagination.pageSize }
+                {table.getState().pagination.pageSize === 99999 ? <><Infinity /></> : table.getState().pagination.pageSize}
               </SelectTrigger>
               <SelectContent>
                 {[10, 20, 30, 50, 100, 99999].map((size) => (
@@ -371,22 +372,33 @@ export function DataTable({
               </TableRow>
             )}
           </TableBody>
-          <TableFooter>
-          {table.getFooterGroups().map(footerGroup => (
-            <TableRow key={footerGroup.id}>
-              {footerGroup.headers.map(header => (
-                <TableCell className="text-gray-700" key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.footer,
-                        header.getContext()
-                      )}
-                </TableCell>
+          {table.getFooterGroups().some(footerGroup =>
+            footerGroup.headers.some(
+              header =>
+                !header.isPlaceholder &&
+                typeof header.column.columnDef.footer !== "undefined" &&
+                header.column.columnDef.footer !== null
+            )
+          ) && (
+            <TableFooter>
+              {table.getFooterGroups().map(footerGroup => (
+                <TableRow className="border-0 rounded-md" key={footerGroup.id}>
+                  {footerGroup.headers.map(header => (
+                    <TableCell className="text-gray-700" key={header.id}>
+                      {header.isPlaceholder ||
+                      typeof header.column.columnDef.footer === "undefined" ||
+                      header.column.columnDef.footer === null
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.footer,
+                            header.getContext()
+                          )}
+                    </TableCell>
+                  ))}
+                </TableRow>
               ))}
-            </TableRow>
-          ))}
-        </TableFooter>
+            </TableFooter>
+          )}
         </Table>
       </div>
       <div className="flex flex-col gap-4 w-full py-4 sm:flex-row sm:items-center sm:justify-between">

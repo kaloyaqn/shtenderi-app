@@ -28,6 +28,7 @@ export default function EditProductPage({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [imageUrl, setImageUrl] = useState(product?.image || ""); // for live preview
+  const [isActive, setIsActive] = useState(!!product?.active);
 
   // No need to fetch - we already have the product data
   // useEffect(() => {
@@ -58,9 +59,11 @@ export default function EditProductPage({
     const formData = new FormData(e.target);
     const data = {
       name: formData.get("name")?.trim(),
+      invoiceName: formData.get("invoiceName")?.trim() || null,
       barcode: formData.get("barcode")?.trim(),
+      pcode: formData.get("pcode")?.trim(),
       pcd: formData.get("pcd")?.trim() || null,
-      active: formData.get("active") === "on",
+      active: isActive,
       clientPrice: Number(formData.get("clientPrice")),
       deliveryPrice: Number(formData.get("deliveryPrice")),
       image: formData.get("image"),
@@ -114,6 +117,16 @@ export default function EditProductPage({
         </div>
 
         <div className="grid gap-2">
+          <Label htmlFor="invoiceName">Име за документи</Label>
+          <Input
+            id="invoiceName"
+            name="invoiceName"
+            defaultValue={product.invoiceName || ""}
+            placeholder="Алтернативно име за фактури/кредитни известия"
+          />
+        </div>
+
+        <div className="grid gap-2">
           <Label htmlFor="barcode">Баркод *</Label>
           <Input
             id="barcode"
@@ -121,6 +134,16 @@ export default function EditProductPage({
             required
             defaultValue={product.barcode}
             placeholder="Сканирайте или въведете баркод"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="pcode">Продуктов код</Label>
+          <Input
+            id="pcode"
+            name="pcode"
+            defaultValue={product.pcode}
+            placeholder="Продуктов код"
           />
         </div>
 
@@ -190,7 +213,8 @@ export default function EditProductPage({
             id="active"
             name="active"
             type="checkbox"
-            defaultChecked={product.active}
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
             className="w-5 h-5"
           />
           <span className="text-xs text-muted-foreground">

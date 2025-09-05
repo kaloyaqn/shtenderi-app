@@ -488,11 +488,11 @@ export default function StandDetailPage({ params }) {
               variant="outline"
               className="w-full h-12 bg-transparent"
               onClick={() =>
-                router.push(`/dashboard/stands/${stand.id}/refund`)
+                router.push(`/dashboard/resupply?mode=stand-to-storage&standid=${stand.id}`)
               }
             >
               <AlertTriangle className="h-4 w-4 mr-2" />
-              Рекламации
+              Върни към склад
             </Button>
             <Button
               variant="outline"
@@ -691,10 +691,10 @@ export default function StandDetailPage({ params }) {
             onChange={handleFileChange}
             style={{ display: "none" }}
           />
-          <Link className="w-full" href={`/dashboard/stands/${standId}/refund`}>
+          <Link className="w-full" href={`/dashboard/resupply?mode=stand-to-storage&standid=${standId}`}>
             <Button variant={"outline"}>
               <IconTruckReturn />
-              Рекламация
+              Върни към склад
             </Button>
           </Link>
 

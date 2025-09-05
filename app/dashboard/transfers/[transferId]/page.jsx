@@ -20,7 +20,6 @@ export default function TransferDetailPage() {
     const [transfer, setTransfer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [confirming, setConfirming] = useState(false);
-    const [password, setPassword] = useState('');
 
     const fetchTransfer = async () => {
         setLoading(true);
@@ -65,7 +64,7 @@ export default function TransferDetailPage() {
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password }),
+                body: JSON.stringify({}),
             });
 
             const data = await response.json();
@@ -86,7 +85,6 @@ export default function TransferDetailPage() {
             }
             
             await fetchTransfer(); // Re-fetch data to update UI
-            setPassword('');
 
         } catch (error) {
             toast.error(error.message);
@@ -123,34 +121,22 @@ export default function TransferDetailPage() {
             </div> */}
 
             {transfer.status === 'PENDING' && (
-                <>
-                        <Card className="mb-6 bg-yellow-50 border-yellow-200">
-            <CardHeader>
-                <CardTitle>Потвърждение на трансфер</CardTitle>
-                <CardDescription>
-                    {transfer.destinationType === 'STAND' 
-                        ? 'Моля, въведете паролата си, за да потвърдите преместването към щанда. Това ще създаде продажба и ще актуализира наличностите.'
-                        : 'Моля, въведете паролата си, за да потвърдите получаването на стоките. Това ще актуализира наличностите в двата склада.'
-                    }
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-end gap-4">
-                <div className="flex-grow">
-                    <Label className='mb-2' htmlFor="password">Парола</Label>
-                    <Input 
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                    />
-                </div>
-                <Button onClick={handleConfirm} disabled={confirming || !password}>
-                    {confirming ? 'Потвърждаване...' : 'Потвърди'}
-                </Button>
-            </CardContent>
-        </Card>
-                </>
+                <Card className="mb-6 bg-yellow-50 border-yellow-200">
+                    <CardHeader>
+                        <CardTitle>Потвърждение на трансфер</CardTitle>
+                        <CardDescription>
+                            {transfer.destinationType === 'STAND' 
+                                ? 'Потвърди преместването към щанда. Това ще създаде продажба и ще актуализира наличностите.'
+                                : 'Потвърди получаването на стоките. Това ще актуализира наличностите в двата склада.'
+                            }
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-end gap-4">
+                        <Button onClick={handleConfirm} disabled={confirming}>
+                            {confirming ? 'Потвърждаване...' : 'Потвърди'}
+                        </Button>
+                    </CardContent>
+                </Card>
             )}
 
             <div className="border rounded-lg shadow-sm">

@@ -21,7 +21,7 @@ export default function RevisionProductsTable({ missingProducts, showTotals = tr
             const total = price * quantity;
             return (
               <tr key={mp.id}>
-                <td className="border border-black px-2 py-1">{mp.product?.name || '-'}</td>
+                <td className="border border-black px-2 py-1">{mp.product?.invoiceName || mp.product?.name || '-'}</td>
                 <td className="border border-black px-2 py-1">{mp.product?.barcode || '-'}</td>
                 <td className="border border-black px-2 py-1 text-center">
                   {mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity}

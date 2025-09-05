@@ -10,9 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useApi } from "@/hooks/useApi";
 
-/**
- * Base form component with common functionality
- */
 export default function BaseForm({
   schema,
   fields = [],
@@ -69,13 +66,27 @@ export default function BaseForm({
   };
 
   const renderField = (field) => {
+    if (!field) return null; // guard against falsy entries in fields array
     const { name, label, type = "text", placeholder, required, options = [], ...fieldProps } = field;
+
+    // Merge RHF register handlers with optional custom handlers without breaking RHF
+    const reg = register(name);
+    const mergedOnChange = (e) => {
+      reg.onChange?.(e);
+      if (typeof fieldProps.onChange === 'function') fieldProps.onChange(e);
+    };
+    const mergedOnBlur = (e) => {
+      reg.onBlur?.(e);
+      if (typeof fieldProps.onBlur === 'function') fieldProps.onBlur(e);
+    };
 
     const commonProps = {
       id: name,
       placeholder,
-      ...register(name),
+      ...reg,
       ...fieldProps,
+      onChange: mergedOnChange,
+      onBlur: mergedOnBlur,
     };
 
     switch (type) {
@@ -98,8 +109,8 @@ export default function BaseForm({
             <Label htmlFor={name}>
               {label} {required && <span className="text-red-500">*</span>}
             </Label>
-            <Select onValueChange={(value) => setValue(name, value)} defaultValue={defaultValues[name]}>
-              <SelectTrigger>
+            <Select onValueChange={(value) => setValue(name, value)} defaultValue={defaultValues?.[name]}>
+              <SelectTrigger className='w-full'>
                 <SelectValue placeholder={placeholder} />
               </SelectTrigger>
               <SelectContent>

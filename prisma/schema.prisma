@@ -29,7 +29,9 @@ model Stand {
 model Product {
   id          String   @id @default(uuid())
   name        String
+  invoiceName String? @map("invoice_name")
   barcode     String   @unique
+  pcode        String?  @unique
   clientPrice Float    // цена на продажба (за магазини)
   deliveryPrice Float  @default(0) // цена на доставка (от XML)
   pcd         String?  // препоръчкителна цена доставчик
@@ -45,6 +47,8 @@ model Product {
   refundProducts  RefundProduct[]
   transferProducts TransferProduct[]
   importProducts  ImportProduct[]
+
+  priceGroupProducts PriceGroupProduct[]
 }
 
 model StandProduct {
@@ -124,11 +128,16 @@ model Partner {
   city           String?                    // Град
   mol            String?                    // МОЛ - Материално отговорно лице
   percentageDiscount Float?                 // Процентна отстъпка за партньора
+  // Price group linkage (snake_case column mapping)
+  priceGroupId   String?   @map("price_group_id")
+  priceGroup     PriceGroup? @relation(fields: [priceGroupId], references: [id])
 
   stores         Store[]                    // Връзка към магазини
   revisions     Revision[]
 
   userPartners   UserPartner[]
+
+  @@index([priceGroupId], map: "idx_partner_price_group_id")
 }
 
 model Store {
@@ -173,11 +182,42 @@ model Revision {
   type       String   @default("manual") // NEW FIELD: origin of revision (e.g., 'import', 'manual', etc.)
   status     RevisionStatus @default(NOT_PAID) // <-- new field
   checkId    String?  // Reference to the check that generated this sale
+  saleAmount Decimal  @default(0) @db.Decimal(10, 2)
 
   check      Check?   @relation(fields: [checkId], references: [id]) // Optional relationship with check
 
   missingProducts MissingProduct[]
   payments Payment[]
+}
+
+// Price groups (snake_case table names via @@map)
+model PriceGroup {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  products  PriceGroupProduct[]
+  partners  Partner[]
+
+  @@map("price_groups")
+}
+
+model PriceGroupProduct {
+  id            String     @id @default(uuid())
+  priceGroup    PriceGroup @relation(fields: [priceGroupId], references: [id])
+  priceGroupId  String     @map("price_group_id")
+  product       Product    @relation(fields: [productId], references: [id])
+  productId     String     @map("product_id")
+  price         Decimal    @db.Decimal(10, 2)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime?  @map("updated_at")
+
+  @@unique([priceGroupId, productId])
+  @@index([priceGroupId], map: "idx_price_group_products_group")
+  @@index([productId], map: "idx_price_group_products_product")
+  @@map("price_group_products")
 }
 
 enum RevisionStatus {
