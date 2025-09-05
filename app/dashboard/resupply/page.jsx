@@ -371,6 +371,7 @@ export default function GeneralResupplyPage() {
         setSelectedProducts([]);
         setBarcodeInput("");
         setStep(1);
+        router.back();
       }
     } catch (error) {
       toast.error(error.message);
