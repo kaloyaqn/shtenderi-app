@@ -2,7 +2,6 @@ import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import bcrypt from 'bcrypt';
 import { getEffectivePrice } from '@/lib/pricing/get-effective-price';
 
 export async function POST(req, { params }) {
@@ -12,26 +11,9 @@ export async function POST(req, { params }) {
     }
 
     const { transferId } = params;
-    const { password } = await req.json();
-
-    if (!password) {
-        return NextResponse.json({ error: 'Password is required for confirmation.' }, { status: 400 });
-    }
 
     try {
-        // 1. Fetch the user from DB to get their hashed password
-        const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-        if (!user || !user.password) {
-            return NextResponse.json({ error: 'User not found or password not set.' }, { status: 404 });
-        }
-
-        // 2. Verify password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return NextResponse.json({ error: 'Invalid password.' }, { status: 401 });
-        }
-
-        // 3. Phase 1: ONLY inventory and status inside a short transaction
+        // Phase 1: ONLY inventory and status inside a short transaction
         const transfer = await prisma.$transaction(async (tx) => {
             const t = await tx.transfer.findUnique({
                 where: { id: transferId },
