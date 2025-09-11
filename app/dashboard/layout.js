@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import AnnouncementModal from "@/components/announcements/NewDesign";
 import VersionBanner from "@/components/version-banner";
 import PageHelpTour from "@/components/help/PageHelpTour";
+import CommandProvider from "@/components/command-provider";
 
 export default async function DashboardLayout({ children }) {
   const session = await getServerSession(authOptions);
@@ -21,6 +22,7 @@ export default async function DashboardLayout({ children }) {
 
   return (
     <SessionLayout session={session}>
+      <CommandProvider>
       <SidebarProvider
         style={{
           "--sidebar-width": "calc(var(--spacing) * 72)",
@@ -29,22 +31,17 @@ export default async function DashboardLayout({ children }) {
       >
         <AppSidebar variant="inset" />
         <SidebarInset className="md:p-4 p-1 pb-4">
-          
           <Toaster position="top-center" />
           {/* <AnnouncementModal /> */}
           <ErrorBoundary>
-            <div className="md:pb-0 pb-[84px]">
-
-            {children}
-            </div>
+            <div className="md:pb-0 pb-[84px]">{children}</div>
           </ErrorBoundary>
         </SidebarInset>
         <MobileNavWrapper />
 
-        
-        <VersionBanner /> 
-
+        <VersionBanner />
       </SidebarProvider>
+      </CommandProvider>
     </SessionLayout>
   );
 }
