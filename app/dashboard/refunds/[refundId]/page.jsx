@@ -94,14 +94,24 @@ export default function RefundDetailPage() {
 
   const columns = [
     {
+      id: "name",
       accessorKey: "product.name",
       header: "Име на продукта",
       cell: ({ row }) => row.original.product?.name || "-",
     },
     {
+      id: "barcode",
       accessorKey: "product.barcode",
       header: "Баркод",
       cell: ({ row }) => row.original.product?.barcode || "-",
+    },
+    {
+      id: "pcode",
+      accessorKey: "product.pcode",
+      header: "",
+      cell: ({ row }) => <span className="text-[0px]">
+        {row.original.product?.pcode || "-"}
+      </span>
     },
     {
       accessorKey: "quantity",
@@ -436,7 +446,11 @@ export default function RefundDetailPage() {
               <DataTable
                 columns={columns}
                 data={refund.refundProducts}
-                searchKey="product.name"
+                filterableColumns={[
+                  { id: "name", title: "Име на продукт" },
+                  { id: "barcode", title: "Баркод на продукт" },
+                  { id: "pcode", title: "Код на продукт" },
+                ]}
               />
             </CardContent>
           </Card>
