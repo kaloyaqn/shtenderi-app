@@ -212,14 +212,23 @@ export default function CheckIdPage() {
   // Table columns for checked products
   const columns = [
     {
+      id: "name",
       accessorKey: "name",
       header: "Име",
       cell: ({ row }) => row.original.product?.name || "-",
     },
     {
+      id: "barcode",
       accessorKey: "barcode",
       header: "Баркод",
       cell: ({ row }) => row.original.product?.barcode || "-",
+    },
+    {
+      id: "pcode",
+      accessorKey: "pcode",
+      header: "Код на продукт",
+      cell: ({ row }) => row.original.product?.pcode || "-",
+      // Make sure pcode is included in the data and filterableColumns below
     },
     {
       accessorKey: "quantity",
@@ -228,10 +237,12 @@ export default function CheckIdPage() {
     },
     // { accessorKey: 'status', header: 'Статус', cell: ({ row }) => row.original.status },
   ];
+  // Make sure pcode is included in the data for filtering
   const data = missingProducts.map((cp) => ({
     ...cp,
     name: cp.product?.name || "-",
     barcode: cp.product?.barcode || "-",
+    pcode: cp.product?.pcode || "-", // <-- Add pcode to data
   }));
 
   return (
@@ -324,7 +335,15 @@ export default function CheckIdPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <DataTable columns={columns} data={data} searchKey="barcode" />
+              <DataTable
+                filterableColumns={[
+                  { id: "name", title: "Име на продукт" },
+                  { id: "barcode", title: "Баркод на продукт" },
+                  { id: "pcode", title: "Код на продукт" }, // <-- Make sure pcode is filterable
+                ]}
+                columns={columns}
+                data={data}
+              />
             </CardContent>
           </Card>
         </div>

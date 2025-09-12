@@ -190,12 +190,19 @@ export default function StandDetailPage({ params }) {
 
   const columns = [
     {
+      id: "name",
       accessorKey: "product.name",
       header: "Продукт",
     },
     {
+      id: "barcode",
       accessorKey: "product.barcode",
       header: "Баркод",
+    },
+    {
+      id: "pcode",
+      accessorKey: "product.pcode",
+      header: "Код",
     },
     {
       accessorKey: "product.pcd",
@@ -781,8 +788,11 @@ export default function StandDetailPage({ params }) {
         <DataTable
           columns={columns}
           data={productsOnStand}
-          searchKey="product.barcode"
-          filterableColumns={[]}
+          filterableColumns={[
+            { id: "name", title: "Име на продукт" },
+            { id: "barcode", title: "Баркод на продукт" },
+            { id: "pcode", title: "Код на продукт" },
+          ]}
         />
       </div>
 

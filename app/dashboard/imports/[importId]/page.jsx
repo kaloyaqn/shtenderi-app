@@ -39,16 +39,35 @@ export default function ImportDetailPage() {
   if (loading) return <LoadingScreen />;
   if (!importData) return <div>Импортът не е намерен.</div>;
 
+  // Ensure pcode is present at the top level for filtering
+  const data = importData.importProducts.map(ip => ({
+    ...ip,
+    name: ip.product?.name || '-',
+    barcode: ip.product?.barcode || '-',
+    pcode: ip.product?.pcode || '-', // <-- Add pcode at top level for filtering
+    clientPrice: ip.product?.clientPrice || 0,
+  }));
+
   const columns = [
     {
+      id: "name",
       accessorKey: 'name',
       header: 'Име',
       cell: ({ row }) => row.original.product?.name || '-',
     },
     {
+      id: 'barcode',
       accessorKey: 'barcode',
       header: 'Баркод',
       cell: ({ row }) => row.original.product?.barcode || '-',
+    },
+    {
+      id: 'pcode',
+      accessorKey: 'pcode',
+      header: '',
+      cell: ({ row }) => <span className='text-[2px]'>
+        {row.original.product?.pcode || '-'}
+      </span>,
     },
     {
       accessorKey: 'quantity',
@@ -62,19 +81,12 @@ export default function ImportDetailPage() {
     },
   ];
 
-  const data = importData.importProducts.map(ip => ({
-    ...ip,
-    name: ip.product?.name || '-',
-    barcode: ip.product?.barcode || '-',
-    clientPrice: ip.product?.clientPrice || 0,
-  }));
-
   const totalQuantity = importData.importProducts.reduce((sum, ip) => sum + ip.quantity, 0);
   const totalValue = importData.importProducts.reduce((sum, ip) => sum + (ip.quantity * (ip.product?.clientPrice || 0)), 0);
 
   return (
     <div className="container mx-auto">
-    <BasicHeader title={`Импорт ${importData.fileName}`} hasBackButton subtitle={"Виж всички данни за този импорт."}/>
+      <BasicHeader title={`Импорт ${importData.fileName}`} hasBackButton subtitle={"Виж всички данни за този импорт."}/>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-2">
         <div className="lg:col-span-1 order-2 lg:order-1">
           <Card>
@@ -127,7 +139,15 @@ export default function ImportDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <DataTable columns={columns} data={data} />
+              <DataTable
+                filterableColumns={[
+                  { id: "name", title: "Име на продукт" },
+                  { id: "barcode", title: "Баркод на продукт" },
+                  { id: "pcode", title: "Код на продукт" },
+                ]}
+                columns={columns}
+                data={data}
+              />
               <div className="flex justify-end gap-8 mt-4">
                 <div className="text-sm text-gray-600">Общо бройки: <span className="font-bold">{totalQuantity}</span></div>
                 <div className="text-sm text-gray-600">Обща стойност: <span className="font-bold">{totalValue.toFixed(2)} лв.</span></div>

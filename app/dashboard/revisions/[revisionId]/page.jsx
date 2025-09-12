@@ -443,11 +443,20 @@ export default function RevisionDetailPage() {
 
   const columns = [
     {
+      id: "name",
       accessorKey: "name",
       header: "Име",
       cell: ({ row }) => row.original.product?.name || "-",
     },
     {
+      id: "pcode",
+      accessorKey: "pcode",
+      header: "",
+      cell: ({ row }) => <span className="text-[0px]"> {row.original.product?.pcode || "-"}</span>
+
+    },
+    {
+      id:"barcode",
       accessorKey: "barcode",
       header: "Баркод",
       cell: ({ row }) => row.original.product?.barcode || "-",
@@ -494,6 +503,7 @@ export default function RevisionDetailPage() {
   const soldProducts = revision.missingProducts.map((mp) => ({
     ...mp,
     name: mp.product?.name || "-",
+    pcode: mp.product?.pcode || "-",
     barcode: mp.product?.barcode || "-",
     givenQuantity: mp.givenQuantity,
     isSold: true,
@@ -776,7 +786,11 @@ export default function RevisionDetailPage() {
                       <DataTable
                         columns={columns}
                         data={data}
-                        searchKey="barcode"
+                        filterableColumns={[
+                          { id: "name", title: "Име на продукт" },
+                          { id: "barcode", title: "Баркод на продукт" },
+                          { id: "pcode", title: "Код на продукт" },
+                        ]}
                         rowClassName={(row) => {
                           const mp = row.original;
                           const hasDiscrepancy = mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity;
