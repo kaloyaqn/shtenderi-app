@@ -653,14 +653,24 @@ export default function ProductsPage() {
       },
     },
     {
+      id: "name",
       accessorKey: "name",
       header: "Име",
     },
 
     {
+     id: "barcode",
       accessorKey: "barcode",
       header: "Баркод",
       cell: ({ row }) => row.original.barcode,
+    },
+    {
+      id: "pcode",
+      accessorKey: "pcode",
+      header: "код",
+      cell: ({ row }) => <span className="text-[4px]">
+        {row.original.pcode}
+      </span>
     },
     {
       accessorKey: "deliveryPrice",
@@ -863,8 +873,11 @@ export default function ProductsPage() {
       <DataTable
         columns={columns}
         data={data}
-        searchKey="name"
-        filterableColumns={[{ id: "barcode", title: "Баркод" }]}
+        filterableColumns={[
+          { id: "name", title: "Име на продукт" },
+          { id: "barcode", title: "Баркод на продукт" },
+          { id: "pcode", title: "Код на продукт" },
+        ]}
         rowClassName={getRowClassName}
         updatedRowId={updatedRowId}
       />
