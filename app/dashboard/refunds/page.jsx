@@ -35,6 +35,10 @@ export default function RefundsPage() {
 
   const columns = [
     {
+      accessorKey: "id",
+      header: "id",
+    },
+    {
       accessorKey: "createdAt",
       header: "Дата",
       cell: ({ row }) => new Date(row.original.createdAt).toLocaleString("bg-BG"),

@@ -4,7 +4,10 @@ import React from 'react';
 
 // This component is designed to be printed.
 export const PrintableTransfer = React.forwardRef(({ transfer }, ref) => {
+    
     if (!transfer) return null;
+
+    console.log('transfer', transfer)
 
     const products = Array.isArray(transfer.products) ? transfer.products : [];
     const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
@@ -14,7 +17,7 @@ export const PrintableTransfer = React.forwardRef(({ transfer }, ref) => {
         <div ref={ref} className="p-8 bg-white text-black text-sm">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-2xl font-bold">ДОКУМЕНТ ЗА Преместване</h1>
+                <h1 className="text-2xl font-bold">Документ ЗА Трансфер</h1>
                 <p className="text-gray-600">
                     № {transfer.id.substring(0, 8).toUpperCase()} / {new Date(transfer.createdAt).toLocaleDateString('bg-BG')}
                 </p>
@@ -23,14 +26,14 @@ export const PrintableTransfer = React.forwardRef(({ transfer }, ref) => {
             {/* From/To Info */}
             <div className="grid grid-cols-2 gap-8 mb-8">
                 <div className="border border-gray-300 p-4 rounded">
-                    <div className="font-bold bg-gray-200 -m-4 p-2 mb-4 rounded-t">От склад</div>
+                    <div className="font-bold bg-gray-200 -m-4 p-2 mb-4 rounded-t">Източник</div>
                     <div className="grid grid-cols-2 gap-x-4">
                         <span className="font-semibold">Име:</span>
                         <span>{transfer.sourceStorageName}</span>
                     </div>
                 </div>
                 <div className="border border-gray-300 p-4 rounded">
-                    <div className="font-bold bg-gray-200 -m-4 p-2 mb-4 rounded-t">За склад</div>
+                    <div className="font-bold bg-gray-200 -m-4 p-2 mb-4 rounded-t">Получател</div>
                     <div className="grid grid-cols-2 gap-x-4">
                         <span className="font-semibold">Име:</span>
                         <span>{transfer.destinationStorageName}</span>

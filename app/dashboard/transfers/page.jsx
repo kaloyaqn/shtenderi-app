@@ -36,6 +36,12 @@ export default function TransfersPage() {
 
     const columns = [
         {
+            accessorKey: 'id',
+            header: '№',
+            cell: ({ row }) => row.original.id.split("-", 1)[0]
+
+        },
+        {
             accessorKey: 'createdAt',
             header: 'Дата',
             cell: ({ row }) => new Date(row.original.createdAt).toLocaleString('bg-BG'),
@@ -100,8 +106,8 @@ export default function TransfersPage() {
     return (
         <div className="">
             <BasicHeader 
-            title={'Премествания'}
-            subtitle={"Управлявай преместванията между складове и щендери"}
+            title={'Трансфер на стока'}
+            subtitle={"Управлявай трансфери между складове и щендери"}
             />
                     <DataTable
                         columns={columns}

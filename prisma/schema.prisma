@@ -122,6 +122,7 @@ model Partner {
   name           String                     // Име на фирмата
   bulstat        String?                    // Булстат
   contactPerson  String?                    // Лице за контакт
+  email          String?                    // Имейл
   phone          String?                    // Телефон
   address        String?                    // Седалище на фирмата
   country        String?                    // Държава

@@ -42,6 +42,11 @@ export async function PUT(req, { params }) {
       }
     }
 
+  // Normalize optional email: treat empty string as null and avoid sending undefined
+  if (body.hasOwnProperty('email')) {
+    if (body.email === '') body.email = null;
+  }
+
     const partner = await updatePartner(partnerId, body)
     return Response.json(partner)
   } catch (error) {

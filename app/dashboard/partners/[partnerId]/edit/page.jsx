@@ -27,6 +27,7 @@ export default function EditPartnerPage({ params }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [partner, setPartner] = useState(null);
+  const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [mol, setMol] = useState("");
   const [country, setCountry] = useState("");
@@ -52,6 +53,7 @@ export default function EditPartnerPage({ params }) {
         setMol(data.mol || "");
         setCountry(data.country || "");
         setCity(data.city || "");
+        setEmail(data.email || "");
         setPriceGroupId(data.priceGroupId || null);
         setPercentageDiscount(data.percentageDiscount || 0);
       } catch (error) {
@@ -80,6 +82,7 @@ export default function EditPartnerPage({ params }) {
       country: country.trim(),
       city: city.trim(),
       mol: mol.trim(),
+      email: email.trim(),
       percentageDiscount: percentageDiscountValue,
       priceGroupId:
         percentageDiscountValue !== 0
@@ -168,6 +171,17 @@ export default function EditPartnerPage({ params }) {
                     placeholder="Въведете лице за контакт"
                   />
                 </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="email">Имейл</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  defaultValue={partner.email || ""}
+                  placeholder="example@domain.com"
+                />
+              </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Телефон</Label>

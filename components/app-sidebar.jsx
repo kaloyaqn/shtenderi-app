@@ -73,7 +73,7 @@ const groupedDocuments = {
     { name: "Проверки", url: "/dashboard/checks", icon: CheckCheckIcon, adminOnly: false },
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
-    { name: "Премествания", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
+    { name: "Трансфер на стока", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
     { 

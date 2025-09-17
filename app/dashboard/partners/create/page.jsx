@@ -22,6 +22,7 @@ export default function CreatePartnerPage({ fetchPartners }) {
     { name: "city", label: "Град", placeholder: "Въведете град", type: "text" },
     { name: "address", label: "Адрес", placeholder: "Въведете адрес", type: "text" },
     { name: "mol", label: "МОЛ", placeholder: "Въведете МОЛ", type: "text" },
+    { name: "email", label: "Имейл", placeholder: "example@domain.com", type: "email" },
     {
       name: "percentageDiscount",
       label: "Процентна отстъпка",

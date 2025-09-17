@@ -100,7 +100,7 @@ export default function TransferDetailPage() {
         <div className="container mx-auto">
 
             <BasicHeader hasBackButton
-            title={`Преместване № ${transfer.id.substring(0, 8).toUpperCase()}  `}
+            title={`Трансфер № ${transfer.id.substring(0, 8).toUpperCase()}  `}
             >
             <Button onClick={handlePrint}>
                 <PrinterIcon />
