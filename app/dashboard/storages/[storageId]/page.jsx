@@ -529,6 +529,13 @@ export default function StorageDetailPage({ params }) {
             <Link className='md:w-auto w-full' href={`/dashboard/resupply?source=storage&storage_from_id=${storageId}`}>
               <Button variant=""><IconTransfer /> Трансфер</Button>
             </Link>
+            <div className='w-px hidden md:block h-6 bg-gray-300'></div>
+            <Link className='md:w-auto w-full' href={`/dashboard/storage-revisions/create?storageId=${storageId}`}>
+              <Button variant="outline">
+                <Barcode className="h-4 w-4 mr-2" />
+                Ревизия
+              </Button>
+            </Link>
       </BasicHeader>
       
       <DataTable

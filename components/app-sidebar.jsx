@@ -26,6 +26,7 @@ import {
     ImportIcon,
     PackageOpenIcon,
     PersonStanding,
+    SearchCheckIcon,
     Store,
     Undo2Icon,
     User
@@ -74,6 +75,7 @@ const groupedDocuments = {
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
     { name: "Трансфер на стока", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
+    { name: "Ревизии склад", url: "/dashboard/storage-revisions", icon: SearchCheckIcon, adminOnly: true },
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
     { 
