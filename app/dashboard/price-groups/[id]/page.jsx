@@ -200,8 +200,8 @@ export default function PriceGroupView() {
     return <LoadingScreen />;
   }
 
-  return (
-    <>
+    return (
+        <>
       <BasicHeader 
       title={`Ценова група ${pgInfo && pgInfo.name || ""}`}
       subtitle={`Добави, редактирай или премахни продукти в ценовата група.`}

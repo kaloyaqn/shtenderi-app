@@ -4,7 +4,7 @@ import { useState, useEffect, use, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { Plus, Pencil, Trash2, Upload, Barcode, ImportIcon, LucideUpload, Warehouse, BoxIcon, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Barcode, ImportIcon, LucideUpload, Warehouse, BoxIcon, Download, Package } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -525,17 +525,27 @@ export default function StorageDetailPage({ params }) {
               <IconTruckReturn />
               Връщане
             </Button>
-            <div className='w-px hidden md:block h-6 bg-gray-300'></div>
-            <Link className='md:w-auto w-full' href={`/dashboard/resupply?source=storage&storage_from_id=${storageId}`}>
-              <Button variant=""><IconTransfer /> Трансфер</Button>
-            </Link>
-            <div className='w-px hidden md:block h-6 bg-gray-300'></div>
             <Link className='md:w-auto w-full' href={`/dashboard/storage-revisions/create?storageId=${storageId}`}>
               <Button variant="outline">
                 <Barcode className="h-4 w-4 mr-2" />
                 Ревизия
               </Button>
             </Link>
+            <div className='w-px hidden md:block h-6 bg-gray-300'></div>
+            <Link className='md:w-auto w-full' href={`/dashboard/resupply?source=storage&storage_from_id=${storageId}`}>
+              <Button variant=""><IconTransfer /> Трансфер</Button>
+            </Link>
+
+            {userIsAdmin && (
+              <>
+                <Link className='md:w-auto w-full' href={`/dashboard/admin/virtual-sale?sourceStorageId=${storageId}`}>
+                  <Button variant="destructive">
+                    <Package className="h-4 w-4 mr-2" />
+                    Продажба админ
+                  </Button>
+                </Link>
+              </>
+            )}
       </BasicHeader>
       
       <DataTable
