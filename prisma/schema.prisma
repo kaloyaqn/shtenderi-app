@@ -47,6 +47,7 @@ model Product {
   refundProducts  RefundProduct[]
   transferProducts TransferProduct[]
   importProducts  ImportProduct[]
+  storageRevisionProducts StorageRevisionProduct[]
 
   priceGroupProducts PriceGroupProduct[]
 }
@@ -107,6 +108,7 @@ model User {
   userStorages   UserStorage[]
   imports        Import[]
   payments       Payment[]
+  storageRevisions StorageRevision[]
   cashMovements  CashMovement[]
   checks         Check[]
   @@map("users")
@@ -247,6 +249,7 @@ model Storage {
   revisions       Revision[]
   imports         Import[]
   cashRegister    CashRegister?
+  storageRevisions StorageRevision[]
 }
 
 model StorageProduct {
@@ -258,6 +261,32 @@ model StorageProduct {
   quantity  Int
 
   @@unique([storageId, productId])
+}
+
+model StorageRevision {
+  id        String   @id @default(uuid())
+  storage   Storage  @relation(fields: [storageId], references: [id])
+  storageId String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+
+  products StorageRevisionProduct[]
+
+  @@map("storage_revisions")
+}
+
+model StorageRevisionProduct {
+  id                  String           @id @default(uuid())
+  storageRevision     StorageRevision  @relation(fields: [storageRevisionId], references: [id], onDelete: Cascade)
+  storageRevisionId   String
+  product             Product          @relation(fields: [productId], references: [id])
+  productId           String
+  originalQuantity    Int
+  checkedQuantity     Int
+
+  @@unique([storageRevisionId, productId])
+  @@map("storage_revision_products")
 }
 
 model Invoice {
