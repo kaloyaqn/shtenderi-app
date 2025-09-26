@@ -25,9 +25,11 @@ export default function CreateStorageRevisionPage() {
   const [checkedProducts, setCheckedProducts] = useState(new Map());
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [showChangesDialog, setShowChangesDialog] = useState(false);
   const [changes, setChanges] = useState([]);
   const barcodeInputRef = useRef(null);
+  const [lastScannedId, setLastScannedId] = useState(null);
 
   // Fetch storages
   const { data: storages = [] } = useSWR("/api/storages", fetcher);
@@ -63,7 +65,7 @@ export default function CreateStorageRevisionPage() {
         initialChecked.set(sp.productId, {
           product: sp.product,
           originalQuantity: sp.quantity,
-          checkedQuantity: sp.quantity,
+          checkedQuantity: 0,
         });
       });
       setCheckedProducts(initialChecked);
@@ -86,18 +88,18 @@ export default function CreateStorageRevisionPage() {
     );
 
     if (existingProduct) {
-      // Product exists in storage, increment checked quantity
+      // Product exists in storage, increment checked quantity (immutable update)
       const current = checkedProducts.get(existingProduct.productId);
       if (current) {
-        setCheckedProducts(
-          new Map(
-            checkedProducts.set(existingProduct.productId, {
-              ...current,
-              checkedQuantity: current.checkedQuantity + 1,
-            })
-          )
-        );
-        toast.success(`Добавен ${existingProduct.product.name} (${current.checkedQuantity + 1})`);
+        const next = new Map(checkedProducts);
+        const nextQty = (current.checkedQuantity || 0) + 1;
+        next.set(existingProduct.productId, {
+          ...current,
+          checkedQuantity: nextQty,
+        });
+        setCheckedProducts(next);
+        setLastScannedId(existingProduct.productId);
+        toast.success(`Добавен ${existingProduct.product.name} (${nextQty})`);
       }
     } else {
       // Product doesn't exist in storage, show error
@@ -113,14 +115,14 @@ export default function CreateStorageRevisionPage() {
   const updateCheckedQuantity = (productId, newQuantity) => {
     if (newQuantity < 0) return;
     
-    setCheckedProducts(
-      new Map(
-        checkedProducts.set(productId, {
-          ...checkedProducts.get(productId),
-          checkedQuantity: newQuantity,
-        })
-      )
-    );
+    const current = checkedProducts.get(productId);
+    if (!current) return;
+    const next = new Map(checkedProducts);
+    next.set(productId, {
+      ...current,
+      checkedQuantity: newQuantity,
+    });
+    setCheckedProducts(next);
   };
 
   const calculateChanges = () => {
@@ -297,11 +299,21 @@ export default function CreateStorageRevisionPage() {
             <CardTitle>Проверени продукти</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Search in checked list */}
+            <div className="mb-4">
+              <Input
+                placeholder="Търси по име, баркод или код..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-md"
+              />
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Продукт</TableHead>
                   <TableHead>Баркод</TableHead>
+                  <TableHead>Код</TableHead>
                   <TableHead>Оригинално количество</TableHead>
                   <TableHead>Проверено количество</TableHead>
                   <TableHead>Промяна</TableHead>
@@ -309,7 +321,23 @@ export default function CreateStorageRevisionPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.from(checkedProducts.entries()).map(([productId, product]) => {
+                {Array.from(checkedProducts.entries())
+                  .sort((a, b) => {
+                    if (!lastScannedId) return 0;
+                    if (a[0] === lastScannedId) return -1;
+                    if (b[0] === lastScannedId) return 1;
+                    return 0;
+                  })
+                  .filter(([_, p]) => {
+                    if (!searchTerm.trim()) return true;
+                    const s = searchTerm.toLowerCase();
+                    return (
+                      p.product.name?.toLowerCase().includes(s) ||
+                      p.product.barcode?.toLowerCase().includes(s) ||
+                      p.product.pcode?.toLowerCase().includes(s)
+                    );
+                  })
+                  .map(([productId, product]) => {
                   const difference = product.checkedQuantity - product.originalQuantity;
                   return (
                     <TableRow key={productId}>
@@ -317,6 +345,7 @@ export default function CreateStorageRevisionPage() {
                         {product.product.name}
                       </TableCell>
                       <TableCell>{product.product.barcode}</TableCell>
+                      <TableCell>{product.product.pcode || "-"}</TableCell>
                       <TableCell>{product.originalQuantity}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -366,6 +395,86 @@ export default function CreateStorageRevisionPage() {
                     </TableRow>
                   );
                 })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Full Storage Products (quick add like virtual sale) */}
+      {selectedStorageId && storageProducts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Всички продукти в склада
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Search */}
+            <div className="mb-4">
+              <Input
+                placeholder="Търси по име, баркод или код..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-md"
+              />
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Продукт</TableHead>
+                  <TableHead>Баркод</TableHead>
+                  <TableHead>Код</TableHead>
+                  <TableHead>Оригинално</TableHead>
+                  <TableHead>Проверено</TableHead>
+                  <TableHead>Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {storageProducts
+                  .filter((sp) => {
+                    if (!searchTerm.trim()) return true;
+                    const s = searchTerm.toLowerCase();
+                    return (
+                      sp.product.name?.toLowerCase().includes(s) ||
+                      sp.product.barcode?.toLowerCase().includes(s) ||
+                      sp.product.pcode?.toLowerCase().includes(s)
+                    );
+                  })
+                  .map((sp) => {
+                    const cp = checkedProducts.get(sp.productId);
+                    const checkedQty = cp?.checkedQuantity || 0;
+                    return (
+                      <TableRow key={sp.id}>
+                        <TableCell className="font-medium">{sp.product.name}</TableCell>
+                        <TableCell>{sp.product.barcode}</TableCell>
+                        <TableCell>{sp.product.pcode || "-"}</TableCell>
+                        <TableCell>{sp.quantity}</TableCell>
+                        <TableCell>
+                          <Badge variant={checkedQty > 0 ? "default" : "outline"}>{checkedQty}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateCheckedQuantity(sp.productId, Math.max(0, checkedQty - 1))}
+                            >
+                              -
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateCheckedQuantity(sp.productId, checkedQty + 1)}
+                            >
+                              +
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </CardContent>
