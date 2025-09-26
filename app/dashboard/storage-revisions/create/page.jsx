@@ -278,12 +278,12 @@ export default function CreateStorageRevisionPage() {
                     Покажи промени
                   </Button>
                   <Button
-                    onClick={handleSaveChanges}
+                    onClick={handleShowChanges}
                     disabled={isLoading}
                     className="flex-1"
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    {isLoading ? "Запазва..." : "Запази промени"}
+                    {isLoading ? "Запазва..." : "Запази"}
                   </Button>
                 </div>
               </div>
