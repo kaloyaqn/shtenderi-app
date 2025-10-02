@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, createContext, useContext } from "react";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import useSWR from "swr";
@@ -9,10 +9,17 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
+const CommandContext = createContext({ openProductPicker: () => {} });
+
+export function useCommand() {
+  return useContext(CommandContext);
+}
+
 export default function CommandProvider({ children }) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [onSelect, setOnSelect] = useState(null);
   const { data, error, isLoading } = useSWR(
     searchQuery ? `/api/products/search?q=${encodeURIComponent(searchQuery)}` : null,
     fetcher
@@ -33,6 +40,13 @@ export default function CommandProvider({ children }) {
     setSearchQuery(input);
   };
 
+  const openProductPicker = useCallback(({ onSelect: cb, presetQuery = '' } = {}) => {
+    setOnSelect(() => cb || null);
+    setInput(presetQuery || '');
+    setSearchQuery(presetQuery || '');
+    setIsOpen(true);
+  }, []);
+
   useEffect(() => {
     document.addEventListener("keydown", handleKeyPress);
     return () => {
@@ -40,8 +54,10 @@ export default function CommandProvider({ children }) {
     };
   }, [handleKeyPress]);
 
+  const value = useMemo(() => ({ openProductPicker }), [openProductPicker]);
+
   return (
-    <>
+    <CommandContext.Provider value={value}>
       {children}
 
       <Dialog className="w-full! " open={isOpen} onOpenChange={setIsOpen}>
@@ -91,7 +107,10 @@ export default function CommandProvider({ children }) {
                 </TableHeader>
                 <TableBody>
                   {data.map((product) => (
-                    <TableRow key={product.id} className="border-b">
+                    <TableRow key={product.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => {
+                      if (onSelect) onSelect(product);
+                      setIsOpen(false);
+                    }}>
                       <TableCell className="py-2 ">{product.name}</TableCell>
                       <TableCell className="py-2 ">{product.pcode}</TableCell>
                       <TableCell className="py-2 ">{product.barcode}</TableCell>
@@ -106,6 +125,6 @@ export default function CommandProvider({ children }) {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </CommandContext.Provider>
   );
 }

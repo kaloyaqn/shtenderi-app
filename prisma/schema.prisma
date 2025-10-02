@@ -48,6 +48,7 @@ model Product {
   transferProducts TransferProduct[]
   importProducts  ImportProduct[]
   storageRevisionProducts StorageRevisionProduct[]
+  deliveryProducts  DeliveryProduct[]
 
   priceGroupProducts PriceGroupProduct[]
 }
@@ -111,6 +112,8 @@ model User {
   storageRevisions StorageRevision[]
   cashMovements  CashMovement[]
   checks         Check[]
+  deliveries     Delivery[]
+  deliveriesAccepted Delivery[] @relation("DeliveryAcceptedBy")
   @@map("users")
 }
 
@@ -250,6 +253,7 @@ model Storage {
   imports         Import[]
   cashRegister    CashRegister?
   storageRevisions StorageRevision[]
+  deliveries       Delivery[]
 }
 
 model StorageProduct {
@@ -499,4 +503,65 @@ model CashMovement {
 enum CashMovementType {
   DEPOSIT
   WITHDRAWAL
+}
+
+// --- Deliveries domain ---
+
+enum DeliveryStatus {
+  DRAFT
+  ACCEPTED
+}
+
+enum DeliveryPaidStatus {
+  NOT_PAID
+  PAID
+}
+
+model DeliveryPartner {
+  id              String   @id @default(uuid())
+  name            String
+  bulstat         String?
+  contactPerson   String?
+  email           String?
+  phone           String?
+  address         String?
+  country         String?
+  city            String?
+  mol             String?
+  bankAccountBG   String?
+  bankAccountEUR  String?
+  createdAt       DateTime @default(now())
+
+  deliveries      Delivery[]
+}
+
+model Delivery {
+  id              String            @id @default(uuid())
+  number          Int               @unique
+  supplier        DeliveryPartner   @relation(fields: [supplierId], references: [id])
+  supplierId      String
+  storage         Storage           @relation(fields: [storageId], references: [id])
+  storageId       String
+  user            User              @relation(fields: [userId], references: [id])
+  userId          String
+  createdAt       DateTime          @default(now())
+  acceptedAt      DateTime?
+  acceptedBy      User?             @relation("DeliveryAcceptedBy", fields: [acceptedById], references: [id])
+  acceptedById    String?
+  status          DeliveryStatus    @default(DRAFT)
+  paidStatus      DeliveryPaidStatus @default(NOT_PAID)
+
+  products        DeliveryProduct[]
+}
+
+model DeliveryProduct {
+  id           String   @id @default(uuid())
+  delivery     Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  deliveryId   String
+  product      Product  @relation(fields: [productId], references: [id])
+  productId    String
+  quantity     Int
+  unitPrice    Float    // unit delivery price from the delivery document
+
+  @@unique([deliveryId, productId])
 }
