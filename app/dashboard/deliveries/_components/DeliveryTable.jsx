@@ -67,11 +67,10 @@ export default function DeliveryTable({
               </td>
               <td className="p-2 align-middle">
                 <Input
-                  type="number"
+                  inputMode="decimal"
                   step="0.01"
-                  min={0}
                   value={addUnit}
-                  onChange={(e) => setAddUnit(e.target.value)}
+                  onChange={(e) => setAddUnit(e.target.value.replace(',', '.'))}
                   onKeyDown={(e) => { if (e.key === 'Enter') {
                     if (!addProduct || !addQty || !addUnit) return;
                     setLines(prev => [{ productId: addProduct.id, barcode: addProduct.barcode || '', pcd: addPcd || addProduct.pcd || addProduct.pcode || '', name: addProduct.name || '', quantity: Number(addQty), unitPrice: Number(addUnit), clientPrice: addClient === '' ? 0 : Number(addClient), imported: false, edited: true }, ...prev]);
@@ -81,11 +80,10 @@ export default function DeliveryTable({
               </td>
               <td className="p-2 align-middle">
                 <Input
-                  type="number"
+                  inputMode="decimal"
                   step="0.01"
-                  min={0}
                   value={addClient}
-                  onChange={(e) => setAddClient(e.target.value)}
+                  onChange={(e) => setAddClient(e.target.value.replace(',', '.'))}
                   // no submit on client price
                 />
               </td>
@@ -132,13 +130,19 @@ export default function DeliveryTable({
                   />
                 </td>
                 <td className="p-2 border-t">
-                  <Input type="number" step="0.01" min={0} value={ln.unitPrice}
-                    onChange={(e) => setLines(prev => prev.map((row, idx) => idx === i ? { ...row, unitPrice: Number(e.target.value), edited: true } : row))}
+                  <Input inputMode="decimal" step="0.01" value={String(ln.unitPrice ?? '')}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(',', '.');
+                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, unitPrice: val === '' ? '' : Number(val), edited: true } : row))
+                    }}
                   />
                 </td>
                 <td className="p-2 border-t">
-                  <Input type="number" step="0.01" min={0} value={ln.clientPrice}
-                    onChange={(e) => setLines(prev => prev.map((row, idx) => idx === i ? { ...row, clientPrice: Number(e.target.value), edited: true } : row))}
+                  <Input inputMode="decimal" step="0.01" value={String(ln.clientPrice ?? '')}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(',', '.');
+                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, clientPrice: val === '' ? '' : Number(val), edited: true } : row))
+                    }}
                   />
                 </td>
                 <td className="p-2 border-t">

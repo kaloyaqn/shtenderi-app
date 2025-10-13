@@ -37,8 +37,9 @@ export default function DeliveryDetailPage() {
     setLines(
       d?.products?.map(p => ({
         productId: p.productId,
-        barcode: p.product?.barcode || '',
-        name: p.product?.name || '',
+        barcode: p.product?.barcode || p.barcode || '',
+        name: p.product?.name || p.name || '',
+        pcd: p.pcd || '',
         quantity: p.quantity,
         unitPrice: p.unitPrice,
         clientPrice: p.clientPrice,
