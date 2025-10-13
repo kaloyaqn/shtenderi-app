@@ -32,6 +32,10 @@ export default function DeliveryDetailPage() {
   const fileInputRef = useRef();
   const [isImporting, setIsImporting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const totalValue = (delivery?.products||[]).reduce((s,p)=> s + (Number(p.quantity||0)*Number(p.unitPrice||0)),0);
+  const paidValue = (delivery?.payments||[]).reduce((s,p)=> s + Number(p.amount||0),0);
+  const remainingValue = Math.max(0, totalValue - paidValue);
 
   const load = async () => {
     const d = await fetch(`/api/deliveries/${deliveryId}`).then(r => r.json());
@@ -237,16 +241,30 @@ export default function DeliveryDetailPage() {
          {isDraft && !editing && <Button onClick={() => setEditing(true)}>Редакция</Button>}
          {isDraft && editing && <Button onClick={save}>Запази чернова</Button>}
          {isDraft && <Button onClick={accept}>Приеми</Button>}
-         {delivery.status === 'ACCEPTED' && delivery.paidStatus !== 'PAID' && <Button onClick={pay}>Отчети плащане</Button>}
+         {delivery.status === 'ACCEPTED' && (
+           <div className="flex items-center gap-3">
+             <div className="text-sm text-gray-600">Остава: <span className="font-medium text-gray-900">{remainingValue.toFixed(2)} лв.</span></div>
+             <Input placeholder={`Сума`} value={payAmount} onChange={(e) => setPayAmount(e.target.value.replace(',', '.'))} className="w-32" disabled={remainingValue <= 0} />
+             <Button onClick={async () => {
+               const amt = Number(payAmount);
+               if (!amt || amt <= 0) { toast.error('Въведете сума'); return; }
+               if (amt > remainingValue) { toast.error('Сумата надвишава остатъка'); return; }
+               const r = await fetch(`/api/deliveries/${deliveryId}/pay`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: 'CASH', amount: amt }) });
+               if (r.ok) { toast.success('Плащането е отчетено'); setPayAmount(""); load(); } else { const j = await r.json().catch(()=>({})); toast.error(j?.error || 'Грешка при плащане'); }
+             }} disabled={remainingValue <= 0}>Отчети плащане</Button>
+           </div>
+         )}
         </BasicHeader>
-      <div className="w-full bg-white border border-gray-200 rounded-md p-3 mb-3 text-sm grid grid-cols-2 md:grid-cols-7 gap-2">
+      <div className="w-full bg-white border border-gray-200 rounded-md p-3 mb-3 text-sm grid grid-cols-2 md:grid-cols-9 gap-2">
         <div><span className="text-gray-500">Доставчик:</span> <span className="font-medium">{delivery?.supplier?.name || '-'}</span></div>
         <div><span className="text-gray-500">Склад:</span> <span className="font-medium">{delivery?.storage?.name || '-'}</span></div>
         <div><span className="text-gray-500">Статус:</span> <span className="font-medium">{delivery.status === 'DRAFT' ? 'Чернова' : 'Приета'}</span></div>
         <div><span className="text-gray-500">Плащане:</span> <span className="font-medium">{delivery.paidStatus === 'PAID' ? 'Платена' : 'Неплатена'}</span></div>
         <div><span className="text-gray-500">Създадена:</span> <span className="font-medium">{new Date(delivery.createdAt).toLocaleString('bg-BG')}</span></div>
         <div><span className="text-gray-500">Приета:</span> <span className="font-medium">{delivery.acceptedAt ? new Date(delivery.acceptedAt).toLocaleString('bg-BG') : '-'}</span></div>
-        <div><span className="text-gray-500">Сума:</span> <span className="font-medium">{((delivery.products||[]).reduce((s,p)=> s + (Number(p.quantity||0)*Number(p.unitPrice||0)),0)).toFixed(2)} лв.</span></div>
+        <div><span className="text-gray-500">Сума:</span> <span className="font-medium">{totalValue.toFixed(2)} лв.</span></div>
+        <div><span className="text-gray-500">Платено:</span> <span className="font-medium">{paidValue.toFixed(2)} лв.</span></div>
+        <div><span className="text-gray-500">Остава:</span> <span className="font-medium">{remainingValue.toFixed(2)} лв.</span></div>
       </div>
 
           <DeliveryTable

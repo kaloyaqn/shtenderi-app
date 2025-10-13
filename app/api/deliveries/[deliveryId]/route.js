@@ -6,7 +6,7 @@ export async function GET(req, { params }) {
     const { deliveryId } = params;
     const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
-      include: { supplier: true, storage: true, products: { include: { product: true } } },
+      include: { supplier: true, storage: true, products: { include: { product: true } }, payments: true },
     });
     if (!delivery) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(delivery);

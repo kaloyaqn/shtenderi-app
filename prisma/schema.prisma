@@ -115,6 +115,7 @@ model User {
   checks         Check[]
   deliveries     Delivery[]
   deliveriesAccepted Delivery[] @relation("DeliveryAcceptedBy")
+  deliveryPayments DeliveryPayment[]
   @@map("users")
 }
 
@@ -556,6 +557,7 @@ model Delivery {
   paidStatus      DeliveryPaidStatus @default(NOT_PAID)
 
   products        DeliveryProduct[]
+  payments        DeliveryPayment[]
 }
 
 model DeliveryProduct {
@@ -573,6 +575,17 @@ model DeliveryProduct {
   name         String?
 
   @@unique([deliveryId, productId])
+}
+
+model DeliveryPayment {
+  id            String    @id @default(uuid())
+  delivery      Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  deliveryId    String
+  amount        Float
+  method        PaymentMethod @default(CASH)
+  createdAt     DateTime  @default(now())
+  user          User      @relation(fields: [userId], references: [id])
+  userId        String
 }
 
 // Join table: Product ↔ DeliveryPartner (many-to-many)
