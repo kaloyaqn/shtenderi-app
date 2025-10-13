@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-export default function CreateProductPage({ onProductCreated, onClose }) {
+export default function CreateProductPage({ onProductCreated = () => {}, onClose = () => {} }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,9 +29,11 @@ export default function CreateProductPage({ onProductCreated, onClose }) {
       name: formData.get("name")?.trim(),
       invoiceName: formData.get("invoiceName")?.trim() || null,
       barcode: formData.get("barcode")?.trim(),
+      pcode: formData.get("pcode")?.trim() || null,
       clientPrice: parseFloat(formData.get("clientPrice")),
       deliveryPrice: parseFloat(formData.get("deliveryPrice")),
       pcd: formData.get("pcd")?.trim() || null,
+      image: formData.get("image")?.trim() || null,
       quantity: parseInt(formData.get("quantity"), 10) || 0,
     };
 
@@ -50,16 +52,12 @@ export default function CreateProductPage({ onProductCreated, onClose }) {
         throw new Error(result.error || "Грешка при създаване на продукт");
       }
 
-      // Optimistically add the new product to the list
       onProductCreated(result);
       
       // Show success message
       toast.success("Продуктът е успешно създаден!");
       
-      // Keep dialog open for potential further creation
       setLoading(false);
-      
-      // Reset form
       e.target.reset();
       
     } catch (err) {
@@ -101,6 +99,11 @@ export default function CreateProductPage({ onProductCreated, onClose }) {
         </div>
 
         <div className="grid gap-2">
+          <Label htmlFor="pcode">Продуктов код</Label>
+          <Input id="pcode" name="pcode" placeholder="Продуктов код" />
+        </div>
+
+        <div className="grid gap-2">
           <Label htmlFor="clientPrice">Клиентска цена *</Label>
           <Input
             id="clientPrice"
@@ -127,6 +130,11 @@ export default function CreateProductPage({ onProductCreated, onClose }) {
         <div className="grid gap-2">
           <Label htmlFor="pcd">Препоръчителна цена (ПЦД)</Label>
           <Input id="pcd" name="pcd" placeholder="Въведете ПЦД" />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="image">Снимка (URL)</Label>
+          <Input id="image" name="image" placeholder="https://example.com/image.jpg" />
         </div>
 
         <div className="grid gap-2">

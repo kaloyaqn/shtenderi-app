@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import LabeledSelect from "@/components/forms/LabeledSelect";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useCommand } from "@/components/command-provider";
@@ -251,25 +252,9 @@ export default function DeliveryNewPage() {
       <Button onClick={submitAndAccept} disabled={isImporting}><IconTruckDelivery /> Приеми</Button>
 
       </BasicHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm">Доставчик</label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger><SelectValue placeholder="Избери доставчик" /></SelectTrigger>
-                <SelectContent>
-                  {partners.map(p => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm">Склад</label>
-              <Select value={storageId} onValueChange={setStorageId}>
-                <SelectTrigger><SelectValue placeholder="Избери склад" /></SelectTrigger>
-                <SelectContent>
-                  {storages.map(s => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-2 gap-3 border-2 border-amber-500 bg-amber-50 p-4 rounded-md mb-4">
+            <LabeledSelect label="Доставчик" placeholder="Избери доставчик" value={supplierId} onValueChange={setSupplierId} options={partners} />
+            <LabeledSelect label="Склад" placeholder="Избери склад" value={storageId} onValueChange={setStorageId} options={storages} />
           </div>
           <DeliveryTable
             isDraft={true}

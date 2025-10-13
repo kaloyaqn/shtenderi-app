@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import { useCommand } from "@/components/command-provider";
 import PrintableDelivery from "./_components/printable-delivery";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import CreateProductPage from "../../products/create/page";
 import { XMLParser } from "fast-xml-parser";
 import { useRef } from "react";
 
@@ -29,6 +31,7 @@ export default function DeliveryDetailPage() {
   const { openProductPicker } = useCommand();
   const fileInputRef = useRef();
   const [isImporting, setIsImporting] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const load = async () => {
     const d = await fetch(`/api/deliveries/${deliveryId}`).then(r => r.json());
@@ -205,6 +208,7 @@ export default function DeliveryDetailPage() {
               >
                 {isImporting ? 'Импортиране...' : 'Импорт XML'}
               </Button>
+              
               <input
                 type="file"
                 accept=".xml"
@@ -213,6 +217,21 @@ export default function DeliveryDetailPage() {
                 style={{ display: "none" }}
                 disabled={isImporting}
               />
+              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">Създай продукт</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogTitle>Създай нов продукт</DialogTitle>
+                  <CreateProductPage
+                    onProductCreated={(prod) => {
+                      setLines(prev => [{ productId: prod.id, barcode: prod.barcode || '', name: prod.name || '', quantity: 0, unitPrice: prod.deliveryPrice || 0, clientPrice: prod.clientPrice || 0, imported: false, edited: true }, ...prev]);
+                      setCreateOpen(false);
+                    }}
+                    onClose={() => setCreateOpen(false)}
+                  />
+                </DialogContent>
+              </Dialog>
             </>
           )}
          {isDraft && !editing && <Button onClick={() => setEditing(true)}>Редакция</Button>}

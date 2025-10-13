@@ -105,7 +105,7 @@ export default function BaseForm({
 
       case "select":
         return (
-          <div key={name} className="grid gap-2">
+          <div key={name} className="grid gap-2 mb-4">
             <Label htmlFor={name}>
               {label} {required && <span className="text-red-500">*</span>}
             </Label>
@@ -160,7 +160,7 @@ export default function BaseForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className={`space-y-6 ${className}`}>
+    <form onSubmit={handleSubmit(handleFormSubmit)} className={`space-y-6 mb-4 ${className}`}>
       <div className="space-y-4">
         {fields.map(renderField)}
       </div>
