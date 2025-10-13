@@ -11,6 +11,10 @@ import { useCommand } from "@/components/command-provider";
 import DeliveryTable from "../_components/DeliveryTable";
 import { XMLParser } from "fast-xml-parser";
 import { useRef } from "react";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ImportIcon, PlusIcon, SaveIcon } from "lucide-react";
+import { IconTruckDelivery } from "@tabler/icons-react";
+import CreateProductPage from "../../products/create/page";
 
 export default function DeliveryNewPage() {
   const router = useRouter();
@@ -31,6 +35,7 @@ export default function DeliveryNewPage() {
   const { openProductPicker } = useCommand();
   const fileInputRef = useRef();
   const [isImporting, setIsImporting] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -215,6 +220,7 @@ export default function DeliveryNewPage() {
         onClick={() => fileInputRef.current?.click()}
         disabled={isImporting}
       >
+        <ImportIcon />
         {isImporting ? 'Импортиране...' : 'Импорт XML'}
       </Button>
       <input
@@ -225,8 +231,25 @@ export default function DeliveryNewPage() {
         style={{ display: "none" }}
         disabled={isImporting}
       />
-      <Button variant="outline" onClick={submitDraft} disabled={isImporting}>Запази като чернова</Button>
-      <Button onClick={submitAndAccept} disabled={isImporting}>Запази</Button>
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogTrigger asChild>
+          <Button variant={'outline'}><PlusIcon />Създай продукт</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogTitle>Създай нов продукт</DialogTitle>
+          <CreateProductPage 
+            onProductCreated={(prod) => {
+              setProducts(prev => [prod, ...prev]);
+              setItems(prev => [{ productId: prod.id, barcode: prod.barcode || '', name: prod.name || '', quantity: 0, unitPrice: prod.deliveryPrice || 0, clientPrice: prod.clientPrice || 0, imported: false, edited: true }, ...prev]);
+              setCreateOpen(false);
+            }}
+            onClose={() => setCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+      <Button variant="outline" onClick={submitDraft} disabled={isImporting}> <SaveIcon /> Запази като чернова</Button>
+      <Button onClick={submitAndAccept} disabled={isImporting}><IconTruckDelivery /> Приеми</Button>
+
       </BasicHeader>
           <div className="grid grid-cols-2 gap-3">
             <div>

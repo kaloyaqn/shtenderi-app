@@ -51,6 +51,7 @@ export async function POST(req) {
               unitPrice: p.unitPrice,
               clientPrice: p.clientPrice,
               barcode: p.barcode || null,
+              pcd: p.pcd || null,
               name: p.name || null,
             };
             if (p.productId) {
