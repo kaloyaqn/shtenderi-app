@@ -1,0 +1,64 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function GET(req, { params }) {
+  try {
+    const { deliveryId } = params;
+    const delivery = await prisma.delivery.findUnique({
+      where: { id: deliveryId },
+      include: { supplier: true, storage: true, products: { include: { product: true } }, payments: true },
+    });
+    if (!delivery) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json(delivery);
+  } catch (error) {
+    console.error('[DELIVERIES_ID_GET]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// Allow updating draft only
+export async function PUT(req, { params }) {
+  try {
+    const { deliveryId } = params;
+    const { supplierId, storageId, products } = await req.json();
+    const delivery = await prisma.delivery.findUnique({ where: { id: deliveryId } });
+    if (!delivery) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (delivery.status !== 'DRAFT') {
+      return NextResponse.json({ error: 'Delivery already accepted' }, { status: 400 });
+    }
+
+    const updates = {};
+    if (supplierId) updates.supplierId = supplierId;
+    if (storageId) updates.storageId = storageId;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const base = await tx.delivery.update({ where: { id: deliveryId }, data: updates });
+      if (Array.isArray(products)) {
+        // Replace products set
+        await tx.deliveryProduct.deleteMany({ where: { deliveryId } });
+        if (products.length > 0) {
+          await tx.deliveryProduct.createMany({
+            data: products.map(p => ({ 
+              deliveryId, 
+              productId: p.productId || null, 
+              quantity: p.quantity, 
+              unitPrice: p.unitPrice, 
+              clientPrice: p.clientPrice,
+              barcode: p.barcode || null,
+              pcd: p.pcd || null,
+              name: p.name || null,
+            })),
+          });
+        }
+      }
+      return tx.delivery.findUnique({ where: { id: deliveryId }, include: { products: true } });
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('[DELIVERIES_ID_PUT]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+

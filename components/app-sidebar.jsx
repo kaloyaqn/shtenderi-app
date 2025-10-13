@@ -68,6 +68,7 @@ const groupedDocuments = {
     { name: "Складове", url: "/dashboard/storages", icon: PackageOpenIcon },
     { name: "Каси", url: "/dashboard/cash-registers", icon: IconCashRegister },
     { name: "Движение каси", url: "/dashboard/payments", icon: IconCashMove , adminOnly: true },
+    { name: "Доставчици", url: "/dashboard/delivery-partners", icon: PersonStanding, adminOnly: true },
   ],
   "Справки и счетоводни документи": [
     { name: "Импорти", url: "/dashboard/imports", icon: ImportIcon, adminOnly: true },
@@ -78,6 +79,7 @@ const groupedDocuments = {
     { name: "Ревизии склад", url: "/dashboard/storage-revisions", icon: SearchCheckIcon, adminOnly: true },
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
+    { name: "Доставки", url: "/dashboard/deliveries", icon: PackageOpenIcon, adminOnly: true },
     { 
       name: "Справки", 
       icon: IconReport, 

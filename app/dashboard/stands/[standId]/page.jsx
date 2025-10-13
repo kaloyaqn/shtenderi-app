@@ -683,21 +683,6 @@ export default function StandDetailPage({ params }) {
             Експорт
           </Button>
 
-          <Button
-            variant={"outline"}
-            onClick={handleImportClick}
-            className="md:flex hidden"
-          >
-            <ImportIcon />
-            Импорт
-          </Button>
-          <input
-            type="file"
-            accept=".xml"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            style={{ display: "none" }}
-          />
           <Link className="w-full" href={`/dashboard/resupply?mode=stand-to-storage&standid=${standId}`}>
             <Button variant={"outline"}>
               <IconTruckReturn />

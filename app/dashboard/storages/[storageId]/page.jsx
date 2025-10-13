@@ -506,12 +506,6 @@ export default function StorageDetailPage({ params }) {
       variant={'outline'}>
             <Download />  Експорт
             </Button>
-      <Button
-      onClick={handleImportClick}
-      variant={'outline'}>
-            <ImportIcon />  Импорт
-            </Button>
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xml" />
 
       {/* <Button
       onClick={() => setTransferDialogOpen(true)}
