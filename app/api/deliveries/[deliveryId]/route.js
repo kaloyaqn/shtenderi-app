@@ -38,7 +38,16 @@ export async function PUT(req, { params }) {
         await tx.deliveryProduct.deleteMany({ where: { deliveryId } });
         if (products.length > 0) {
           await tx.deliveryProduct.createMany({
-            data: products.map(p => ({ deliveryId, productId: p.productId, quantity: p.quantity, unitPrice: p.unitPrice })),
+            data: products.map(p => ({ 
+              deliveryId, 
+              productId: p.productId || null, 
+              quantity: p.quantity, 
+              unitPrice: p.unitPrice, 
+              clientPrice: p.clientPrice,
+              barcode: p.barcode || null,
+              pcd: p.pcd || null,
+              name: p.name || null,
+            })),
           });
         }
       }

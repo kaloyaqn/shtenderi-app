@@ -23,11 +23,15 @@ export async function POST(req) {
     if (!storage) return NextResponse.json({ error: 'Storage not found' }, { status: 404 });
 
     for (const p of products) {
-      if (!p.productId || typeof p.quantity !== 'number' || p.quantity <= 0 || typeof p.unitPrice !== 'number') {
-        return NextResponse.json({ error: 'Each item requires productId, quantity>0, unitPrice' }, { status: 400 });
+      const hasProduct = !!p.productId;
+      const hasUnresolved = !!(p.barcode || p.name);
+      if ((!hasProduct && !hasUnresolved) || typeof p.quantity !== 'number' || p.quantity <= 0 || typeof p.unitPrice !== 'number' || typeof p.clientPrice !== 'number') {
+        return NextResponse.json({ error: 'Each item requires productId OR (barcode/name), quantity>0, unitPrice, clientPrice' }, { status: 400 });
       }
-      const exists = await prisma.product.findUnique({ where: { id: p.productId }, select: { id: true } });
-      if (!exists) return NextResponse.json({ error: `Product not found: ${p.productId}` }, { status: 404 });
+      if (hasProduct) {
+        const exists = await prisma.product.findUnique({ where: { id: p.productId }, select: { id: true } });
+        if (!exists) return NextResponse.json({ error: `Product not found: ${p.productId}` }, { status: 404 });
+      }
     }
 
     // Next delivery number
@@ -41,7 +45,19 @@ export async function POST(req) {
         storageId,
         userId: session.user.id,
         products: {
-          create: products.map(p => ({ productId: p.productId, quantity: p.quantity, unitPrice: p.unitPrice })),
+          create: products.map(p => {
+            const base = {
+              quantity: p.quantity,
+              unitPrice: p.unitPrice,
+              clientPrice: p.clientPrice,
+              barcode: p.barcode || null,
+              name: p.name || null,
+            };
+            if (p.productId) {
+              return { ...base, product: { connect: { id: p.productId } } };
+            }
+            return base; // unresolved row; productId left null
+          }),
         },
       },
       include: { products: true, supplier: true },
