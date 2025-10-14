@@ -89,12 +89,12 @@ export default function DeliveryTable({
               </td>
               <td className="p-2 align-middle">
                 <Input
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  inputMode="decimal"
+                  step="0.01"
                   placeholder="ПЦД"
                   value={addPcd}
                   onFocus={() => { if (addPcd === '0') setAddPcd(''); }}
-                  onChange={(e) => setAddPcd(e.target.value)}
+                  onChange={(e) => setAddPcd(e.target.value.replace(',', '.'))}
                   onKeyDown={(e) => { if (e.key === 'Enter') {
                     if (!addProduct || !addQty || !addUnit) return;
                     setLines(prev => [{ productId: addProduct.id, barcode: addProduct.barcode || '', pcd: addPcd || addProduct.pcd || addProduct.pcode || '', name: addProduct.name || '', quantity: Number(addQty), unitPrice: Number(addUnit), clientPrice: addClient === '' ? 0 : Number(addClient), imported: false, edited: true }, ...prev]);
@@ -147,12 +147,12 @@ export default function DeliveryTable({
                 </td>
                 <td className="p-2 border-t">
                   <Input
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    inputMode="decimal"
+                    step="0.01"
                     value={(ln.pcd === undefined || ln.pcd === null) ? '' : String(ln.pcd)}
                     onChange={(e) => {
-                      const raw = e.target.value;
-                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, pcd: raw, edited: true } : row));
+                      const val = e.target.value.replace(',', '.');
+                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, pcd: val, edited: true } : row));
                     }}
                   />
                 </td>
