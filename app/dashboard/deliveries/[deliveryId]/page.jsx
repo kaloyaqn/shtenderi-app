@@ -38,22 +38,34 @@ export default function DeliveryDetailPage() {
   const remainingValue = Math.max(0, totalValue - paidValue);
 
   const load = async () => {
-    const d = await fetch(`/api/deliveries/${deliveryId}`).then(r => r.json());
-    setDelivery(d);
-    // Seed lines with editable rows (existing delivery rows treated as edited already)
-    setLines(
-      d?.products?.map(p => ({
-        productId: p.productId,
-        barcode: p.product?.barcode || p.barcode || '',
-        name: p.product?.name || p.name || '',
-        pcd: p.pcd || '',
-        quantity: p.quantity,
-        unitPrice: p.unitPrice,
-        clientPrice: p.clientPrice,
-        imported: false,
-        edited: true
-      })) || []
-    );
+    try {
+      const res = await fetch(`/api/deliveries/${deliveryId}`);
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j?.error || 'Доставката не беше намерена');
+        return;
+      }
+      const d = await res.json();
+      if (!d || !d.id) { toast.error('Невалидни данни за доставка'); return; }
+      setDelivery(d);
+      // Seed lines with editable rows (existing delivery rows treated as edited already)
+      setLines(
+        (Array.isArray(d?.products) ? d.products : [])?.map(p => ({
+          productId: p.productId,
+          barcode: p.product?.barcode || p.barcode || '',
+          name: p.product?.name || p.name || '',
+          pcd: p.pcd || '',
+          quantity: p.quantity,
+          unitPrice: p.unitPrice,
+          clientPrice: p.clientPrice,
+          imported: false,
+          edited: true
+        })) || []
+      );
+    } catch (e) {
+      toast.error('Грешка при зареждане на доставката');
+      return;
+    }
   };
   useEffect(() => {
     if (!delivery?.storageId) return;
