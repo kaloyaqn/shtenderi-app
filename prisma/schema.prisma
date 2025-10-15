@@ -586,6 +586,8 @@ model DeliveryPayment {
   createdAt     DateTime  @default(now())
   user          User      @relation(fields: [userId], references: [id])
   userId        String
+  // supplier      DeliveryPartner @relation(fields: [supplierId], references: [id])
+  supplierId    String
 }
 
 // Join table: Product ↔ DeliveryPartner (many-to-many)

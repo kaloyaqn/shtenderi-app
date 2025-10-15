@@ -36,6 +36,7 @@ export default function DeliveryTable({
             <th className="p-2 border-b">Продажна цена</th>
             <th className="p-2 border-b">ПЦД</th>
             <th className="p-2 border-b">Средна (преглед)</th>
+            <th className="p-2 border-b"></th>
           </tr>
         </thead>
         <tbody>
@@ -45,7 +46,7 @@ export default function DeliveryTable({
                 <Input
                   placeholder="Код / EAN"
                   value={addCode}
-                  onFocus={() => onPickNewProduct && onPickNewProduct({ onSelect: (p) => { setAddProduct(p); setAddCode(p.barcode || ""); setAddPcd(p.pcd || p.pcode || ""); } })}
+                  onFocus={() => onPickNewProduct && onPickNewProduct({ onSelect: (p) => { setAddProduct(p); setAddCode(p.barcode || ""); setAddPcd(p.pcd || p.pcode || ""); setAddClient(typeof p.clientPrice === 'number' ? String(p.clientPrice) : ''); } })}
                   onChange={(e) => setAddCode(e.target.value)}
                 />
               </td>
@@ -89,12 +90,12 @@ export default function DeliveryTable({
               </td>
               <td className="p-2 align-middle">
                 <Input
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  inputMode="decimal"
+                  step="0.01"
                   placeholder="ПЦД"
                   value={addPcd}
                   onFocus={() => { if (addPcd === '0') setAddPcd(''); }}
-                  onChange={(e) => setAddPcd(e.target.value)}
+                  onChange={(e) => setAddPcd(e.target.value.replace(',', '.'))}
                   onKeyDown={(e) => { if (e.key === 'Enter') {
                     if (!addProduct || !addQty || !addUnit) return;
                     setLines(prev => [{ productId: addProduct.id, barcode: addProduct.barcode || '', pcd: addPcd || addProduct.pcd || addProduct.pcode || '', name: addProduct.name || '', quantity: Number(addQty), unitPrice: Number(addUnit), clientPrice: addClient === '' ? 0 : Number(addClient), imported: false, edited: true }, ...prev]);
@@ -103,6 +104,7 @@ export default function DeliveryTable({
                 />
               </td>
               <td className="p-2 align-middle text-sm text-gray-800">-</td>
+              <td className="p-2 align-middle"></td>
             </tr>
           )}
           {lines.map((ln, i) => {
@@ -130,33 +132,43 @@ export default function DeliveryTable({
                   />
                 </td>
                 <td className="p-2 border-t">
-                  <Input inputMode="decimal" step="0.01" value={String(ln.unitPrice ?? '')}
+                  <Input type="text" inputMode="decimal" value={String(ln.unitPrice ?? '')}
                     onChange={(e) => {
                       const val = e.target.value.replace(',', '.');
-                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, unitPrice: val === '' ? '' : Number(val), edited: true } : row))
+                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, unitPrice: val, edited: true } : row))
                     }}
                   />
                 </td>
                 <td className="p-2 border-t">
-                  <Input inputMode="decimal" step="0.01" value={String(ln.clientPrice ?? '')}
+                  <Input type="text" inputMode="decimal" value={(ln.clientPrice === undefined || ln.clientPrice === null || ln.clientPrice === '') ? (oldClientPriceByProductId(ln.productId) != null ? String(oldClientPriceByProductId(ln.productId)) : '') : String(ln.clientPrice)}
                     onChange={(e) => {
                       const val = e.target.value.replace(',', '.');
-                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, clientPrice: val === '' ? '' : Number(val), edited: true } : row))
+                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, clientPrice: val, edited: true } : row))
                     }}
                   />
                 </td>
                 <td className="p-2 border-t">
                   <Input
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    inputMode="decimal"
+                    step="0.01"
                     value={(ln.pcd === undefined || ln.pcd === null) ? '' : String(ln.pcd)}
                     onChange={(e) => {
-                      const raw = e.target.value;
-                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, pcd: raw, edited: true } : row));
+                      const val = e.target.value.replace(',', '.');
+                      setLines(prev => prev.map((row, idx) => idx === i ? { ...row, pcd: val, edited: true } : row));
                     }}
                   />
                 </td>
                 <td className="p-2 border-t">{avgPreview}</td>
+              <td className="p-2 border-t text-right">
+                <button
+                  type="button"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                  aria-label="Премахни ред"
+                  onClick={() => setLines(prev => prev.filter((_, idx) => idx !== i))}
+                >
+                  ✕
+                </button>
+              </td>
               </tr>
             );
           })}
@@ -165,9 +177,12 @@ export default function DeliveryTable({
             <td className="p-2 border-t"></td>
             <td className="p-2 border-t text-right">Общо:</td>
             <td className="p-2 border-t"></td>
+            <td className="p-2 border-t"></td>
             <td className="p-2 border-t">{totalQty}</td>
             <td className="p-2 border-t">{totalDelivery.toFixed(2)} лв.</td>
             <td className="p-2 border-t">{totalClient.toFixed(2)} лв.</td>
+            <td className="p-2 border-t"></td>
+            <td className="p-2 border-t"></td>
             <td className="p-2 border-t"></td>
           </tr>
         </tbody>

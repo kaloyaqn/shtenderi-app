@@ -52,6 +52,8 @@ export default function CheckIdPage() {
   const reactToPrintFn = useReactToPrint({ content: () => contentRef.current });
   const { data: session } = useSession();
   const isMobile = useIsMobile();
+  // Effective total of checked products by getEffectivePrice
+  const [effectiveTotal, setEffectiveTotal] = useState(0);
 
   useEffect(() => {
     if (checkId) {
@@ -81,6 +83,29 @@ export default function CheckIdPage() {
   const handlePrint = () => {
     reactToPrintFn();
   };
+
+  // Compute effective total for checked products using server route that calls getEffectivePrice
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const cps = check?.checkedProducts || [];
+        const missing = cps.filter((cp) => cp.quantity > 0);
+        const items = missing.map((cp) => ({ productId: cp.product.id, partnerId: check?.partnerId || null, quantity: cp.quantity }));
+        if (items.length === 0) { setEffectiveTotal(0); return; }
+        const res = await fetch('/api/pricing/effective', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
+        const data = await res.json();
+        let total = Number(data.total || 0);
+        // Fallback: if server computed 0 (e.g., missing prices), use current product.clientPrice
+        if (!total) {
+          total = missing.reduce((sum, cp) => sum + (Number(cp.quantity || 0) * Number(cp.product?.clientPrice || 0)), 0);
+        }
+        setEffectiveTotal(total);
+      } catch {
+        setEffectiveTotal(0);
+      }
+    };
+    run();
+  }, [check?.partnerId, JSON.stringify(check?.checkedProducts || [])]);
 
   // Resupply (load from storage) logic
   const handleResupply = async () => {
@@ -172,6 +197,10 @@ export default function CheckIdPage() {
               <div>
                 <span className="text-xs text-gray-500">Щанд</span>
                 <p className="text-base">{check.stand?.name || "N/A"}</p>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500">Цена</span>
+                <p className="text-base">{effectiveTotal.toFixed(2)} лв.                </p>
               </div>
               <div>
                 <span className="text-xs text-gray-500">Потребител</span>
@@ -297,6 +326,14 @@ export default function CheckIdPage() {
                   </p>
                 </div>
               </div>
+              <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Цена
+                  </label>
+                  <p className="text-lg font-semibold">
+                  {effectiveTotal.toFixed(2)} лв.
+                  </p>
+                </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">
                   Щанд

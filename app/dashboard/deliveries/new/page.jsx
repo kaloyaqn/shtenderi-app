@@ -186,17 +186,27 @@ export default function DeliveryNewPage() {
         return;
       }
 
-      // Client-side append rows; do NOT create a delivery here
-      const appended = products.map(p => ({
-        productId: null,
-        barcode: p.barcode || '',
-        name: p.name || '',
-        quantity: p.quantity,
-        unitPrice: p.unitPrice,
-        clientPrice: p.clientPrice,
-        pcd: p.pcd || '',
-        imported: true,
-        edited: false
+      // For each imported product, try to resolve existing product from DB to prefill clientPrice
+      const appended = await Promise.all(products.map(async (p) => {
+        let resolved = null;
+        const query = p.barcode?.trim() || p.pcd?.trim() || p.name?.trim() || '';
+        if (query) {
+          try {
+            const found = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`).then(r => r.json()).catch(() => []);
+            resolved = Array.isArray(found) && found.length > 0 ? found[0] : null;
+          } catch {}
+        }
+        return {
+          productId: resolved?.id || null,
+          barcode: p.barcode || resolved?.barcode || '',
+          name: p.name || resolved?.name || '',
+          quantity: p.quantity,
+          unitPrice: p.unitPrice,
+          clientPrice: typeof resolved?.clientPrice === 'number' ? resolved.clientPrice : (p.clientPrice ?? 0),
+          pcd: p.pcd || '',
+          imported: true,
+          edited: false
+        };
       }));
       setItems(prev => [...appended, ...prev]);
       toast.success(`Импортирани ${appended.length} реда. Моля, прегледайте и редактирайте при нужда.`);

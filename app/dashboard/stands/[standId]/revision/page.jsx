@@ -11,6 +11,7 @@ import Link from 'next/link';
 import BasicHeader from '@/components/BasicHeader';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getEffectivePrice } from '@/lib/pricing/get-effective-price';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 export default function StandRevisionPage({ params, searchParams }) {
@@ -33,16 +34,22 @@ export default function StandRevisionPage({ params, searchParams }) {
 
 
 
-  // Fetch products for this stand
+  // Fetch products for this stand with effective prices
   useEffect(() => {
     const fetchProducts = async () => {
       const res = await fetch(`/api/stands/${standId}/products`);
       const data = await res.json();
-      setProducts(data);
-      setRemaining(data.map(p => ({
+      // Compute effective price per product (no partner context here, fallback to clientPrice)
+      const enriched = await Promise.all((data||[]).map(async (p) => {
+        const price = p.product.clientPrice ?? 0;
+        return { ...p, effectivePrice: price };
+      }));
+      setProducts(enriched);
+      setRemaining(enriched.map(p => ({
         barcode: p.product.barcode,
         name: p.product.name,
         remaining: p.quantity,
+        price: p.effectivePrice,
       })));
       setChecked([]);
     };
@@ -83,12 +90,14 @@ export default function StandRevisionPage({ params, searchParams }) {
               barcode: cp.product.barcode,
               name: cp.product.name,
               remaining: cp.quantity,
+              price: cp.product.clientPrice ?? 0,
             }))
           );
           setProducts(
             check.checkedProducts.map(cp => ({
               product: cp.product,
               quantity: cp.quantity,
+              effectivePrice: cp.product.clientPrice ?? 0,
             }))
           );
         })
@@ -179,7 +188,7 @@ export default function StandRevisionPage({ params, searchParams }) {
         return [item, ...withoutItem];
       } else {
         // If new product, add to front
-        return [{ barcode, name: prod.product.name, checked: 1 }, ...prev];
+        return [{ barcode, name: prod.product.name, checked: 1, price: prod.product.clientPrice ?? 0 }, ...prev];
       }
     });
     // Play success sound
@@ -266,6 +275,7 @@ export default function StandRevisionPage({ params, searchParams }) {
         barcode: p.product.barcode,
         name: p.product.name,
         quantity: rem ? rem.remaining : p.quantity,
+        price: p.effectivePrice ?? (p.product.clientPrice ?? 0),
         isPending: false,
       };
     }),
@@ -480,9 +490,6 @@ export default function StandRevisionPage({ params, searchParams }) {
     }
   };
 
-  // After finish in check mode, show two buttons
-  // - View Check (link to check details page)
-  // - Continue to Sale (switches to sale mode, loads missing products from check)
   if (mode === 'check' && finished && checkId) {
     return (
       <>
@@ -492,7 +499,6 @@ export default function StandRevisionPage({ params, searchParams }) {
       hasBackButton
       subtitle={'Изберете дали искате да продължите към продажба, или да отидете към страницата с направената проверка'}
       />
-
 
             <div className="flex flex-col gap-2 mt-4">
         <Button variant={'outline'} asChild>
@@ -532,7 +538,6 @@ export default function StandRevisionPage({ params, searchParams }) {
     );
   }
 
-  // In sale mode, render split UI
   if (mode === 'sale') {
     if (saleLoading) return <LoadingScreen />;
     
@@ -581,6 +586,8 @@ export default function StandRevisionPage({ params, searchParams }) {
           >
             {finishing ? <span className="flex items-center gap-2"><span className="loader mr-2 w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>Обработка...</span> : <><CheckCircle />  Приключи продажба</>}
           </Button>
+          <div className="text-lg text-gray-700 p-2 py-3 w-full border-2 border-amber-500 bg-amber-50 text-center rounded-sm">Сума: <span className="font-semibold">{(saleChecked.reduce((s,p)=> s + (Number(p.checked||0) * Number(p.clientPrice ?? p.price ?? 0)), 0)).toFixed(2)} лв.</span></div>
+
         </BasicHeader>
         <form onSubmit={e => {
           e.preventDefault();
@@ -698,7 +705,9 @@ export default function StandRevisionPage({ params, searchParams }) {
           <Link href={`/dashboard/revisions/${revisionId}`}><Eye className="mr-2"/> Виж продажба</Link>
         </Button>
       )}
+        <div className="text-lg text-gray-700 p-2 w-full border-2 rounded-sm py-4 text-center bg-amber-50 border-amber-500">Сума: <span className="font-semibold text-lg">{(checked.reduce((s,p)=> s + (Number(p.checked||0) * Number(p.price ?? 0)), 0)).toFixed(2)} лв.</span></div>
       </BasicHeader>
+
 
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-3">
 <div className="lg:col-span-1">
@@ -734,10 +743,11 @@ export default function StandRevisionPage({ params, searchParams }) {
         {checked.map(p => (
           <div key={p.barcode} className='rounded-sm border p-2 border-green-200 bg-green-50 flex flex-col justify-between text-green-900'>
             <h3 className='text-sm leading-[110%]'>{p.name}</h3>
-            <div className='w-full flex justify-between items-end'>
+                <div className='w-full flex justify-between items-end'>
               <div className='text-xs inline-flex items-center mt-1 gap-2 px-[4px] py-1 bg-green-100 text-gray-600 rounded-[2px]'>
                 <Barcode size={12} />
                 <span className='leading-tight'>{p.barcode}</span>
+                    <span className='leading-tight'>{(p.price ?? 0).toFixed(2)} лв.</span>
               </div>
               <h6 className='font-bold text-base'>{p.checked}</h6>
             </div>
