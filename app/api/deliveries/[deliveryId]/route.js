@@ -31,33 +31,34 @@ export async function PUT(req, { params }) {
     if (supplierId) updates.supplierId = supplierId;
     if (storageId) updates.storageId = storageId;
 
+    // Sanitize incoming products to avoid prisma type errors
+    const sanitized = Array.isArray(products) ? products.map((p) => ({
+      deliveryId,
+      productId: p.productId || null,
+      quantity: Number(p.quantity || 0),
+      unitPrice: Number(p.unitPrice || 0),
+      clientPrice: p.clientPrice == null || p.clientPrice === '' ? 0 : Number(p.clientPrice),
+      barcode: p.barcode || null,
+      pcd: p.pcd || null,
+      name: p.name || null,
+    })) : [];
+
     const updated = await prisma.$transaction(async (tx) => {
       const base = await tx.delivery.update({ where: { id: deliveryId }, data: updates });
       if (Array.isArray(products)) {
         // Replace products set
         await tx.deliveryProduct.deleteMany({ where: { deliveryId } });
-        if (products.length > 0) {
-          await tx.deliveryProduct.createMany({
-            data: products.map(p => ({ 
-              deliveryId, 
-              productId: p.productId || null, 
-              quantity: p.quantity, 
-              unitPrice: p.unitPrice, 
-              clientPrice: p.clientPrice,
-              barcode: p.barcode || null,
-              pcd: p.pcd || null,
-              name: p.name || null,
-            })),
-          });
+        if (sanitized.length > 0) {
+          await tx.deliveryProduct.createMany({ data: sanitized });
         }
       }
-      return tx.delivery.findUnique({ where: { id: deliveryId }, include: { products: true } });
+      return tx.delivery.findUnique({ where: { id: deliveryId }, include: { products: { include: { product: true } }, supplier: true, storage: true, payments: true } });
     });
 
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[DELIVERIES_ID_PUT]', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
   }
 }
 

@@ -18,7 +18,6 @@ export default function DeliveryDetailPage() {
   const { deliveryId } = useParams();
   const router = useRouter();
   const [delivery, setDelivery] = useState(null);
-  const [editing, setEditing] = useState(false);
   const [lines, setLines] = useState([]);
   // Input row for adding on detail page
   const [code, setCode] = useState("");
@@ -198,10 +197,18 @@ export default function DeliveryDetailPage() {
 
   const save = async () => {
     try {
-      const res = await fetch(`/api/deliveries/${deliveryId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: lines }) });
+      const normalized = lines.map((ln) => ({
+        productId: ln.productId || null,
+        barcode: ln.barcode || null,
+        name: ln.name || null,
+        pcd: ln.pcd || null,
+        quantity: ln.quantity === '' ? 0 : Number(ln.quantity || 0),
+        unitPrice: ln.unitPrice === '' ? 0 : Number(ln.unitPrice || 0),
+        clientPrice: ln.clientPrice === '' ? 0 : Number(ln.clientPrice || 0),
+      }));
+      const res = await fetch(`/api/deliveries/${deliveryId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: normalized }) });
       if (!res.ok) throw new Error();
       toast.success('Записано');
-      setEditing(false);
       load();
     } catch {
       toast.error('Грешка при запис');
@@ -260,8 +267,7 @@ export default function DeliveryDetailPage() {
               </Dialog>
             </>
           )}
-         {isDraft && !editing && <Button onClick={() => setEditing(true)}>Редакция</Button>}
-         {isDraft && editing && <Button onClick={save}>Запази чернова</Button>}
+         {isDraft && <Button onClick={save}>Запази чернова</Button>}
          {isDraft && <Button onClick={accept}>Приеми</Button>}
          {delivery.status === 'ACCEPTED' && (
            <div className="flex items-center gap-3">
@@ -304,7 +310,14 @@ export default function DeliveryDetailPage() {
               return prod?.clientPrice ?? undefined;
             }}
             onPickProduct={(idx) => isDraft && openProductPicker({ onSelect: (p) => {
-              setLines(prev => prev.map((row, i) => i === idx ? { ...row, productId: p.id, barcode: p.barcode || '', name: p.name || '', edited: true } : row));
+              setLines(prev => prev.map((row, i) => {
+                if (i !== idx) return row;
+                const next = { ...row, productId: p.id, barcode: p.barcode || '', name: p.name || '', edited: true };
+                if (next.clientPrice === undefined || next.clientPrice === null || next.clientPrice === '' || Number(next.clientPrice) === 0) {
+                  next.clientPrice = typeof p.clientPrice === 'number' ? p.clientPrice : next.clientPrice;
+                }
+                return next;
+              }));
             }})}
             onPickNewProduct={(cfg) => openProductPicker(cfg)}
             storageStockByProduct={storageStockByProduct}
