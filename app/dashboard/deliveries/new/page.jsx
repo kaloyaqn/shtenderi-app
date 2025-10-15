@@ -278,6 +278,10 @@ export default function DeliveryNewPage() {
               const product = products.find(p => p.id === pid);
               return product?.clientPrice;
             }}
+            oldPcdByProductId={(pid) => {
+              const product = products.find(p => p.id === pid);
+              return product?.pcd ?? product?.pcode;
+            }}
             onPickProduct={(idx) => openProductPicker({ onSelect: (p) => {
               setItems(prev => prev.map((row, i) => i === idx ? { ...row, productId: p.id, barcode: p.barcode || '', name: p.name || '', edited: true } : row));
             }})}
