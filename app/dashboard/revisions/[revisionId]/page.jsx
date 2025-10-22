@@ -1108,7 +1108,7 @@ export default function RevisionDetailPage() {
         </div>
       </div>
       {/* Repeat Sale Dialog */}
-      <Dialog open={repeatDialogOpen} onOpenChange={setRepeatDialogOpen}>
+      {/* <Dialog open={repeatDialogOpen} onOpenChange={setRepeatDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Повтори продажба</DialogTitle>
@@ -1151,7 +1151,7 @@ export default function RevisionDetailPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {showPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
