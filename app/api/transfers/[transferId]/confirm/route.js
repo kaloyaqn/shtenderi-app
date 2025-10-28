@@ -71,32 +71,21 @@ export async function POST(req, { params }) {
             return t;
         });
 
-        // 4. Phase 2: outside tx — create revision with effective prices
-        // --- DEBUG: Check if transfer.destinationStorageId is correct and if partner is being fetched ---
-        let stand, partner;
+        // 4. Phase 2: outside tx — if destination is a stand, create revision; otherwise finish.
+        // Try to find a stand by the destination id; if not found, this was a storage-to-storage transfer.
+        let stand = null;
         try {
             stand = await prisma.stand.findUnique({
                 where: { id: transfer.destinationStorageId },
                 include: { store: { include: { partner: true } } }
             });
-            if (!stand) {
-                return NextResponse.json({ error: 'Destination stand not found.' }, { status: 404 });
-            }
-            if (!stand.store) {
-                return NextResponse.json({ error: 'Store not found for destination stand.' }, { status: 404 });
-            }
-            if (!stand.store.partner) {
-                return NextResponse.json({ error: 'Partner not found for store.' }, { status: 404 });
-            }
-            partner = stand.store.partner;
         } catch (err) {
             console.error('[TRANSFER_CONFIRM_PARTNER_FETCH_ERROR]', err);
-            return NextResponse.json({ error: 'Failed to fetch partner for destination stand.' }, { status: 500 });
+            // If stand lookup itself fails unexpectedly, still return success for storage-to-storage
         }
 
-        // --- END DEBUG ---
-
-        if (stand && partner) {
+        if (stand && stand.store?.partner) {
+            const partner = stand.store.partner;
             const revision = await prisma.revision.create({
                 data: {
                     standId: stand.id,

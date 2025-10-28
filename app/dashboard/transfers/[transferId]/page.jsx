@@ -52,12 +52,10 @@ export default function TransferDetailPage() {
     const handleConfirm = async () => {
         setConfirming(true);
         try {
-            // Determine if this is a storage-to-stand transfer
-            const isStandTransfer = transfer.destinationStorageId && 
-                !transfer.destinationStorageId.includes('storage') && 
-                transfer.destinationStorageId.length > 10; // Stand IDs are typically longer
-            
-            const endpoint = isStandTransfer 
+            // Use server-enriched destinationType to determine endpoint
+            const isStandTransfer = transfer.destinationType === 'STAND';
+
+            const endpoint = isStandTransfer
                 ? `/api/transfers/${transferId}/confirm-stand`
                 : `/api/transfers/${transferId}/confirm`;
             
