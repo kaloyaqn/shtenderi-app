@@ -29,8 +29,28 @@ export default function DeliveryTable({
     0
   );
 
+  // Detect duplicate product rows (same productId appears more than once)
+  const duplicateProductIds = React.useMemo(() => {
+    const counts = new Map();
+    for (const ln of lines) {
+      if (!ln?.productId) continue;
+      const key = String(ln.productId);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    const dups = new Set();
+    for (const [key, count] of counts.entries()) {
+      if (count > 1) dups.add(key);
+    }
+    return dups;
+  }, [lines]);
+
   return (
     <div className="overflow-x-auto">
+      {duplicateProductIds.size > 0 && (
+        <div className="mb-2 text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2">
+          Открити са дублирани продукти в таблицата. Редовете са маркирани. При запис, редовете ще бъдат обединени.
+        </div>
+      )}
       <table className="w-full table-auto border-collapse">
         <thead>
           <tr className="text-left text-xs uppercase text-gray-500">
@@ -232,10 +252,19 @@ export default function DeliveryTable({
                 key={i}
                 className={`text-sm ${
                   ln.imported && !ln.edited ? "bg-red-50" : ""
-                }`}
+                } ${key && duplicateProductIds.has(key) ? "bg-amber-50" : ""}`}
               >
                 <td className="px-2 border-t">{ln.barcode || "-"}</td>
-                <td className="px-2 border-t">{ln.name || "-"}</td>
+                <td className="px-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <span>{ln.name || "-"}</span>
+                    {key && duplicateProductIds.has(key) && (
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-900 border border-amber-200">
+                        дубликат
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-2 border-t">{oldPrice ? oldPrice : "-"}</td>
                 <td className="px-2 border-t">
                   {(() => {
