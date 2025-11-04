@@ -14,7 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,9 @@ import PaymentsTableMobile from "./PaymentsCardMobile";
 import PaymentsCardMobile from "./PaymentsCardMobile";
 import BasicHeader from "@/components/BasicHeader";
 import PrintStockButton from "@/components/buttons/print-stock-button";
+import { toast } from "sonner";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 export default function MobilePageRevisionId({
   revision,
@@ -43,7 +46,65 @@ export default function MobilePageRevisionId({
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllActions, setShowAllActions] = useState(false);
 
+  // Append-after-sale state (mobile)
+  const [appendOpen, setAppendOpen] = useState(false);
+  const [storages, setStorages] = useState([]);
+  const [appendSourceId, setAppendSourceId] = useState("");
+  const [appendBarcode, setAppendBarcode] = useState("");
+  const [appendItems, setAppendItems] = useState([]); // {productId, name, barcode, quantity}
+  const [appendBusy, setAppendBusy] = useState(false);
+  const [appendSourceStock, setAppendSourceStock] = useState({});
+
   const router = useRouter();
+
+  // Load storages when drawer opens
+  useEffect(() => {
+    if (!appendOpen) return;
+    fetch('/api/storages')
+      .then(res => res.json())
+      .then(setStorages)
+      .catch(() => setStorages([]));
+  }, [appendOpen]);
+
+  // Load source stock map when a source is selected
+  useEffect(() => {
+    if (!appendSourceId) { setAppendSourceStock({}); return; }
+    fetch(`/api/storages/${appendSourceId}/products`)
+      .then(r => r.json())
+      .then(list => {
+        const map = {}; (list||[]).forEach(sp => { map[String(sp.productId)] = sp.quantity || 0; });
+        setAppendSourceStock(map);
+      })
+      .catch(() => setAppendSourceStock({}));
+  }, [appendSourceId]);
+
+  const handleAppendScan = async (e) => {
+    if (e.key !== 'Enter') return;
+    const code = appendBarcode.trim();
+    if (!code) return;
+    try {
+      const found = await fetch(`/api/products/search?q=${encodeURIComponent(code)}`).then(r => r.json()).catch(() => []);
+      const prod = Array.isArray(found) && found.length > 0 ? found[0] : null;
+      if (!prod) { toast.error('Продуктът не е намерен'); return; }
+      setAppendItems(prev => [{ productId: prod.id, name: prod.name || '', barcode: prod.barcode || code, quantity: 1 }, ...prev]);
+      setAppendBarcode("");
+    } catch { toast.error('Грешка при търсене на продукт'); }
+  };
+
+  const submitAppend = async () => {
+    if (!appendSourceId) { toast.error('Моля, изберете източник (склад)'); return; }
+    if (appendItems.length === 0) { toast.error('Добавете продукти'); return; }
+    setAppendBusy(true);
+    try {
+      const items = appendItems.map(i => ({ productId: i.productId, quantity: Number(i.quantity || 0) })).filter(i => i.productId && i.quantity > 0);
+      const res = await fetch(`/api/revisions/${revisionId}/append-lines`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sourceStorageId: appendSourceId, items }) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.error || 'Грешка при добавяне');
+      toast.success('Добавени са продукти към продажбата');
+      setAppendOpen(false); setAppendItems([]); setAppendBarcode("");
+    } catch (e) { toast.error(e.message); }
+    finally { setAppendBusy(false); }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,6 +174,14 @@ export default function MobilePageRevisionId({
             {showAllActions ? (
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <Button
+                  variant="default"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setAppendOpen(true)}
+                >
+                  Добави продукти
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   className="h-7 text-xs bg-transparent"
@@ -165,6 +234,14 @@ export default function MobilePageRevisionId({
               </div>
             ) : (
               <div className="flex space-x-2 mb-3">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-7 text-xs flex-1"
+                  onClick={() => setAppendOpen(true)}
+                >
+                  Добави продукти
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -307,6 +384,79 @@ export default function MobilePageRevisionId({
           </div>
         </div>
       </div>
+      {/* Append drawer */}
+      <Drawer open={appendOpen} onOpenChange={setAppendOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Добави продукти към продажбата</DrawerTitle>
+            <DrawerDescription>
+              Сканирай баркодове и задай количества. Задължително избери източник (склад).
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 pb-3 space-y-3">
+            <div>
+              <span className="text-xs text-gray-600">Източник (склад)</span>
+              <Select value={appendSourceId} onValueChange={setAppendSourceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Избери склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {storages.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <span className="text-xs text-gray-600">Баркод</span>
+              <Input value={appendBarcode} onChange={e => setAppendBarcode(e.target.value)} onKeyDown={handleAppendScan} placeholder="Сканирай и натисни Enter" />
+            </div>
+            <div className="max-h-64 overflow-auto border rounded">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase text-gray-500">
+                    <th className="px-2 py-1">Име</th>
+                    <th className="px-2 py-1">Баркод</th>
+                    <th className="px-2 py-1">Количество</th>
+                    <th className="px-2 py-1">Налично</th>
+                    <th className="px-2 py-1"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {appendItems.map((it, i) => (
+                    <tr key={i}>
+                      <td className="px-2 py-1">{it.name || '-'}</td>
+                      <td className="px-2 py-1">{it.barcode || '-'}</td>
+                      <td className="px-2 py-1 w-24">
+                        <Input value={String(it.quantity ?? '')} onChange={e => {
+                          const v = e.target.value;
+                          const want = v === '' ? '' : Number(v);
+                          if (want === '') { setAppendItems(prev => prev.map((row, idx) => idx === i ? { ...row, quantity: '' } : row)); return; }
+                          const pid = String(it.productId || '');
+                          const available = appendSourceStock[pid] ?? 0;
+                          const capped = Math.max(0, Math.min(available, Number.isFinite(want) ? want : 0));
+                          if (Number(want) > available) { toast.error(`Наличност ${available}. Не може ${want}.`); }
+                          setAppendItems(prev => prev.map((row, idx) => idx === i ? { ...row, quantity: capped } : row));
+                        }} inputMode="numeric" />
+                      </td>
+                      <td className="px-2 py-1">{(() => { const pid = String(it.productId || ''); return appendSourceStock[pid] ?? 0; })()}</td>
+                      <td className="px-2 py-1 text-right">
+                        <button className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50" onClick={() => setAppendItems(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
+                      </td>
+                    </tr>) )}
+                  {appendItems.length === 0 && (
+                    <tr><td className="px-2 py-2 text-gray-500" colSpan={5}>Няма добавени продукти</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <DrawerFooter>
+            <Button variant="outline" onClick={() => setAppendOpen(false)} disabled={appendBusy}>Затвори</Button>
+            <Button onClick={submitAppend} disabled={appendBusy || appendItems.length === 0}>{appendBusy ? 'Добавяне...' : 'Добави'}</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
