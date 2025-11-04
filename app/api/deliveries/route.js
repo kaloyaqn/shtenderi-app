@@ -38,6 +38,60 @@ export async function POST(req) {
     const last = await prisma.delivery.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
     const nextNumber = (last?.number || 0) + 1;
 
+    // Merge duplicate productId rows to satisfy unique (deliveryId, productId)
+    const resolved = products.filter(p => !!p.productId);
+    const unresolved = products.filter(p => !p.productId);
+
+    const aggregatedByProduct = new Map();
+    for (const p of resolved) {
+      const key = p.productId;
+      const existing = aggregatedByProduct.get(key);
+      if (existing) {
+        aggregatedByProduct.set(key, {
+          ...existing,
+          // Sum quantities; keep latest prices/labels
+          quantity: existing.quantity + p.quantity,
+          unitPrice: p.unitPrice,
+          clientPrice: p.clientPrice,
+          barcode: p.barcode || existing.barcode || null,
+          pcd: p.pcd || existing.pcd || null,
+          name: p.name || existing.name || null,
+        });
+      } else {
+        aggregatedByProduct.set(key, {
+          productId: p.productId,
+          quantity: p.quantity,
+          unitPrice: p.unitPrice,
+          clientPrice: p.clientPrice,
+          barcode: p.barcode || null,
+          pcd: p.pcd || null,
+          name: p.name || null,
+        });
+      }
+    }
+
+    const createLines = [
+      // unresolved lines (no productId)
+      ...unresolved.map(p => ({
+        quantity: p.quantity,
+        unitPrice: p.unitPrice,
+        clientPrice: p.clientPrice,
+        barcode: p.barcode || null,
+        pcd: p.pcd || null,
+        name: p.name || null,
+      })),
+      // resolved, aggregated by productId
+      ...Array.from(aggregatedByProduct.values()).map(p => ({
+        quantity: p.quantity,
+        unitPrice: p.unitPrice,
+        clientPrice: p.clientPrice,
+        barcode: p.barcode,
+        pcd: p.pcd,
+        name: p.name,
+        product: { connect: { id: p.productId } },
+      })),
+    ];
+
     const delivery = await prisma.delivery.create({
       data: {
         number: nextNumber,
@@ -45,20 +99,7 @@ export async function POST(req) {
         storageId,
         userId: session.user.id,
         products: {
-          create: products.map(p => {
-            const base = {
-              quantity: p.quantity,
-              unitPrice: p.unitPrice,
-              clientPrice: p.clientPrice,
-              barcode: p.barcode || null,
-              pcd: p.pcd || null,
-              name: p.name || null,
-            };
-            if (p.productId) {
-              return { ...base, product: { connect: { id: p.productId } } };
-            }
-            return base; // unresolved row; productId left null
-          }),
+          create: createLines,
         },
       },
       include: { products: true, supplier: true },
