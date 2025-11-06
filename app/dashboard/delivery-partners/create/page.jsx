@@ -36,11 +36,11 @@ export default function DeliveryPartnerCreatePage() {
           <Input placeholder="Лице за контакт" value={form.contactPerson || ''} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} />
           <Input placeholder="Имейл" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           <Input placeholder="Телефон" value={form.phone || ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          <Input placeholder="Адрес" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <Input placeholder="Държава" value={form.country || ''} onChange={(e) => setForm({ ...form, country: e.target.value })} />
             <Input placeholder="Град" value={form.city || ''} onChange={(e) => setForm({ ...form, city: e.target.value })} />
           </div>
+          <Input placeholder="Адрес" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} />
           <Input placeholder="МОЛ" value={form.mol || ''} onChange={(e) => setForm({ ...form, mol: e.target.value })} />
           <Input placeholder="Банкова сметка BG" value={form.bankAccountBG || ''} onChange={(e) => setForm({ ...form, bankAccountBG: e.target.value })} />
           <Input placeholder="Банкова сметка EUR" value={form.bankAccountEUR || ''} onChange={(e) => setForm({ ...form, bankAccountEUR: e.target.value })} />
