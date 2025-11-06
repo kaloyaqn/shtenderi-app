@@ -9,8 +9,36 @@ export async function GET(req) {
       const product = await prisma.product.findUnique({ where: { barcode } });
       return Response.json(product ? [product] : []);
     }
+      // Fetch base products (with standProducts for existing UI)
     const products = await getAllProducts();
-    return Response.json(products);
+
+    // Aggregate quantities in storages and in DRAFT deliveries
+    const [storageAgg, draftAgg] = await Promise.all([
+      prisma.storageProduct.groupBy({
+        by: ['productId'],
+        _sum: { quantity: true },
+      }),
+      prisma.deliveryProduct.groupBy({
+        by: ['productId'],
+        where: { delivery: { status: 'DRAFT' } },
+        _sum: { quantity: true },
+      }),
+    ]);
+
+    const storageMap = new Map(storageAgg.map(r => [r.productId, Number(r._sum.quantity || 0)]));
+    const draftMap = new Map(draftAgg.map(r => [r.productId, Number(r._sum.quantity || 0)]));
+
+    const enriched = products.map(p => {
+      const storageQuantity = storageMap.get(p.id) || 0;
+      const draftDeliveriesQuantity = draftMap.get(p.id) || 0;
+      return {
+        ...p,
+        storageQuantity,
+        draftDeliveriesQuantity,
+      };
+    });
+
+    return Response.json(enriched);
   } catch (error) {
     console.error('[PRODUCTS_GET_ERROR]', error)
     return new Response(

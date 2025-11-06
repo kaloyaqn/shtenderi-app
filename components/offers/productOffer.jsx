@@ -6,6 +6,7 @@ import { useReactToPrint } from "react-to-print";
 import styled, { createGlobalStyle } from "styled-components";
 import { Button } from "../ui/button";
 import { PlusIcon, XIcon } from "lucide-react";
+import BarcodeVisualization from "../ui/BarcodeVisualization";
 
 // Global style for print font-size override
 const PrintFontSizeOverride = createGlobalStyle`
@@ -163,6 +164,7 @@ export default function ProductOffer({ checkedProducts, products }) {
               <Th>ЦД с ДДС</Th>
               <Th style={{ textAlign: "right" }}>ПЦД с ДДС</Th>
               <Th style={{ textAlign: "right" }}>Надценка %</Th>
+              <Th style={{ textAlign: "right" }}>Баркод</Th>
             </tr>
           </thead>
           <tbody>
@@ -186,6 +188,7 @@ export default function ProductOffer({ checkedProducts, products }) {
                   </Td>
                   <Td>{row.item.clientPrice} лв.</Td>
                   <Td className="text-right">{row.item.pcd} лв.</Td>
+
                   <Td className="text-right">
                     {row.item.clientPrice && row.item.pcd
                       ? `${(
@@ -194,6 +197,10 @@ export default function ProductOffer({ checkedProducts, products }) {
                           100
                         ).toFixed(1)}%`
                       : "—"}
+                  </Td>
+                  <Td className="text-right w-36">
+                  <BarcodeVisualization barcode={row.item.barcode} />
+
                   </Td>
                   {/* Centered plus button, appears on row hover */}
                   <td

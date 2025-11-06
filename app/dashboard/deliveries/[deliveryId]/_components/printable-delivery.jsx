@@ -3,12 +3,13 @@ import { useReactToPrint } from "react-to-print";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { PrinterIcon } from "lucide-react";
+import DeliveryPrintTable from "@/components/print/DeliveryPrintTable";
 
 export default function PrintableDelivery({ delivery }) {
-  const printRef = useRef();
+  const printRef = useRef(null);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     documentTitle: `Доставка-${delivery?.number || 'N/A'}`,
   });
 
@@ -30,8 +31,8 @@ export default function PrintableDelivery({ delivery }) {
         <div ref={printRef} className="p-8 bg-white text-black">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">ДОСТАВКА</h1>
-            <p className="text-lg">№ {delivery.number}</p>
+            <h1 className="text-2xl font-bold mb-2">Доставка № {delivery.number}</h1>
+            <p className="text-lg"></p>
           </div>
 
           {/* Delivery Info */}
@@ -50,43 +51,7 @@ export default function PrintableDelivery({ delivery }) {
 
           {/* Products Table */}
           <div className="mb-6">
-            <table className="w-full border-collapse border border-gray-400 text-sm">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-400 p-2 text-left">Код/EAN</th>
-                  <th className="border border-gray-400 p-2 text-left">Продукт</th>
-                  <th className="border border-gray-400 p-2 text-center">Бройки</th>
-                  <th className="border border-gray-400 p-2 text-right">Дост. цена</th>
-                  <th className="border border-gray-400 p-2 text-right">Клиентска цена</th>
-                  <th className="border border-gray-400 p-2 text-right">Стойност</th>
-                </tr>
-              </thead>
-              <tbody>
-                {delivery.products?.map((item, index) => (
-                  <tr key={index}>
-                    <td className="border border-gray-400 p-2">{item.product?.barcode || item.product?.pcode || '-'}</td>
-                    <td className="border border-gray-400 p-2">{item.product?.name || '-'}</td>
-                    <td className="border border-gray-400 p-2 text-center">{item.quantity}</td>
-                    <td className="border border-gray-400 p-2 text-right">{item.unitPrice.toFixed(2)} лв.</td>
-                    <td className="border border-gray-400 p-2 text-right">{item.clientPrice?.toFixed(2) || '0.00'} лв.</td>
-                    <td className="border border-gray-400 p-2 text-right">{(item.quantity * item.unitPrice).toFixed(2)} лв.</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-gray-100 font-bold">
-                  <td className="border border-gray-400 p-2" colSpan="2">ОБЩО:</td>
-                  <td className="border border-gray-400 p-2 text-center">
-                    {delivery.products?.reduce((sum, p) => sum + p.quantity, 0) || 0}
-                  </td>
-                  <td className="border border-gray-400 p-2"></td>
-                  <td className="border border-gray-400 p-2"></td>
-                  <td className="border border-gray-400 p-2 text-right">
-                    {totalDeliveryValue.toFixed(2)} лв.
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+            <DeliveryPrintTable delivery={delivery} />
           </div>
 
           {/* Summary */}
