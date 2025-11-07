@@ -238,16 +238,16 @@ export default function GeneralResupplyPage() {
     }
   };
 
-  // Sort products: selected first, then unselected
+  // Sort products: selected first, then unselected; both groups sorted by available quantity desc
   const selectedIds = selectedProducts.map((sp) => sp.productId);
-  const sortedProducts = [
-    ...productsInSource.filter((p) =>
-      selectedIds.includes(p.product?.id || p.id)
-    ),
-    ...productsInSource.filter(
-      (p) => !selectedIds.includes(p.product?.id || p.id)
-    ),
-  ];
+  const qtyOf = (p) => Number(p.quantity ?? p.maxQuantity ?? 0);
+  const selectedSorted = productsInSource
+    .filter((p) => selectedIds.includes(p.product?.id || p.id))
+    .sort((a, b) => qtyOf(b) - qtyOf(a));
+  const unselectedSorted = productsInSource
+    .filter((p) => !selectedIds.includes(p.product?.id || p.id))
+    .sort((a, b) => qtyOf(b) - qtyOf(a));
+  const sortedProducts = [...selectedSorted, ...unselectedSorted];
 
   // Step 1: Pick mode (always visible, no default)
   const handleModeChange = (val) => {

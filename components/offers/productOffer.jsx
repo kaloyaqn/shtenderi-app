@@ -6,6 +6,8 @@ import { useReactToPrint } from "react-to-print";
 import styled, { createGlobalStyle } from "styled-components";
 import { Button } from "../ui/button";
 import { PlusIcon, XIcon } from "lucide-react";
+import BarcodeVisualization from "../ui/BarcodeVisualization";
+import Image from "next/image";
 
 // Global style for print font-size override
 const PrintFontSizeOverride = createGlobalStyle`
@@ -158,17 +160,30 @@ export default function ProductOffer({ checkedProducts, products }) {
         <Table className="offer-table">
           <thead>
             <tr>
+              <Th>Снимка</Th>
               <Th>Продуктово наименование</Th>
               <Th className="w-30">Кол.</Th>
               <Th>ЦД с ДДС</Th>
               <Th style={{ textAlign: "right" }}>ПЦД с ДДС</Th>
               <Th style={{ textAlign: "right" }}>Надценка %</Th>
+              <Th style={{ textAlign: "right" }}>Баркод</Th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) =>
               row.type === "product" ? (
-                <Tr className="relative group" key={row.item.id}>
+                <Tr
+                  className={`relative group${
+                    !quantities[row.item.id] || Number(quantities[row.item.id]) === 0
+                      ? " bg-red-100!"
+                      : "bg-white"
+                  }`}
+                  key={row.item.id}
+                >
+                  <Td>
+                    
+                    <img src={row.item.image} alt={row.item.name} width={200} height={200} />
+                  </Td>
                   <Td>{row.item.name}</Td>
                   <Td>
                     <Input
@@ -186,6 +201,7 @@ export default function ProductOffer({ checkedProducts, products }) {
                   </Td>
                   <Td>{row.item.clientPrice} лв.</Td>
                   <Td className="text-right">{row.item.pcd} лв.</Td>
+
                   <Td className="text-right">
                     {row.item.clientPrice && row.item.pcd
                       ? `${(
@@ -194,6 +210,10 @@ export default function ProductOffer({ checkedProducts, products }) {
                           100
                         ).toFixed(1)}%`
                       : "—"}
+                  </Td>
+                  <Td className="text-right w-36 px-4">
+                  <BarcodeVisualization className="bg-transparent px-4" barcode={row.item.barcode} />
+
                   </Td>
                   {/* Centered plus button, appears on row hover */}
                   <td
@@ -318,11 +338,12 @@ export default function ProductOffer({ checkedProducts, products }) {
           <div>
             <p className="text-gray-800 text-sm text-right">
               <span className="font-medium">
-                Мирослава Цикалова: +359 877 974 407
+              Пламена Ташева : +359 877 974 439
+
               </span>
               <br />
               <span className="text-xs font-bold">
-                /Мениджър ключови клиенти /
+                /Търговски Представител /
               </span>
             </p>
           </div>

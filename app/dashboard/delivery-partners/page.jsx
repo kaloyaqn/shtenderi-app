@@ -32,7 +32,7 @@ export default function DeliveryPartnersPage() {
   return (
     <div className="container mx-auto">
       <BasicHeader title="Доставчици" subtitle="Управление на доставчици за доставки">
-      <Link href="/dashboard/delivery-partners/new"><Button>Нов доставчик</Button></Link>
+      <Link href="/dashboard/delivery-partners/create"><Button>Нов доставчик</Button></Link>
 
       </BasicHeader>
       <DataTable columns={columns} data={rows} searchKey="name" />

@@ -49,6 +49,7 @@ import { Input } from "@/components/ui/input";
 import ProductOffer from "@/components/offers/productOffer";
 import { IconInvoice } from "@tabler/icons-react";
 import CreateProductPage from "./create/page";
+import BarcodeVisualization from "@/components/ui/BarcodeVisualization";
 
 function EditableCell({ value, onSave, type = "text", min, max, fieldName }) {
   const [editing, setEditing] = useState(false);
@@ -261,24 +262,33 @@ const UnassignedQuantityTooltip = ({ product, unassignedQuantity }) => {
             {unassignedQuantity}
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="min-w-[220px]">
-          <div className="font-semibold mb-1">Складови наличности</div>
+        <TooltipContent side="top" className="min-w-[260px]">
+          <div className="font-semibold mb-1">Разбивка</div>
           {loading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="animate-spin w-4 h-4" /> Зареждане...
             </div>
-          ) : storages && storages.length > 0 ? (
-            <ul className="text-sm">
-              {storages.map((s) => (
-                <li key={s.storage.id} className="flex justify-between">
-                  <span>{s.storage.name}</span>
-                  <span className="font-mono">{s.quantity}</span>
-                </li>
-              ))}
-            </ul>
           ) : (
-            <div className="text-sm text-muted-foreground">
-              Няма наличности в складове
+            <div className="space-y-2">
+              <div>
+                <div className="text-xs text-gray-500 mb-1">Складове</div>
+                {storages && storages.length > 0 ? (
+                  <ul className="text-sm">
+                    {storages.map((s) => (
+                      <li key={s.storage.id} className="flex justify-between">
+                        <span>{s.storage.name}</span>
+                        <span className="font-mono">{s.quantity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-sm text-muted-foreground">Няма наличности</div>
+                )}
+              </div>
+              <div className="flex items-center justify-between border-t pt-1">
+                <span>Неприети доставки (общо)</span>
+                <span className="font-mono">{Number(product.draftDeliveriesQuantity || 0)}</span>
+              </div>
             </div>
           )}
         </TooltipContent>
@@ -662,7 +672,11 @@ export default function ProductsPage() {
      id: "barcode",
       accessorKey: "barcode",
       header: "Баркод",
-      cell: ({ row }) => row.original.barcode,
+      cell: ({ row }) => (
+        <>
+        {row.original.barcode}
+        </>
+      )
     },
     {
       id: "pcode",
@@ -789,17 +803,11 @@ export default function ProductsPage() {
       cell: ({ row }) => {
         if (!row) return null;
         const product = row.original;
-        if (!product || !Array.isArray(product.standProducts)) return null;
-        const assignedQuantity = product.standProducts.reduce(
-          (sum, sp) => sum + sp.quantity,
-          0
-        );
-        const unassignedQuantity = product.quantity - assignedQuantity;
+        const storageQty = Number(product.storageQuantity || 0);
+        const draftQty = Number(product.draftDeliveriesQuantity || 0);
+        const sum = storageQty + draftQty;
         return (
-          <UnassignedQuantityTooltip
-            product={product}
-            unassignedQuantity={unassignedQuantity}
-          />
+          <UnassignedQuantityTooltip product={product} unassignedQuantity={sum} />
         );
       },
     },
