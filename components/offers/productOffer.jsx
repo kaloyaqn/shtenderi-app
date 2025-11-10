@@ -182,7 +182,7 @@ export default function ProductOffer({ checkedProducts, products }) {
                 >
                   <Td>
                     
-                    <img src={row.item.image} alt={row.item.name} width={200} height={200} />
+                    <img src={row.item.image} alt={row.item.name} width={120} height={120} />
                   </Td>
                   <Td>{row.item.name}</Td>
                   <Td>
