@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Barcode, CheckCircle, XCircle } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 
 export default function StorageTransferPage({ params }) {
   const { storageId } = params;

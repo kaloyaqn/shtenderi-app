@@ -1,11 +1,10 @@
 import { LoginForm } from "@/components/login-form"
-import { authOptions } from "@/lib/auth";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "@/lib/get-session-better-auth";
 import { redirect } from 'next/navigation'
 
 
 export default async function Page() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
 
   if (session) {
     redirect('/dashboard') // ✅ Safe and native redirect

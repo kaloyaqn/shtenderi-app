@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth'
 // GET: Fetch a single partner, optionally with stores
 export async function GET(req, { params }) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 
@@ -28,7 +28,7 @@ export async function GET(req, { params }) {
 // PUT: Update a partner
 export async function PUT(req, { params }) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 
@@ -63,7 +63,7 @@ export async function PUT(req, { params }) {
 // DELETE: Delete a partner
 export async function DELETE(req, { params }) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 
 // Import parsed XML lines into a Delivery (draft). Expects JSON payload, the client parses XML.
 // Body: { items: [{ barcode?: string, pcode?: string, quantity: number, unitPrice: number }] }
 export async function POST(req, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { deliveryId } = params;

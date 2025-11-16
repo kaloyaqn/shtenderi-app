@@ -43,7 +43,7 @@ import EditQuantityDialog from "./_components/edit-quantity-dialog";
 import { XMLParser } from "fast-xml-parser";
 import { toast } from "sonner";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 import LoadingScreen from "@/components/LoadingScreen";
 import {
   IconTransfer,

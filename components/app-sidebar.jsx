@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useSession } from "next-auth/react"
 import {
   IconFileWord,
   IconInvoice,
@@ -116,9 +115,9 @@ const navSecondary = [
 ];
 
 export function AppSidebar({
+  session,
   ...props
 }) {
-  const { data: session } = useSession()
   const userRole = session?.user?.role;
   const hasMounted = useHasMounted();
 

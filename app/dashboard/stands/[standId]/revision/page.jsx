@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, Barcode, Package, PlusIcon, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/session-context';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import BasicHeader from '@/components/BasicHeader';

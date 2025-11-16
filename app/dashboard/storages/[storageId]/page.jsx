@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/session-context';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Plus, Pencil, Trash2, Upload, Barcode, ImportIcon, LucideUpload, Warehouse, BoxIcon, Download, Package } from 'lucide-react';

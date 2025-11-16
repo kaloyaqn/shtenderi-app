@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { IconBox, IconInvoice } from "@tabler/icons-react";
 import LoadingScreen from "@/components/LoadingScreen";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 
 import BasicHeader from "@/components/BasicHeader";
 

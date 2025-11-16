@@ -6,7 +6,7 @@ import { ResponsiveDialog, ResponsiveDialogContent, DialogHeader, DialogTitle, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/session-context';
 import { Barcode } from 'lucide-react';
 
 export default function ResupplyDialog({ open, onOpenChange, standId, storageId: initialStorageId, onResupplySuccess }) {

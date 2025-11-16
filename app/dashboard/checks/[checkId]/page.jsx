@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import RevisionProductsTable from "@/app/dashboard/revisions/[revisionId]/_components/RevisionProductsTable";
 import { DataTable } from "@/components/ui/data-table";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 import MobileProductCard from "@/components/mobile/revisions/revisionId/MobileProductCard";
 import PrintStockButton from "@/components/buttons/print-stock-button";

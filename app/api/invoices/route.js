@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 
 // POST: Create immutable invoice snapshot for a revision
 export async function POST(req) {
@@ -33,7 +33,7 @@ export async function POST(req) {
     }
 
     // Get session for preparedBy
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     const preparedBy = session?.user?.name || session?.user?.email || 'Admin';
 
     // Prepare products snapshot
@@ -90,7 +90,7 @@ export async function POST(req) {
 // GET: Fetch all invoices or a specific invoice
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }

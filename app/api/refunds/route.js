@@ -1,12 +1,12 @@
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 import { NextResponse } from 'next/server';
 
 // POST: Create a refund
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -81,7 +81,7 @@ export async function POST(req) {
 // GET: List all refunds, include stand/storage name
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session) {
       return new NextResponse('Unauthorized', { status: 401 });
     }

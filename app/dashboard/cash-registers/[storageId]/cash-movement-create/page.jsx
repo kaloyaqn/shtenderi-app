@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/session-context';
 import BasicHeader from '@/components/BasicHeader';
 import Link from 'next/link';
 

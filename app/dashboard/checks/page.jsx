@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import TableLink from "@/components/ui/table-link";
 import { Eye } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 

@@ -1,14 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 
 // POST: Create a credit note as a mirror of an existing invoice
 export async function POST(req) {
   try {
     const body = await req.json();
     const { invoiceId, refundId, products } = body;
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     const preparedBy = session?.user?.name || session?.user?.email || 'System';
 
     // --- NEW LOGIC: Create credit note from refund ---

@@ -1,10 +1,10 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getServerSession } from "@/lib/get-session-better-auth";
+
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -229,7 +229,7 @@ export async function GET(request, { params }) {
 // POST endpoint for settling payments
 export async function POST(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 
 // Delete user
 export async function DELETE(req, { params }) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session || session.user.role !== 'ADMIN') {
     return new NextResponse('Forbidden', { status: 403 });
   }
@@ -43,7 +43,7 @@ export async function PATCH(req, { params }) {
 
 // GET a specific user by ID
 export async function GET(req, { params }) {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session || session.user.role !== 'ADMIN') {
         return new NextResponse('Forbidden', { status: 403 });
     }
@@ -80,7 +80,7 @@ export async function GET(req, { params }) {
 
 // PUT update a user's details
 export async function PUT(req, { params }) {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session || session.user.role !== 'ADMIN') {
         return new NextResponse('Forbidden', { status: 403 });
     }

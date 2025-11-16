@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Package, Store, Search, Plus, Minus, Trash2 } from "lucide-react";
 import useSWR from "swr";
 import BasicHeader from "@/components/BasicHeader";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 

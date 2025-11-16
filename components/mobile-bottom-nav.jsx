@@ -23,7 +23,7 @@ import {
   Receipt,
   Archive
 } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "@/lib/session-context";
 import { useState } from "react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { IconTransfer } from "@tabler/icons-react";
