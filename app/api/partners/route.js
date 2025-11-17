@@ -23,7 +23,27 @@ export async function POST(req) {
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 });
 
     const body = await req.json();
-    const partner = await partnerService.createPartner(body);
+    const normalizedBody = { ...body };
+
+    if (normalizedBody.hasOwnProperty('priceGroupId')) {
+      if (normalizedBody.priceGroupId === 'null' || normalizedBody.priceGroupId === '') {
+        normalizedBody.priceGroupId = null;
+      }
+    }
+
+    if (normalizedBody.hasOwnProperty('percentageDiscount')) {
+      const pd = normalizedBody.percentageDiscount;
+      normalizedBody.percentageDiscount =
+        pd === '' || pd === null || typeof pd === 'undefined'
+          ? null
+          : Number(pd);
+    }
+
+    if (normalizedBody.hasOwnProperty('email') && normalizedBody.email === '') {
+      normalizedBody.email = null;
+    }
+
+    const partner = await partnerService.createPartner(normalizedBody);
     return Response.json(partner, { status: 201 });
   } catch (error) {
     console.error('[PARTNERS_POST_ERROR]', error);

@@ -46,11 +46,23 @@ export default function BaseForm({
     }
 
     if (endpoint) {
+      const payload = { ...data };
+
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === '') {
+          payload[key] = null;
+        }
+      });
+
+      if (payload.percentageDiscount !== undefined && payload.percentageDiscount !== null) {
+        payload.percentageDiscount = Number(payload.percentageDiscount);
+      }
+
       const result = await api.execute(
         () => fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
         }),
         {
           successMessage: successMessage || "Saved successfully",

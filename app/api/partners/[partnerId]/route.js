@@ -34,17 +34,26 @@ export async function PUT(req, { params }) {
     const { partnerId } = await params
     const body = await req.json()
 
-    // If priceGroupId is explicitly null, ensure it is set as null in the update
+    // Normalize priceGroupId when explicitly null/empty
     if (body.hasOwnProperty("priceGroupId")) {
       if (body.priceGroupId === "null" || body.priceGroupId === "") {
         body.priceGroupId = null;
       }
     }
 
-  // Normalize optional email: treat empty string as null and avoid sending undefined
-  if (body.hasOwnProperty('email')) {
-    if (body.email === '') body.email = null;
-  }
+    // Normalize percentageDiscount to a number (or null)
+    if (body.hasOwnProperty('percentageDiscount')) {
+      const pd = body.percentageDiscount;
+      body.percentageDiscount =
+        pd === '' || pd === null || typeof pd === 'undefined'
+          ? null
+          : Number(pd);
+    }
+
+    // Normalize optional email: treat empty string as null
+    if (body.hasOwnProperty('email') && body.email === '') {
+      body.email = null;
+    }
 
     const partner = await updatePartner(partnerId, body)
     return Response.json(partner)
