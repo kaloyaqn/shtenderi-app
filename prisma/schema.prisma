@@ -18,6 +18,8 @@ model Stand {
   columns   Int?
   createdAt DateTime @default(now())
   email     String?
+  isActive  Boolean  @default(true)
+  deactivatedAt DateTime?
 
   standProducts StandProduct[]
   checks        Check[]

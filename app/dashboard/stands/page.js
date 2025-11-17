@@ -138,7 +138,21 @@ export default function Stands() {
         )
       }
     },
-    // We might want to show the store name here later
+    {
+      accessorKey: "createdAt",
+      header: "Създаден",
+      cell: ({ row }) => {
+        const date = row.original.createdAt;
+        if (!date) return "-";
+        // Format date as dd.MM.yyyy
+        const d = new Date(date);
+        return (
+          <span>
+            {d.toLocaleDateString("bg-BG", { year: 'numeric', month: '2-digit', day: '2-digit' })}
+          </span>
+        );
+      }
+    },
     {
       id: "actions",
       cell: ({ row }) => {
