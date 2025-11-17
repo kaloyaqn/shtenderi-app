@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req, { params }) {
-  const { standId } = params;
+  const { standId } = await params;
   if (!standId) {
     return NextResponse.json({ error: 'Missing standId' }, { status: 400 });
   }

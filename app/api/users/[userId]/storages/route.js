@@ -8,7 +8,7 @@ export async function POST(req, { params }) {
     return new Response('Forbidden', { status: 403 });
   }
 
-  const { userId } = params;
+  const { userId } = await params;
   const { storageIds } = await req.json();
 
   if (!Array.isArray(storageIds)) {

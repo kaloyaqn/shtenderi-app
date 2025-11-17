@@ -7,7 +7,7 @@ export async function POST(req, { params }) {
   if (!session || session.user.role !== 'ADMIN') {
     return new Response('Forbidden', { status: 403 });
   }
-  const { userId } = params;
+  const { userId } = await params;
   const { standIds } = await req.json();
   if (!Array.isArray(standIds)) {
     return new Response('Invalid standIds', { status: 400 });

@@ -10,7 +10,7 @@ export async function POST(req, { params }) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { standId } = params;
+  const { standId } = await params;
   try {
     const { destinationStorageId, products } = await req.json();
 

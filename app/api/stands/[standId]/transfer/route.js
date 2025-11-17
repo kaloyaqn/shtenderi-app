@@ -8,7 +8,7 @@ export async function POST(req, { params }) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const { standId } = params;
+  const { standId } = await params;
   const { storageId, products } = await req.json();
   if (!storageId || !standId || !products || products.length === 0) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
