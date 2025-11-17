@@ -203,7 +203,7 @@ export default function EditPartnerPage({ params }) {
                     min="0"
                     max="100"
                     defaultValue={percentageDiscount ?? 0}
-                    onChange={(e) => setPercentageDiscount(e.target.value)}
+                    onChange={(e) => setPercentageDiscount(parseFloat(e.target.value) || 0)}
                     placeholder="0"
                   />
                 </div>
