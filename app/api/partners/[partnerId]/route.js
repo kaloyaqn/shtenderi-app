@@ -1,6 +1,5 @@
 import { getPartnerById, updatePartner, deletePartner } from '@/lib/partners/partner'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getServerSession } from '@/lib/get-session-better-auth'
 
 // GET: Fetch a single partner, optionally with stores
 export async function GET(req, { params }) {
@@ -9,7 +8,7 @@ export async function GET(req, { params }) {
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 
-    const { partnerId } = params
+    const { partnerId } = await params
     const url = new URL(req.url, 'http://localhost')
     const includeStores = url.searchParams.get('includeStores') === '1'
     const partner = await getPartnerById(partnerId, includeStores)
@@ -32,7 +31,7 @@ export async function PUT(req, { params }) {
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 
-    const { partnerId } = params
+    const { partnerId } = await params
     const body = await req.json()
 
     // If priceGroupId is explicitly null, ensure it is set as null in the update
@@ -67,7 +66,7 @@ export async function DELETE(req, { params }) {
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 
-    const { partnerId } = params
+    const { partnerId } = await params
     await deletePartner(partnerId)
     return new Response(null, { status: 204 })
   } catch (error) {

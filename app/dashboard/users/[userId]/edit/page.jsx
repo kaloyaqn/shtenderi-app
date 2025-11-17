@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session-context';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export default function UserEditPage({ params }) {
-  const { userId } = params;
+  const { userId } = use(params);
   const router = useRouter();
   const { data: session } = useSession();
 
