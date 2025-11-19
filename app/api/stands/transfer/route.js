@@ -5,7 +5,7 @@ import { getServerSession } from '@/lib/get-session-better-auth';
 
 export async function POST(req) {
     const session = await getServerSession();
-    if (!session || session.user.role !== 'ADMIN') {
+    if (!session) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
