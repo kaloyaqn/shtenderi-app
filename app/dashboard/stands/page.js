@@ -96,9 +96,10 @@ export default function Stands() {
       header: "Име на щендер",
       cell: ({ row }) => {
         const stand = row.original;
+
         return (
           <TableLink href={`/dashboard/stands/${stand.id}`}>
-            {stand.name}
+          {row.original.region || ""} - {stand.name}
           </TableLink>
         );
       },
@@ -238,7 +239,7 @@ export default function Stands() {
                     </div>
                     <div className="min-w-0">
                       <h3 id="stand-name" className="font-medium text-gray-900 text-sm whitespace-pre-line break-words">
-                        {stand.name}
+                      {stand.region || ""} -  {stand.name}
                       </h3>
                     </div>
                   </div>
@@ -274,7 +275,7 @@ export default function Stands() {
                     <span
                     id="stand-store"
                     className="text-gray-900 font-medium">
-                      {stand.store?.name || "-"}
+                        {stand.store?.name || "-"}
                     </span>
                   </div>
 
@@ -287,7 +288,7 @@ export default function Stands() {
                     <div className="flex items-center space-x-2">
                       <span
                       id="stand-products"
-                      
+
                       className="text-gray-900 font-bold">
                         {stand._count?.standProducts ?? "-"}
                       </span>
