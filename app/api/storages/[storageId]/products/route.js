@@ -8,6 +8,9 @@ export async function GET(req, { params }) {
     const products = await prisma.storageProduct.findMany({
       where: {
         storageId: storageId,
+        product: {
+          isActive: true,
+        },
       },
       include: {
         product: true, // Include the full product details

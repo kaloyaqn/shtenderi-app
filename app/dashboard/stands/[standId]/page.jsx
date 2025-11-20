@@ -56,6 +56,8 @@ import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import PageHelpTour from "@/components/help/PageHelpTour";
 import BasicHeader from "@/components/BasicHeader";
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerTitle } from "@/components/ui/drawer";
+import { Label } from "@/components/ui/label";
 
 export default function StandDetailPage({ params }) {
   const router = useRouter();
@@ -67,6 +69,10 @@ export default function StandDetailPage({ params }) {
   const [error, setError] = useState(null);
   const [importError, setImportError] = useState(null);
   const fileInputRef = useRef();
+
+  // mobile
+  const [drawerIsOpen, setDrawerIsOpen] = useState(false);
+
 
   // Dialog states
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -80,7 +86,7 @@ export default function StandDetailPage({ params }) {
     fileName: '',
     prices: {},
   });
-  
+
   const handlePriceChange = (barcode, value) => {
     const newPrice = parseFloat(value) || 0;
     console.log(`[FRONTEND] Price change for ${barcode}: ${value} -> ${newPrice}`);
@@ -307,7 +313,7 @@ export default function StandDetailPage({ params }) {
           const matchingImportProduct = productsToImport.find(p => p.barcode === product.barcode);
           initialPrices[product.barcode] = matchingImportProduct?.clientPrice || 0;
         });
-        
+
         setInactiveProductsPrompt({
           open: true,
           products: inactiveProducts,
@@ -368,29 +374,29 @@ export default function StandDetailPage({ params }) {
         if (!fileName) {
           throw new Error('Filename is required for import');
         }
-        
+
         // If we need to update prices first
         if (updatePrices && Object.keys(updatePrices).length > 0) {
           console.log('[FRONTEND] Updating product prices:', updatePrices);
           console.log('[FRONTEND] Prices object keys:', Object.keys(updatePrices));
           console.log('[FRONTEND] Prices values:', Object.values(updatePrices));
-          
+
           const updateResponse = await fetch('/api/products/update-prices', {
             method: 'PUT',
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prices: updatePrices }),
           });
-          
+
           if (!updateResponse.ok) {
             const error = await updateResponse.json();
             console.log('[FRONTEND] Price update failed:', error);
             throw new Error(error.error || 'Failed to update product prices');
           }
-          
+
           const updateResult = await updateResponse.json();
           console.log('[FRONTEND] Price update result:', updateResult);
         }
-        
+
         const response = await fetch(`/api/stands/${standId}/import-xml`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -414,7 +420,7 @@ export default function StandDetailPage({ params }) {
         error: (err) => err.message || "Възникна грешка при импортиране",
       }
     );
-    
+
     // Close the confirmation dialog
     setFileConfirmationPrompt({
       open: false,
@@ -429,6 +435,9 @@ export default function StandDetailPage({ params }) {
   if (!stand) return <div>Щандът не е намерен.</div>;
 
   if (isMobile) {
+
+
+
     const filteredProducts = productsOnStand.filter((product) => {
       const q = search.toLowerCase();
       return (
@@ -443,6 +452,39 @@ export default function StandDetailPage({ params }) {
     const outOfStockCount = filteredProducts.filter(
       (p) => p.quantity === 0
     ).length;
+
+
+    const editStand = async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = {
+        region: formData.get("region")?.trim()
+      }
+
+      try {
+        const res = await fetch(`/api/stands/${standId}/region`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        })
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          throw new Error(result.error || "Грешка при редактиране на щанд");
+        }
+
+        toast.success("Успешно обновихте щендера");
+        setDrawerIsOpen(false);
+        fetchData();
+
+      } catch (err) {
+        throw err
+      }
+    }
+
     return (
 
     <>
@@ -451,7 +493,7 @@ export default function StandDetailPage({ params }) {
           <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Header */}
 
-        <BasicHeader 
+        <BasicHeader
         title={`${stand.name}`}
         subtitle={"Управление на щендер и зареждане на стока"}
         hasBackButton
@@ -510,6 +552,15 @@ export default function StandDetailPage({ params }) {
               Трансфер
             </Button>
 
+
+            <Button
+              variant="outline"
+              className="w-full h-12 bg-transparent"
+              onClick={() => setDrawerIsOpen(true)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Промени регион
+            </Button>
             <Button
               className="w-full h-12 bg-green-600 hover:bg-green-700 text-white"
               onClick={() =>
@@ -520,6 +571,32 @@ export default function StandDetailPage({ params }) {
               Проверка на щанд
             </Button>
           </div>
+
+          <Drawer open={drawerIsOpen} onOpenChange={setDrawerIsOpen}>
+          <DrawerContent className="p-4">
+            <DrawerTitle className="text-center">
+              Промени регион на щендер
+            </DrawerTitle>
+            <DrawerDescription className="text-center">
+              Въведи нужните данни.
+            </DrawerDescription>
+
+            <form onSubmit={editStand}>
+              <div className="grid gap-2 mt-4">
+                <Label htmlFor="region">Регион на щанда</Label>
+                <Input
+                  id="region"
+                  name="region"
+                  required
+                  defaultValue={stand.region}
+                  placeholder="Въведете регион на щанда"
+                />
+              </div>
+
+              <Button className="mt-4 w-full">Запази</Button></form>
+
+          </DrawerContent>
+          </Drawer>
 
           {/* Search */}
           <div className="relative">

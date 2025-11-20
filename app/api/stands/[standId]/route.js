@@ -8,6 +8,7 @@ export async function GET(req, { params }) {
 
         const { standId } = await params;
         const stand = await getStandById(standId);
+        console.log(stand, "STAND")
         return Response.json(stand);
     } catch (err) {
         console.error('[STAND_GET_ERROR]', err);

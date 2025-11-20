@@ -6,9 +6,9 @@ import { getEffectivePrice } from '@/lib/pricing/get-effective-price';
 
 export async function POST(req, { params }) {
     const session = await getServerSession();
-    if (!session || session.user.role !== 'ADMIN') {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // if (!session || session.user.role !== 'ADMIN') {
+    //     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // }
 
     const { transferId } = await params;
 

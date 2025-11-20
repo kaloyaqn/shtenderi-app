@@ -18,7 +18,10 @@ model Stand {
   columns   Int?
   createdAt DateTime @default(now())
   email     String?
+  region    String?
   isActive  Boolean  @default(true)
+
+  
   deactivatedAt DateTime?
 
   standProducts StandProduct[]
@@ -27,6 +30,7 @@ model Stand {
 
   userStands UserStand[]
   imports    Import[]
+  // region     Region[]
 }
 
 model Product {
@@ -654,4 +658,12 @@ model Verification {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@map("verification")
+}
+
+
+model Region {
+  id     String  @id @default(uuid())
+  name   String
+
+  // stands Stand[]
 }

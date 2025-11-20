@@ -36,7 +36,7 @@ export default function CreateStandPage() {
   const handlePrint = useReactToPrint({
       content: () => contentRef.current,
   });
-  
+
   const [email, setEmail] = useState("");
 
   useEffect(() => {
@@ -66,6 +66,7 @@ export default function CreateStandPage() {
     const formData = new FormData(e.target)
     const data = {
       name: formData.get('name')?.trim(),
+      region: formData.get("region")?.trim(),
       storeId: selectedStore,
       email: email.trim(),
     }
@@ -84,11 +85,11 @@ export default function CreateStandPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Грешка при създаване на щанд')
       }
-      
+
       toast.success('Щендерът е създаден успешно!');
       // We no longer show the QR code on this page. Redirecting.
       // setCreatedStand(result);
-      
+
       setTimeout(() => {
         router.push('/dashboard/stands');
         router.refresh(); // To ensure the list is updated
@@ -116,6 +117,16 @@ export default function CreateStandPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
+
+                <div className="grid gap-2">
+                  <Label htmlFor="region">Регион на щанда</Label>
+                  <Input
+                    id="region"
+                    name="region"
+                    placeholder="Въведете регион на щанда"
+                  />
+                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="name">Име на щанда *</Label>
                   <Input
@@ -125,10 +136,11 @@ export default function CreateStandPage() {
                     placeholder="Въведете име на щанда"
                   />
                 </div>
-                <div className="grid gap-2">
+
+                <div className="grid gap-2 w-full">
                   <Label htmlFor="store">Магазин *</Label>
                   <Select onValueChange={setSelectedStore} value={selectedStore}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Изберете магазин" />
                     </SelectTrigger>
                     <SelectContent>
@@ -170,4 +182,4 @@ export default function CreateStandPage() {
       </div>
     </div>
   )
-} 
+}
