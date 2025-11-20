@@ -99,7 +99,7 @@ export default function Stands() {
 
         return (
           <TableLink href={`/dashboard/stands/${stand.id}`}>
-          {row.original.region || ""} - {stand.name}
+          {row.original.region + " - " || ""} {stand.name}
           </TableLink>
         );
       },
@@ -239,7 +239,7 @@ export default function Stands() {
                     </div>
                     <div className="min-w-0">
                       <h3 id="stand-name" className="font-medium text-gray-900 text-sm whitespace-pre-line break-words">
-                      {stand.region || ""} -  {stand.name}
+                      {stand.region + " - " || ""}   {stand.name}
                       </h3>
                     </div>
                   </div>
