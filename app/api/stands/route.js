@@ -1,17 +1,77 @@
 import { createStand, getAllStands } from "@/lib/stands/stand";
 import { getServerSession } from "@/lib/get-session-better-auth";
+import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req) {
   try {
     const session = await getServerSession();
-    if (!session) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-    const stands = await getAllStands(session.user);
-    return Response.json(stands);
+    if (!session) return new Response("Unauthorized", { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+
+    const region = searchParams.get("region");
+    const address = searchParams.get("address");  // 👈 updated
+    const partner = searchParams.get("partner");
+    const name = searchParams.get("name");
+
+    // Build main WHERE
+    const where = {
+      isActive: true,
+      ...(session.user.role === "USER" && {
+        userStands: { some: { userId: session.user.id } },
+      }),
+      ...(region && { region }),
+      ...(name && { name: { contains: name, mode: "insensitive" } }),
+      ...(Object.keys(storeFilter).length > 0 && {
+        store: storeFilter,
+      }),
+    };
+
+    const stands = await prisma.stand.findMany({
+      where,
+      include: {
+        _count: { select: { standProducts: true } },
+        store: {
+          select: {
+            id: true,
+            name: true,
+            address: true,       // 👈 updated
+            partnerId: true,
+            partner: {
+              select: {
+                id: true,
+                name: true,
+                percentageDiscount: true,
+              },
+            },
+          },
+        },
+        checks: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { id: true, createdAt: true },
+        },
+        userStands: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+          },
+        },
+      },
+      orderBy: { name: "asc" },
+    });
+
+    const result = stands.map((s) => ({
+      ...s,
+      partnerId: s.store?.partnerId ?? null,
+      lastCheckAt: s.checks[0]?.createdAt ?? null,
+      lastCheckId: s.checks[0]?.id ?? null,
+    }));
+
+    return Response.json(result);
+
   } catch (err) {
-    console.error('[STANDS_GET_ERROR]', err);
-    return new Response('Failed to fetch stands', { status: 500 });
+    console.error("[STANDS_GET_ERROR]", err);
+    return new Response("Failed to fetch stands", { status: 500 });
   }
 }
 
@@ -21,14 +81,14 @@ export async function POST(req) {
     const stand = await createStand({ name, storeId, region });
     return Response.json(stand);
   } catch (err) {
-    console.error('[STAND_POST_ERROR]', err);
+    console.error("[STAND_POST_ERROR]", err);
 
     const status = err.status || 500;
-    const message = err.message || 'Failed to create stand';
+    const message = err.message || "Failed to create stand";
 
     return new Response(JSON.stringify({ error: message }), {
       status,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" },
     });
   }
 }

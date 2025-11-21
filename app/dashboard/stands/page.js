@@ -34,10 +34,11 @@ import BasicHeader from "@/components/BasicHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import PageHelpTour from "@/components/help/PageHelpTour";
+import useSWR, { mutate } from "swr";
+import { fetcher } from "@/lib/utils";
 
 export default function Stands() {
   const [stands, setStands] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [standToDelete, setStandToDelete] = useState(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -46,27 +47,13 @@ export default function Stands() {
   const isAdmin = session?.user?.role === "ADMIN";
   const isMobile = useIsMobile();
 
-  const fetchStands = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/stands");
-      if (!res.ok) throw new Error("Failed to fetch stands");
-      const data = await res.json();
-      setStands(data);
-    } catch (err) {
-      console.error("Error fetching stands", err);
-      setStands([]); // Ensure stands is an empty array on error
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {data, isLoading, error} = useSWR("/api/stands", fetcher);
 
   useEffect(() => {
-    if (session) {
-      // Only fetch stands if session is available
-      fetchStands();
-    }
-  }, [session]);
+    if (data) setStands(data);
+    console.log(data);
+  }, [data]);
+
 
   const handleDelete = async () => {
     if (!standToDelete || !isAdmin) return;
@@ -81,7 +68,7 @@ export default function Stands() {
         throw new Error(error.error || "Failed to delete stand");
       }
 
-      fetchStands(); // Refresh the data
+      mutate("/api/stands");
     } catch (error) {
       console.error("Error deleting stand:", error);
     } finally {
@@ -99,10 +86,21 @@ export default function Stands() {
 
         return (
           <TableLink href={`/dashboard/stands/${stand.id}`}>
-          {row.original.region + " - " || ""} {stand.name}
+            {row.original.region ? `${row.original.region} - ` : ""} {stand.name}
           </TableLink>
         );
       },
+    },
+    {
+      accessorKey: "lastCheckAt",
+      header: "Чекиран",
+      cell: ({row}) => {
+        return <>
+          <TableLink href={`/dashboard/checks/${row.original.lastCheckId}`}>
+            {row.original.lastCheckAt ? new Date(row.original.lastCheckAt).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+          </TableLink>
+        </>
+      }
     },
     {
       accessorKey: "store.partner.name",
@@ -124,10 +122,10 @@ export default function Stands() {
           .join(", ");
       },
     },
-    {
-      accessorKey: "_count.standProducts",
-      header: "Брой продукти",
-    },
+    // {
+    //   accessorKey: "_count.standProducts",
+    //   header: "Брой продукти",
+    // },
     {
       accessorKey: "store.partner.percentageDiscount",
       header: "%",
@@ -182,11 +180,11 @@ export default function Stands() {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingScreen />;
   }
 
-  if (!loading && stands.length === 0) {
+  if (!isLoading && stands.length === 0) {
     return (
       <>
         <NoAcess
@@ -239,7 +237,7 @@ export default function Stands() {
                     </div>
                     <div className="min-w-0">
                       <h3 id="stand-name" className="font-medium text-gray-900 text-sm whitespace-pre-line break-words">
-                      {stand.region + " - " || ""}   {stand.name}
+                      {`${stand.region} - ` || ""}   {stand.name}
                       </h3>
                     </div>
                   </div>

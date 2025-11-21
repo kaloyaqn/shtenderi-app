@@ -21,7 +21,7 @@ model Stand {
   region    String?
   isActive  Boolean  @default(true)
 
-  
+
   deactivatedAt DateTime?
 
   standProducts StandProduct[]
@@ -167,7 +167,10 @@ model Store {
   address   String // Локация (адрес)
   contact   String? // Лице за контакт
   phone     String? // Телефон
+  cityId    String?
+  city      City?     @relation(fields: [cityId], references: [id])
   createdAt DateTime @default(now())
+
 
   partner   Partner @relation(fields: [partnerId], references: [id])
   partnerId String // Външният ID на фирмата
@@ -666,4 +669,11 @@ model Region {
   name   String
 
   // stands Stand[]
+}
+
+
+model City {
+  id        String   @id @default(cuid())
+  name      String
+  stores    Store[]
 }

@@ -12,13 +12,25 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Combobox } from "@/components/ui/combobox"
+import useSWR, { mutate } from "swr"
+import { fetcher } from "@/lib/utils"
+import { Plus } from "lucide-react"
 
 export default function CreateStorePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
   const [partners, setPartners] = useState([])
   const [partnersLoading, setPartnersLoading] = useState(true)
+  const [cityId, setCityId] = useState("");
+  const [citySearch, setCitySearch] = useState("")
+
+  const {data:cities,isLoading, error} = useSWR('/api/cities', fetcher)
+
+  const cityOptions = cities?.map((c) => ({
+    label: c.name,
+    value: c.id,
+  })) ?? [];
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -38,8 +50,8 @@ export default function CreateStorePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    setError(null)
+    // setLoading(true)
+    // setError(null)
 
     const formData = new FormData(e.target)
     const data = {
@@ -48,6 +60,7 @@ export default function CreateStorePage() {
       contact: formData.get('contact')?.trim(),
       phone: formData.get('phone')?.trim(),
       partnerId: formData.get('partnerId'),
+      cityId: cityId || ""
     }
 
     try {
@@ -65,9 +78,31 @@ export default function CreateStorePage() {
       router.push('/dashboard/stores')
       router.refresh()
     } catch (err) {
-      setError(err.message)
+      // setError(err.message)
     } finally {
-      setLoading(false)
+      // setLoading(false)
+    }
+  }
+
+
+  async function createCity(name) {
+    try {
+      const res = await fetch("/api/cities", {
+        method:"POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+      })
+
+      const data = await res.json();
+
+      setCityId(data.id);
+
+      mutate("/api/cities")
+    }
+    catch (err) {
+      throw new Error()
     }
   }
 
@@ -118,6 +153,27 @@ export default function CreateStorePage() {
                     placeholder="Въведете телефон"
                   />
                 </div>
+                <div>
+                  <Combobox
+                    name="cityId"
+                    value={cityId}
+                    onValueChange={setCityId}
+                    onSearchChange={setCitySearch}    // 👈 You get the typed text here
+                    options={cityOptions}
+                    placeholder="Изберете град"
+                    emptyContent={(text) => (
+                      <Button
+                        variant={'outline'}
+                        type="button"
+                        className="w-full mx-3"
+                        onClick={() => createCity(text)}
+                      >
+                        <Plus /> Създай град "{text}"
+                      </Button>
+                    )}
+                  />
+
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="partnerId">Партньор *</Label>
                   <select
@@ -157,4 +213,4 @@ export default function CreateStorePage() {
       </div>
     </div>
   )
-} 
+}

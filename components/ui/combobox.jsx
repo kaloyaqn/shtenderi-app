@@ -18,18 +18,21 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-const Combobox = React.forwardRef(({ 
-  options = [], 
-  value, 
-  onValueChange, 
-  placeholder = "Select option...",
-  searchPlaceholder = "Search...",
-  emptyText = "No options found.",
+const Combobox = React.forwardRef(({
+  options = [],
+  value,
+  onValueChange,
+  placeholder = "Избери...",
+  searchPlaceholder = "Потърси...",
+  emptyText = "Няма намерени резултати",
   className,
   disabled = false,
-  ...props 
+  onSearchChange,
+  emptyContent,            // 👈 NEW (function returning JSX)
+  ...props
 }, ref) => {
   const [open, setOpen] = React.useState(false)
+  const [search, setSearch] = React.useState("")   // 👈 NEW: track search input
 
   const selectedOption = options.find(option => option.value === value)
 
@@ -49,20 +52,39 @@ const Combobox = React.forwardRef(({
           <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
+
       <PopoverContent className="w-full p-0" align="start">
-        <Command>
-          <CommandInput className={'w-full'} placeholder={searchPlaceholder} />
-          <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+        <Command className="w-full">
+
+          {/* 🔥 UPDATED: Controlled input with callback */}
+          <CommandInput
+            className="w-full"
+            placeholder={searchPlaceholder}
+            value={search}
+            onValueChange={(val) => {
+              setSearch(val)
+              onSearchChange?.(val)     // 👈 Send value to parent
+            }}
+          />
+
+          <CommandList className="w-full">
+
+            {/* 🔥 UPDATED: dynamic empty state */}
+            <CommandEmpty>
+              {emptyContent
+                ? emptyContent(search)   // 👈 Pass search text into custom empty state
+                : emptyText}
+            </CommandEmpty>
+
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.label}
                   onSelect={(currentValue) => {
-                    const selectedOption = options.find(opt => opt.label === currentValue);
-                    onValueChange(selectedOption ? selectedOption.value : "");
-                    setOpen(false);
+                    const selected = options.find(opt => opt.label === currentValue)
+                    onValueChange(selected ? selected.value : "")
+                    setOpen(false)
                   }}
                 >
                   <CheckIcon
@@ -76,6 +98,7 @@ const Combobox = React.forwardRef(({
               ))}
             </CommandGroup>
           </CommandList>
+
         </Command>
       </PopoverContent>
     </Popover>
@@ -84,4 +107,4 @@ const Combobox = React.forwardRef(({
 
 Combobox.displayName = "Combobox"
 
-export { Combobox } 
+export { Combobox }
