@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Combobox } from "@/components/ui/combobox"
+import { Plus } from "lucide-react"
 
 export default function EditStorePage({ params }) {
   const router = useRouter()
@@ -51,7 +52,6 @@ export default function EditStorePage({ params }) {
         setPartners(partnersData)
         setCities(citiesData)
 
-        // 👇 FIX: support both shapes (cityId OR city.id)
         const detectedCityId =
           storeData.cityId ||
           (storeData.city && storeData.city.id) ||
@@ -170,11 +170,12 @@ export default function EditStorePage({ params }) {
                     placeholder="Изберете град"
                     emptyContent={(text) => (
                       <Button
+                        variant={'outlined'}
                         type="button"
-                        className="w-full"
+                        className="w-full mx-4"
                         onClick={() => createCity(text)}
                       >
-                        Създай град "{text}"
+                        <Plus />  Създай град "{text}"
                       </Button>
                     )}
                   />

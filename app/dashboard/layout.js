@@ -10,6 +10,8 @@ import AnnouncementModal from "@/components/announcements/NewDesign";
 import VersionBanner from "@/components/version-banner";
 import PageHelpTour from "@/components/help/PageHelpTour";
 import CommandProvider from "@/components/command-provider";
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
+
 
 export default async function DashboardLayout({ children }) {
   const session = await getServerSession();
@@ -33,7 +35,10 @@ export default async function DashboardLayout({ children }) {
           <Toaster position="top-center" />
           {/* <AnnouncementModal /> */}
           <ErrorBoundary>
-            <div className="md:pb-0 pb-[84px]">{children}</div>
+            <NuqsAdapter>
+              <div className="md:pb-0 pb-[84px]">{children}</div>
+
+            </NuqsAdapter>
           </ErrorBoundary>
         </SidebarInset>
         <MobileNavWrapper />

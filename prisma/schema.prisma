@@ -18,8 +18,9 @@ model Stand {
   columns   Int?
   createdAt DateTime @default(now())
   email     String?
-  region    String?
   isActive  Boolean  @default(true)
+  regionId    String?
+  region      Region?     @relation(fields: [regionId], references: [id])
 
 
   deactivatedAt DateTime?
@@ -668,7 +669,7 @@ model Region {
   id     String  @id @default(uuid())
   name   String
 
-  // stands Stand[]
+  stands Stand[]
 }
 
 

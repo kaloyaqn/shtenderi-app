@@ -3,17 +3,34 @@ import {prisma} from "@/lib/prisma";
 // GET store by ID
 export async function GET(req, { params }) {
   try {
-    const { storeId } = params;
+    const { storeId } = await params;
 
     const store = await prisma.store.findUnique({
       where: { id: storeId },
       include: {
-        partner: { select: { id: true, name: true, percentageDiscount: true } },
-        city:   { select: { id: true, name: true } },
+        partner: true,
+        city: true,
+        stands: {
+          include: {
+            region: true,
+          }
+        }
+      }
+    });
+
+    const revenue = await prisma.revision.aggregate({
+      _sum: { saleAmount: true },
+      where: {
+        stand: {
+          storeId: storeId,
+        },
       },
     });
 
-    return Response.json(store);
+
+
+    return Response.json({      ...store,
+    revenue: revenue._sum.saleAmount ?? 0,});
   } catch (error) {
     console.error("[STORE_GET_ERROR]", error);
     return new Response(

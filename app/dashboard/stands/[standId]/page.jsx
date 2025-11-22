@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use, useRef } from "react";
+import React, { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -61,7 +61,7 @@ import { Label } from "@/components/ui/label";
 
 export default function StandDetailPage({ params }) {
   const router = useRouter();
-  const { standId } = use(params);
+  const { standId } = React.use(params) ;
   const [stand, setStand] = useState(null);
   const [stats, setStats] = useState([]);
   const [productsOnStand, setProductsOnStand] = useState([]);
@@ -87,6 +87,13 @@ export default function StandDetailPage({ params }) {
     prices: {},
   });
 
+  const [fileConfirmationPrompt, setFileConfirmationPrompt] = useState({
+    open: false,
+    fileName: '',
+    products: [],
+    activate: false,
+  });
+
   const handlePriceChange = (barcode, value) => {
     const newPrice = parseFloat(value) || 0;
     console.log(`[FRONTEND] Price change for ${barcode}: ${value} -> ${newPrice}`);
@@ -98,12 +105,7 @@ export default function StandDetailPage({ params }) {
       }
     }));
   };
-  const [fileConfirmationPrompt, setFileConfirmationPrompt] = useState({
-    open: false,
-    fileName: '',
-    products: [],
-    activate: false,
-  });
+
 
   const { data: session } = useSession();
   const userIsAdmin = session?.user?.role === "ADMIN";

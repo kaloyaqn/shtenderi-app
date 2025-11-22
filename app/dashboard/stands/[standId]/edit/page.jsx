@@ -21,7 +21,10 @@ import {
 } from "@/components/ui/select";
 import QRCode from "react-qr-code";
 import { useReactToPrint } from "react-to-print";
-import { PrinterIcon } from "lucide-react";
+import { Plus, PrinterIcon } from "lucide-react";
+import useSWR, { mutate } from "swr";
+import { fetcher } from "@/lib/utils";
+import { Combobox } from "@/components/ui/combobox";
 
 export default function EditStandPage({ params }) {
   const router = useRouter();
@@ -32,9 +35,33 @@ export default function EditStandPage({ params }) {
   const [stores, setStores] = useState([]);
   const [selectedStore, setSelectedStore] = useState("");
   const [email, setEmail] = useState("");
+  const [regionId, setRegionId] = useState("");
 
   const contentRef = useRef(null);
   const reactToPrintFn = useReactToPrint({ contentRef });
+
+  const { data: regions, isLoading, error: swrError } = useSWR('/api/regions', fetcher);
+
+  async function createRegion(name) {
+    try {
+      const res = await fetch("/api/regions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      })
+
+      if (!res.ok) throw new Error("Грешка при създаване на регион")
+
+      const newRegion = await res.json();
+
+      mutate("/api/regions");
+      setRegionId(newRegion.id);
+
+    }
+    catch (err) {
+      setError(err.message)
+    }
+  }
 
   useEffect(() => {
     async function fetchStandAndStores() {
@@ -45,6 +72,7 @@ export default function EditStandPage({ params }) {
         if (!standResponse.ok) throw new Error("Failed to fetch stand");
         const standData = await standResponse.json();
         setStand(standData);
+        setRegionId(standData?.region?.id)
         setSelectedStore(standData.storeId);
         setEmail(standData.email || "");
 
@@ -76,7 +104,7 @@ export default function EditStandPage({ params }) {
     const formData = new FormData(e.target);
     const data = {
       name: formData.get("name")?.trim(),
-      region: formData.get("region")?.trim(),
+      regionId: regionId,
       storeId: selectedStore,
       email: email.trim(),
     };
@@ -133,12 +161,25 @@ export default function EditStandPage({ params }) {
                 <div className="grid gap-2">
                   <div className="grid gap-2">
                     <Label htmlFor="region">Регион на щанда</Label>
-                    <Input
-                      id="region"
-                      name="region"
-                      required
-                      defaultValue={stand.region}
-                      placeholder="Въведете регион на щанда"
+                    <Combobox
+                    value={regionId}
+                    onValueChange={(value) => setRegionId(value)}
+                    options={regions?.map((region) => ({
+                      key: region.id,
+                      label: region.name,
+                      value: region.id
+                    }))}
+                    placeholder="Избери регион"
+                    emptyContent={(text) => (
+                      <Button
+                        variant="outline"
+                        type="button"
+                        className="w-full mx-4"
+                        onClick={() => createRegion(text)}
+                      >
+                        <Plus /> Създай регион "{text}"
+                      </Button>
+                    )}
                     />
                   </div>
                   <div className="grid gap-2">

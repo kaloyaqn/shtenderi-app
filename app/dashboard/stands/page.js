@@ -10,6 +10,7 @@ import {
   Building,
   Package,
   Eye,
+  Filter,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -35,7 +36,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import PageHelpTour from "@/components/help/PageHelpTour";
 import useSWR, { mutate } from "swr";
-import { fetcher } from "@/lib/utils";
+import { fetcher, multiFetcher } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Combobox } from "@/components/ui/combobox";
+import { Label } from "@/components/ui/label";
+import { useQueryState } from 'nuqs'
+
 
 export default function Stands() {
   const [stands, setStands] = useState([]);
@@ -47,13 +53,29 @@ export default function Stands() {
   const isAdmin = session?.user?.role === "ADMIN";
   const isMobile = useIsMobile();
 
-  const {data, isLoading, error} = useSWR("/api/stands", fetcher);
+
+  // filters
+  const [isFilterOpen, setFiltersOpen] = useState(false);
+  const [name, setName] = useQueryState('name')
+  const [cityId, setCityId] = useQueryState('cityId')
+  const [regionId, setRegionId] = useQueryState('regionId')
+
+  const { data, error, isLoading } = useSWR(
+    [`/api/stands?city=${cityId}&region=${regionId}&name=${name}`, "/api/cities", "/api/regions"],
+    multiFetcher
+  );
+
+  const cities = data?.[1] || [];
+  const regions = data?.[2] || [];
 
   useEffect(() => {
-    if (data) setStands(data);
+    if (data) setStands(data?.[0]);
     console.log(data);
   }, [data]);
 
+
+  async function fetchFilters() {
+  }
 
   const handleDelete = async () => {
     if (!standToDelete || !isAdmin) return;
@@ -85,9 +107,23 @@ export default function Stands() {
         const stand = row.original;
 
         return (
-          <TableLink href={`/dashboard/stands/${stand.id}`}>
-            {row.original.region ? `${row.original.region} - ` : ""} {stand.name}
-          </TableLink>
+
+          <span className="flex items-center">
+
+
+
+
+
+            <TableLink href={`/dashboard/stands/${stand.id}`}>
+               {stand.name}
+            </TableLink>
+
+            {stand.region?.name && (
+              <Badge variant='success'>
+              {stand.region?.name ? `${stand.region.name}  ` : ""}
+              </Badge>
+            )}
+          </span>
         );
       },
     },
@@ -105,11 +141,25 @@ export default function Stands() {
     {
       accessorKey: "store.partner.name",
       header: "партньор",
+      cell: ({row}) => {
+        return (
+          <TableLink href={`/dashboard/partners/${row.original.store.partnerId}`}>
+          {row.original.store.partner.name}
+          </TableLink>
+        )
+      }
     },
 
     {
       accessorKey: "store.name",
       header: "магазин",
+      cell: ({row}) => {
+        return (
+          <TableLink href={`/dashboard/stores/${row.original.store.id}`}>
+            {row.original.store.name}
+          </TableLink>
+        )
+      }
     },
     {
       header: "Търговец",
@@ -184,26 +234,26 @@ export default function Stands() {
     return <LoadingScreen />;
   }
 
-  if (!isLoading && stands.length === 0) {
-    return (
-      <>
-        <NoAcess
-          icon={<IconLayoutRows className="h-12 w-12 text-gray-400" />}
-          help_text={`Ако имате нужда от помощ, свържете се с администратор.`}
-          subtitlte={`
-        Нямате зачислени щендери. За добавяне на нови складове се свържете с администратор.
-        `}
-          title={isAdmin ? "Няма намерени щендери" : "Нямате зачислени щендери"}
-        />
+  // if (!isLoading && stands.length === 0) {
+  //   return (
+  //     <>
+  //       <NoAcess
+  //         icon={<IconLayoutRows className="h-12 w-12 text-gray-400" />}
+  //         help_text={`Ако имате нужда от помощ, свържете се с администратор.`}
+  //         subtitlte={`
+  //       Нямате зачислени щендери. За добавяне на нови складове се свържете с администратор.
+  //       `}
+  //         title={isAdmin ? "Няма намерени щендери" : "Нямате зачислени щендери"}
+  //       />
 
-        {isAdmin && (
-          <Button onClick={() => router.push("/dashboard/stands/create")}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        )}
-      </>
-    );
-  }
+  //       {isAdmin && (
+  //         <Button onClick={() => router.push("/dashboard/stands/create")}>
+  //           <Plus className="h-4 w-4" />
+  //         </Button>
+  //       )}
+  //     </>
+  //   );
+  // }
 
   if (isMobile) {
     return (
@@ -324,13 +374,74 @@ export default function Stands() {
             Управление на щендери и зареждане на стока
           </p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => router.push("/dashboard/stands/create")}>
-            <Plus className="h-4 w-4" />
-            Добави щендер
-          </Button>
-        )}
+
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline"><Filter /> Филтри</Button>
+            </PopoverTrigger>
+            <PopoverContent padding={0} sideOffset={0} className="w-md">
+              <div className="">
+                <div className="w-full p-4 bg-gray-50 border-b border-b-gray-300 rounded-t-md">
+                  <h4 className="leading-none font-medium">Филтри</h4>
+                  <p className="text-muted-foreground text-sm ">
+                    Избери филтрите
+                  </p>
+                </div>
+                <div className="p-4 flex flex-col gap-4">
+
+
+
+                  <div className="w-full grid gap-2">
+                    <Label>Регион</Label>
+                    <Combobox
+                      placeholder="Избери регион"
+                      onValueChange={(value) => setRegionId(value)}
+                      value={regionId}
+                      options={regions.map((region) => ({
+                        key: region.id,
+                        value: region.id,
+                        label: region.name,
+                      }))}
+                    />
+                  </div>
+
+                  <div className="w-full grid gap-2">
+                    <Label>Град</Label>
+                    <Combobox
+                    options={cities.map((city) => ({
+                      key: city.id,
+                      value: city.id,
+                      label: city.name,
+                    }))}
+
+                    placeholder="Избери град"
+                    onValueChange={(value) => setCityId(value)}
+                    value={cityId}
+                    />
+                  </div>
+
+                  <Button className={'mt-2'} variant="outline">
+                  <Filter /> Филтрирай
+                  </Button>
+
+                </div>
+
+
+              </div>
+            </PopoverContent>
+          </Popover>
+          {isAdmin && (
+            <Button onClick={() => router.push("/dashboard/stands/create")}>
+              <Plus className="h-4 w-4" />
+              Добави щендер
+            </Button>
+          )}
+        </div>
       </div>
+
+
+
       <DataTable columns={columns} data={stands} searchKey="name" />
 
       {isAdmin && (

@@ -9,33 +9,55 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
 
-    const region = searchParams.get("region");
-    const address = searchParams.get("address");  // 👈 updated
-    const partner = searchParams.get("partner");
-    const name = searchParams.get("name");
+    const regionId = searchParams.get("region");
+    const cityId   = searchParams.get("city");
+    const partner  = searchParams.get("partner");
+    const name     = searchParams.get("name");
 
-    // Build main WHERE
+    const storeFilter = {};
+
+    if (cityId && cityId !== "null" && cityId !== "") {
+      storeFilter.cityId = cityId;
+    }
+
+    if (partner && partner !== "null" && partner !== "") {
+      storeFilter.partner = {
+        name: { contains: partner, mode: "insensitive" }
+      };
+    }
+
     const where = {
       isActive: true,
+
       ...(session.user.role === "USER" && {
-        userStands: { some: { userId: session.user.id } },
+        userStands: {
+          some: { userId: session.user.id }
+        }
       }),
-      ...(region && { region }),
-      ...(name && { name: { contains: name, mode: "insensitive" } }),
+
+      ...(name && name !== "null" && {
+        name: { contains: name, mode: "insensitive" }
+      }),
+
+      ...(regionId && regionId !== "null" && {
+        regionId: regionId        // 👈 REGION FILTER FIXED
+      }),
+
       ...(Object.keys(storeFilter).length > 0 && {
-        store: storeFilter,
-      }),
+        store: storeFilter
+      })
     };
 
     const stands = await prisma.stand.findMany({
       where,
       include: {
         _count: { select: { standProducts: true } },
+        region: { select: { id: true, name: true } },
         store: {
           select: {
             id: true,
             name: true,
-            address: true,       // 👈 updated
+            city: { select: { id: true, name: true } },
             partnerId: true,
             partner: {
               select: {
@@ -74,6 +96,8 @@ export async function GET(req) {
     return new Response("Failed to fetch stands", { status: 500 });
   }
 }
+
+
 
 export async function POST(req) {
   try {
