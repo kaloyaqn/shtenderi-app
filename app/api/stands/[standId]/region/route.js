@@ -13,7 +13,7 @@ export async function PATCH(req, { params }) {
         const body = await req.json();
 
         // Only allow updating the "region" field
-        if (!body || !body.region) {
+        if (!body || !body.regionId) {
             return new Response(JSON.stringify({ error: "Missing required fields" }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' }
@@ -25,7 +25,7 @@ export async function PATCH(req, { params }) {
           id: standId
         },
         data: {
-          region: body.region
+          regionId: body.regionId
         }
       });
 

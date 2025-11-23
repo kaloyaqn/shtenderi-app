@@ -4,11 +4,11 @@ import bcrypt from 'bcryptjs';
 import { getServerSession } from '@/lib/get-session-better-auth';
 
 
-// List all users (GET)
 export async function GET(req) {
   if (req.nextUrl?.pathname?.endsWith('/me')) {
+
     const session = await getServerSession();
-    if (!session || !session.user) {
+    if (!session || !session.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const user = await prisma.user.findUnique({
@@ -126,4 +126,4 @@ export async function POST(req) {
   } catch (err) {
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
-} 
+}

@@ -120,7 +120,7 @@ export default function RevisionDetailPage() {
       if (!res.ok) throw new Error("Failed to fetch revision");
       const data = await res.json();
       setRevision(data);
-      
+
       // If this revision was created from a check, fetch all missing products from the check
       if (data.checkId) {
         try {
@@ -130,7 +130,7 @@ export default function RevisionDetailPage() {
             console.log('Check data:', checkData);
             // Find ALL products that were missing from the check (not just unscanned ones)
             const soldProductIds = data.missingProducts.map(mp => mp.productId);
-            const allMissingFromCheck = checkData.checkedProducts.filter(cp => 
+            const allMissingFromCheck = checkData.checkedProducts.filter(cp =>
               cp.quantity > 0 && !soldProductIds.includes(cp.productId)
             );
             console.log('Missing from check:', {
@@ -329,14 +329,16 @@ export default function RevisionDetailPage() {
     }
     setInvoiceLoading(true);
     try {
-      const res = await fetch("/api/invoices", {
+      const res = await fetch("/api/invoices?type=revision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ revisionId, paymentMethod }),
       });
+
+      const data = await res.json();
       if (res.ok) {
         setIsPaymentModalOpen(false);
-        router.push("/dashboard/invoices");
+        router.push(`/dashboard/invoices/${data.id}`);
       } else {
         toast.error("Грешка при създаване на фактура.");
       }
@@ -526,7 +528,7 @@ export default function RevisionDetailPage() {
         const mp = row.original;
         const hasDiscrepancy = mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity;
         const isUnscanned = !mp.isSold;
-        
+
         return (
           <div className={`${hasDiscrepancy || isUnscanned ? "text-red-600 font-semibold" : ""} ${isUnscanned ? "bg-red-50 p-1 rounded" : ""}`}>
             {hasDiscrepancy ? (
