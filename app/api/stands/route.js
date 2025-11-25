@@ -101,8 +101,8 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const { name, storeId, region } = await req.json();
-    const stand = await createStand({ name, storeId, region });
+    const { name, storeId, regionId } = await req.json();
+    const stand = await createStand({ name, storeId, regionId });
     return Response.json(stand);
   } catch (err) {
     console.error("[STAND_POST_ERROR]", err);

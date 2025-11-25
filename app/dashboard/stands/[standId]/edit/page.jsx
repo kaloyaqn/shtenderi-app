@@ -33,7 +33,7 @@ export default function EditStandPage({ params }) {
   const [error, setError] = useState(null);
   const [stand, setStand] = useState(null);
   const [stores, setStores] = useState([]);
-  const [selectedStore, setSelectedStore] = useState("");
+  const [selectedStore, setSelectedStore] = useState("")
   const [email, setEmail] = useState("");
   const [regionId, setRegionId] = useState("");
 
@@ -195,7 +195,7 @@ export default function EditStandPage({ params }) {
 
                   <div className="grid gap-2 w-full">
                     <Label htmlFor="store">Магазин *</Label>
-                    <Select
+                    {/* <Select
                       onValueChange={setSelectedStore}
                       value={selectedStore}
                     >
@@ -209,7 +209,21 @@ export default function EditStandPage({ params }) {
                           </SelectItem>
                         ))}
                       </SelectContent>
-                    </Select>
+                    </Select>*/}
+
+                    <Combobox
+                      onValueChange={setSelectedStore}
+                      value={selectedStore}
+                      options={stores.map((store) => ({
+                        key:store.id,
+                        value:store.id,
+                        label:store.name,
+                        }))}
+                      placeholder="Избери магазин"
+                      emptyText="Няма такъв магазин. Създай го."
+                    >
+
+                    </Combobox>
                   </div>
 
                 </div>

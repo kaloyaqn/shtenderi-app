@@ -28,11 +28,11 @@ const Combobox = React.forwardRef(({
   className,
   disabled = false,
   onSearchChange,
-  emptyContent,            // 👈 NEW (function returning JSX)
+  emptyContent,
   ...props
 }, ref) => {
   const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState("")   // 👈 NEW: track search input
+  const [search, setSearch] = React.useState("")
 
   const selectedOption = options.find(option => option.value === value)
 
@@ -56,23 +56,21 @@ const Combobox = React.forwardRef(({
       <PopoverContent className="w-full p-0" align="start">
         <Command className="w-full">
 
-          {/* 🔥 UPDATED: Controlled input with callback */}
           <CommandInput
             className="w-full"
             placeholder={searchPlaceholder}
             value={search}
             onValueChange={(val) => {
               setSearch(val)
-              onSearchChange?.(val)     // 👈 Send value to parent
+              onSearchChange?.(val)
             }}
           />
 
           <CommandList className="w-full">
 
-            {/* 🔥 UPDATED: dynamic empty state */}
-            <CommandEmpty>
+            <CommandEmpty className="p-4 text-sm">
               {emptyContent
-                ? emptyContent(search)   // 👈 Pass search text into custom empty state
+                ? emptyContent(search)
                 : emptyText}
             </CommandEmpty>
 
