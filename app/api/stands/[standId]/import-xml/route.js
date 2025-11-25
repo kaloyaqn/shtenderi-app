@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 
 export async function POST(req, context) {
   let fileName = null; // Declare fileName at function scope
@@ -17,7 +17,7 @@ export async function POST(req, context) {
     // Debug: log the fileName being imported
     console.log('[IMPORT] Attempting import with fileName:', fileName);
 
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

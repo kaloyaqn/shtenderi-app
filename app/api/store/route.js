@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 // POST: Create store
 export async function POST(req) {
   const body = await req.json()
-  const { name, address, contact, phone } = body
+  const { name, address, contact, phone, cityId, partnerId } = body
 
   if (!name || !address) {
     return NextResponse.json({ error: 'Name and address are required' }, { status: 400 })
@@ -19,6 +19,12 @@ export async function POST(req) {
         address,
         contact,
         phone,
+        cityId: cityId || null,
+        partnerId,         // ✅ REQUIRED
+      },
+      include: {
+        partner: true,
+        city: true,
       },
     })
 

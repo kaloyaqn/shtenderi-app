@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { authClient } from "@/lib/auth-client"
 import LogoStendo from "@/public/svg/LogoStendo"
 
 export function LoginForm({
@@ -33,18 +33,33 @@ export function LoginForm({
     setIsLoading(true)
 
     try {
-      const res = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
+      // First, ensure Account exists for legacy users
+      const legacyRes = await fetch('/api/auth/legacy-sign-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       })
 
-      if (res?.error) {
+      if (!legacyRes.ok) {
+        const errorData = await legacyRes.json()
+        setError(errorData.error?.message || 'Невалиден email или парола.')
+        return
+      }
+
+      // Account is now created, use Better Auth's normal sign-in
+      const res = await authClient.signIn.email({
+        email,
+        password,
+      })
+
+      if (res.error) {
         setError('Невалиден email или парола.')
       } else {
         router.push('/dashboard')
+        router.refresh() // Refresh to get new session
       }
     } catch (err) {
+      console.error('[LOGIN_ERROR]', err)
       setError('Възникна грешка при влизане.')
     } finally {
       setIsLoading(false)

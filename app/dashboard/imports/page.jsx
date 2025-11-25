@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 import TableLink from "@/components/ui/table-link";
 import { IconEye } from "@tabler/icons-react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 import { accessedDynamicData } from "next/dist/server/app-render/dynamic-rendering";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";

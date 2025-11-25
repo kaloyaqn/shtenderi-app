@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 
 export async function POST(req) {
   try {
@@ -63,69 +63,119 @@ export async function POST(req) {
 
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    const session = await getServerSession();
+    if (!session) return new NextResponse("Unauthorized", { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status');
-    const source = searchParams.get('source');
-    const partnerName = searchParams.get('partnerName');
-    const userName = searchParams.get('userName');
 
-    let whereClause = {};
-    if (session.user.role === 'USER') {
-      const userWithStands = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        include: { userStands: { select: { standId: true } } },
+    const rawStatus = searchParams.get("status");
+    const rawSource = searchParams.get("source");
+    const rawPartnerName = searchParams.get("partnerName");
+    const rawUserName = searchParams.get("userName");
+    const rawUser = searchParams.get("user");
+    const rawStand = searchParams.get("stand");
+    const rawStore = searchParams.get("store");
+    const rawInvoice = searchParams.get("invoice");
+    const rawDateFrom = searchParams.get("dateFrom");
+    const rawDateTo = searchParams.get("dateTo");
+
+
+    const clean = (v) =>
+      v && v !== "null" && v !== "undefined" && v !== "" ? v : undefined;
+
+    const status = clean(rawStatus);
+    const source = clean(rawSource);
+    const partnerName = clean(rawPartnerName);
+    const userName = clean(rawUserName);
+    const user = clean(rawUser);
+    const stand = clean(rawStand);
+    const store = clean(rawStore);
+    const invoice = clean(rawInvoice);
+    const dateFrom = clean(rawDateFrom);
+    const dateTo = clean(rawDateTo);
+
+    const where = {};
+
+
+    if (session.user.role === "USER") {
+      const userStands = await prisma.userStand.findMany({
+        where: { userId: session.user.id },
+        select: { standId: true },
       });
-      const standIds = userWithStands.userStands.map(us => us.standId);
-      whereClause = {
-        standId: {
-          in: standIds,
-        },
+
+      where.standId = { in: userStands.map((s) => s.standId) };
+    }
+
+    if (status === "PAID" || status === "NOT_PAID") {
+      where.status = status;
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+
+      if (dateFrom) {
+        where.createdAt.gte = new Date(`${dateFrom}T00:00:00.000Z`);
+      }
+
+      if (dateTo) {
+        where.createdAt.lte = new Date(`${dateTo}T23:59:59.999Z`);
+      }
+    }
+
+    if (source) {
+      where.type = source;
+    }
+
+    if (user) {
+      where.userId = user;
+    }
+
+    if (stand) {
+      where.standId = stand; // overrides only if a REAL standId is passed
+    }
+
+    if (store) {
+      where.stand = { storeId: store };
+    }
+
+    if (invoice) {
+      where.invoiceId = invoice;
+    }
+
+    if (partnerName) {
+      where.partner = {
+        name: { contains: partnerName, mode: "insensitive" },
       };
     }
 
-    // Add status filter if present
-    if (status && (status === 'PAID' || status === 'NOT_PAID')) {
-      whereClause.status = status;
-    }
-    // Add source filter (stand name or storage name)
-    if (source) {
-      whereClause.OR = [
-        { stand: { name: { contains: source, mode: 'insensitive' } } },
-        { storage: { name: { contains: source, mode: 'insensitive' } } },
-      ];
-    }
-    // Add partnerName filter
-    if (partnerName) {
-      whereClause.partner = { name: { contains: partnerName, mode: 'insensitive' } };
-    }
-    // Add userName filter
     if (userName) {
-      whereClause.user = {
+      where.user = {
         OR: [
-          { name: { contains: userName, mode: 'insensitive' } },
-          { email: { contains: userName, mode: 'insensitive' } },
+          { name: { contains: userName, mode: "insensitive" } },
+          { email: { contains: userName, mode: "insensitive" } },
         ],
       };
     }
 
     const revisions = await prisma.revision.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
+      where,
+      orderBy: { createdAt: "desc" },
       include: {
         stand: true,
-        storage: true, // include storage
+        storage: true,
         partner: true,
         user: true,
         missingProducts: true,
-      }
+        invoice: true,
+      },
     });
+
     return NextResponse.json(revisions);
   } catch (err) {
-    return NextResponse.json({ error: 'Failed to fetch revisions' }, { status: 500 });
+    console.error(err);
+    return NextResponse.json(
+      { error: "Failed to fetch revisions" },
+      { status: 500 }
+    );
   }
-} 
+}

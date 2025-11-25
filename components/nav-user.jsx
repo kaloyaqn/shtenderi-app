@@ -29,14 +29,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-import { signOut, useSession } from 'next-auth/react'
+import { authClient } from '@/lib/auth-client'
 
 
 export function NavUser({
+  user
 }) {
   const { isMobile } = useSidebar()
-  const { data: session} = useSession();
-  const user = session?.user || null;
 
   
   return (
@@ -95,7 +94,10 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
+            <DropdownMenuItem onClick={async () => {
+              await authClient.signOut();
+              window.location.href = '/login';
+            }}>
               <IconLogout />
               Изход
             </DropdownMenuItem>

@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useSession } from "next-auth/react"
 import {
   IconFileWord,
   IconInvoice,
@@ -75,7 +74,7 @@ const groupedDocuments = {
     { name: "Проверки", url: "/dashboard/checks", icon: CheckCheckIcon, adminOnly: false },
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
-    { name: "Трансфер на стока", url: "/dashboard/transfers", icon: IconTransfer, adminOnly: true },
+    { name: "Трансфер на стока", url: "/dashboard/transfers", icon: IconTransfer },
     { name: "Ревизии склад", url: "/dashboard/storage-revisions", icon: SearchCheckIcon, adminOnly: true },
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
@@ -116,9 +115,9 @@ const navSecondary = [
 ];
 
 export function AppSidebar({
+  session,
   ...props
 }) {
-  const { data: session } = useSession()
   const userRole = session?.user?.role;
   const hasMounted = useHasMounted();
 

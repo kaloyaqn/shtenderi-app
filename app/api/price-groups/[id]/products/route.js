@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // price group product model: id string, price_group_id, product_id, price, created_at, updated_at
 export async function POST(req) {
     try {
-        // const session = await getServerSession(authOptions);
+        // const session = await getServerSession();
         // if (!session) return new Response("Unauthorized", {status: 401});
         // if (session.user.role !== "ADMIN") return new Response("Forbidden", {status: 403});
 

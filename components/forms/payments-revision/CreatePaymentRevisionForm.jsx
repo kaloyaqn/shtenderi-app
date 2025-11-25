@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 

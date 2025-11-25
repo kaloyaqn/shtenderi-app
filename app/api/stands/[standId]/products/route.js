@@ -4,6 +4,7 @@ export async function GET(req, { params }) {
     try {
         const { standId } = params;
         const products = await getProductsOnStand(standId);
+        console.log("PRODUCTS ON STAND:", products)
         return new Response(JSON.stringify(products));
     } catch (error) {
         console.error('[STAND_PRODUCTS_GET_ERROR]', error);

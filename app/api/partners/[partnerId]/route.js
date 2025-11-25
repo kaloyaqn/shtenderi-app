@@ -1,15 +1,14 @@
 import { getPartnerById, updatePartner, deletePartner } from '@/lib/partners/partner'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getServerSession } from '@/lib/get-session-better-auth'
 
 // GET: Fetch a single partner, optionally with stores
 export async function GET(req, { params }) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 
-    const { partnerId } = params
+    const { partnerId } = await params
     const url = new URL(req.url, 'http://localhost')
     const includeStores = url.searchParams.get('includeStores') === '1'
     const partner = await getPartnerById(partnerId, includeStores)
@@ -28,24 +27,33 @@ export async function GET(req, { params }) {
 // PUT: Update a partner
 export async function PUT(req, { params }) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 
-    const { partnerId } = params
+    const { partnerId } = await params
     const body = await req.json()
 
-    // If priceGroupId is explicitly null, ensure it is set as null in the update
+    // Normalize priceGroupId when explicitly null/empty
     if (body.hasOwnProperty("priceGroupId")) {
       if (body.priceGroupId === "null" || body.priceGroupId === "") {
         body.priceGroupId = null;
       }
     }
 
-  // Normalize optional email: treat empty string as null and avoid sending undefined
-  if (body.hasOwnProperty('email')) {
-    if (body.email === '') body.email = null;
-  }
+    // Normalize percentageDiscount to a number (or null)
+    if (body.hasOwnProperty('percentageDiscount')) {
+      const pd = body.percentageDiscount;
+      body.percentageDiscount =
+        pd === '' || pd === null || typeof pd === 'undefined'
+          ? null
+          : Number(pd);
+    }
+
+    // Normalize optional email: treat empty string as null
+    if (body.hasOwnProperty('email') && body.email === '') {
+      body.email = null;
+    }
 
     const partner = await updatePartner(partnerId, body)
     return Response.json(partner)
@@ -63,11 +71,11 @@ export async function PUT(req, { params }) {
 // DELETE: Delete a partner
 export async function DELETE(req, { params }) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session) return new Response('Unauthorized', { status: 401 })
     if (session.user?.role !== 'ADMIN') return new Response('Forbidden', { status: 403 })
 
-    const { partnerId } = params
+    const { partnerId } = await params
     await deletePartner(partnerId)
     return new Response(null, { status: 204 })
   } catch (error) {

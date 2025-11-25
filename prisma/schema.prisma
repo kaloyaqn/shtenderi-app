@@ -1,603 +1,696 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model Stand {
-  id        String   @id @default(uuid())
-  name      String
-  store     Store    @relation(fields: [storeId], references: [id])
-  storeId   String
-  rows      Int?
-  barcode   String? @unique
-  columns   Int?
-  createdAt DateTime @default(now())
-  email     String?
-
-  standProducts StandProduct[]
-  checks        Check[]
-  revisions    Revision[]
-
-  userStands   UserStand[]
-  imports      Import[]
-}
-
-model Product {
-  id          String   @id @default(uuid())
-  name        String
-  invoiceName String? @map("invoice_name")
-  barcode     String   @unique
-  pcode        String?  @unique
-  clientPrice Float    // цена на продажба (за магазини)
-  deliveryPrice Float  @default(0) // цена на доставка (от XML)
-  pcd         String?  // препоръчкителна цена доставчик
-  quantity    Int      @default(0)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  image       String?
-
-  standProducts   StandProduct[]
-  checkedProducts CheckedProduct[]
-  missingProducts MissingProduct[]
-  storageProducts StorageProduct[]
-  refundProducts  RefundProduct[]
-  transferProducts TransferProduct[]
-  importProducts  ImportProduct[]
-  storageRevisionProducts StorageRevisionProduct[]
-  deliveryProducts  DeliveryProduct[]
-
-  priceGroupProducts PriceGroupProduct[]
-  deliveryPartners   ProductDeliveryPartner[]
-}
-
-model StandProduct {
-  id        String   @id @default(uuid())
-  stand     Stand    @relation(fields: [standId], references: [id])
-  standId   String
-  product   Product  @relation(fields: [productId], references: [id])
-  productId String
-  quantity  Int
-     row       Int?
-     column    Int?
-
-     @@unique([standId, productId])
-}
-
-model Check {
-  id        String   @id @default(uuid())
-  stand     Stand    @relation(fields: [standId], references: [id])
-  standId   String
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  checkedProducts CheckedProduct[]
-  revisions       Revision[] // One-to-many relationship with revisions
-}
-
-model CheckedProduct {
-  id         String   @id @default(uuid())
-  check      Check    @relation(fields: [checkId], references: [id])
-  checkId    String
-  product    Product  @relation(fields: [productId], references: [id])
-  productId  String
-  quantity   Int
-  originalQuantity Int? // Original quantity for sale mode comparison
-  standQuantityAtCheck Int? // Stand quantity at the time of check
-  status     String   // "ok", "missing", "replaced"
-}
-
-model User {
-  id             String   @id @default(uuid())
-  name           String?
-  email          String   @unique
-  password       String   // хеширана с bcrypt
-  role           Role     @default(USER)
-  emailVerified  DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime? @updatedAt
-
-  revisions      Revision[]
-  refunds        Refund[]
-  transfers      Transfer[]
-  userPartners   UserPartner[]
-  userStands     UserStand[]
-  userStorages   UserStorage[]
-  imports        Import[]
-  payments       Payment[]
-  storageRevisions StorageRevision[]
-  cashMovements  CashMovement[]
-  checks         Check[]
-  deliveries     Delivery[]
-  deliveriesAccepted Delivery[] @relation("DeliveryAcceptedBy")
-  deliveryPayments DeliveryPayment[]
-  @@map("users")
-}
-
-enum Role {
-  ADMIN
-  USER
-}
-
-model Partner {
-  id             String   @id               // Външен ID (въвежда се ръчно)
-  name           String                     // Име на фирмата
-  bulstat        String?                    // Булстат
-  contactPerson  String?                    // Лице за контакт
-  email          String?                    // Имейл
-  phone          String?                    // Телефон
-  address        String?                    // Седалище на фирмата
-  country        String?                    // Държава
-  city           String?                    // Град
-  mol            String?                    // МОЛ - Материално отговорно лице
-  percentageDiscount Float?                 // Процентна отстъпка за партньора
-  bankAccountBG  String?                    // Банкова сметка BG
-  bankAccountEUR String?                    // Банкова сметка EUR
-  // Price group linkage (snake_case column mapping)
-  priceGroupId   String?   @map("price_group_id")
-  priceGroup     PriceGroup? @relation(fields: [priceGroupId], references: [id])
-
-  stores         Store[]                    // Връзка към магазини
-  revisions     Revision[]
-
-  userPartners   UserPartner[]
-
-  @@index([priceGroupId], map: "idx_partner_price_group_id")
-}
-
-model Store {
-  id          String   @id @default(uuid()) // Генерирано ID
-  name        String?
-  address     String                         // Локация (адрес)
-  contact     String?                        // Лице за контакт
-  phone       String?                        // Телефон
-  createdAt   DateTime @default(now())
-
-  partner     Partner  @relation(fields: [partnerId], references: [id])
-  partnerId   String                          // Външният ID на фирмата
-
-  stands      Stand[]                         // Щендери в магазина
-  schedules   StoreSchedule[]                 // График за проверка
-}
-
-model StoreSchedule {
-  id        String   @id @default(uuid())
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  storeId   String
-  date      DateTime
-  type      String?  // e.g., "check", "delivery", "maintenance"
-  notes     String?
-  createdAt DateTime @default(now())
-
-  @@unique([storeId, date])
-}
-
-model Revision {
-  id         String   @id @default(uuid())
-  number     Int      @unique // Global sequential sale number
-  stand      Stand?   @relation(fields: [standId], references: [id])
-  standId    String?
-  storage    Storage? @relation(fields: [storageId], references: [id])
-  storageId  String?
-  partner    Partner? @relation(fields: [partnerId], references: [id])
-  partnerId  String?
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String
-  createdAt  DateTime @default(now())
-  type       String   @default("manual") // NEW FIELD: origin of revision (e.g., 'import', 'manual', etc.)
-  status     RevisionStatus @default(NOT_PAID) // <-- new field
-  checkId    String?  // Reference to the check that generated this sale
-  saleAmount Decimal  @default(0) @db.Decimal(10, 2)
-
-  check      Check?   @relation(fields: [checkId], references: [id]) // Optional relationship with check
-
-  missingProducts MissingProduct[]
-  payments Payment[]
-}
-
-// Price groups (snake_case table names via @@map)
-model PriceGroup {
-  id        String   @id @default(uuid())
-  name      String
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime? @map("updated_at")
-
-  products  PriceGroupProduct[]
-  partners  Partner[]
-
-  @@map("price_groups")
-}
-
-model PriceGroupProduct {
-  id            String     @id @default(uuid())
-  priceGroup    PriceGroup @relation(fields: [priceGroupId], references: [id])
-  priceGroupId  String     @map("price_group_id")
-  product       Product    @relation(fields: [productId], references: [id])
-  productId     String     @map("product_id")
-  price         Decimal    @db.Decimal(10, 2)
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime?  @map("updated_at")
-
-  @@unique([priceGroupId, productId])
-  @@index([priceGroupId], map: "idx_price_group_products_group")
-  @@index([productId], map: "idx_price_group_products_product")
-  @@map("price_group_products")
-}
-
-enum RevisionStatus {
-  PAID
-  NOT_PAID
-}
-
-model MissingProduct {
-  id          String   @id @default(uuid())
-  revision    Revision @relation(fields: [revisionId], references: [id])
-  revisionId  String
-  product     Product  @relation(fields: [productId], references: [id])
-  productId   String
-  missingQuantity Int
-  givenQuantity Int?   // Quantity actually scanned/transferred (doesn't affect stats)
-  priceAtSale Float?
-}
-
-model Storage {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-
-  storageProducts StorageProduct[]
-  userStorages    UserStorage[]
-  revisions       Revision[]
-  imports         Import[]
-  cashRegister    CashRegister?
-  storageRevisions StorageRevision[]
-  deliveries       Delivery[]
-}
-
-model StorageProduct {
-  id        String   @id @default(uuid())
-  storage   Storage  @relation(fields: [storageId], references: [id], onDelete: Cascade)
-  storageId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId String
-  quantity  Int
-
-  @@unique([storageId, productId])
-}
-
-model StorageRevision {
-  id        String   @id @default(uuid())
-  storage   Storage  @relation(fields: [storageId], references: [id])
-  storageId String
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  createdAt DateTime @default(now())
-
-  products StorageRevisionProduct[]
-
-  @@map("storage_revisions")
-}
-
-model StorageRevisionProduct {
-  id                  String           @id @default(uuid())
-  storageRevision     StorageRevision  @relation(fields: [storageRevisionId], references: [id], onDelete: Cascade)
-  storageRevisionId   String
-  product             Product          @relation(fields: [productId], references: [id])
-  productId           String
-  originalQuantity    Int
-  checkedQuantity     Int
-
-  @@unique([storageRevisionId, productId])
-  @@map("storage_revision_products")
-}
-
-model Invoice {
-  id             String   @id @default(uuid())
-  invoiceNumber  Int      @unique
-  issuedAt       DateTime @default(now())
-  // Partner info
-  partnerName    String
-  partnerBulstat String?
-  partnerMol     String?
-  partnerAddress String?
-  partnerCountry String?
-  partnerCity    String?
-  // User info
-  preparedBy     String
-  // Products as JSON
-  products       Json
-  // Totals
-  totalValue     Float
-  vatBase        Float
-  vatAmount      Float
-  paymentMethod  PaymentMethod @default(CASH)
-  // Reference to revision number
-  revisionNumber Int?
-
-  creditNotes    CreditNote[] // An invoice can have many credit notes
-  payments Payment[]
-}
-
-model CreditNote {
-  id             String   @id @default(uuid())
-  creditNoteNumber Int    @unique
-  issuedAt       DateTime @default(now())
-  // Partner info
-  partnerName    String
-  partnerBulstat String?
-  partnerMol     String?
-  partnerAddress String?
-  partnerCountry String?
-  partnerCity    String?
-  // User info
-  preparedBy     String
-  // Products as JSON
-  products       Json
-  // Totals
-  totalValue     Float
-  vatBase        Float
-  vatAmount      Float
-  paymentMethod  PaymentMethod @default(CASH)
-  // Reference to the credited invoice
-  invoiceId      String
-  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
-  // Reference to the refund (optional)
-  refundId       String?  // <-- add this
-  refund         Refund?  @relation(fields: [refundId], references: [id])
-}
-
-enum PaymentMethod {
-  CASH
-  BANK
-}
-
-model Refund {
-  id         String   @id @default(uuid())
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String
-  note       String?
-  sourceType RefundSourceType
-  sourceId   String // standId or storageId
-  createdAt  DateTime @default(now())
-  refundProducts RefundProduct[]
-  returnedToStorageId String? // storage where products were returned
-  returnedAt DateTime?        // when products were returned
-  creditNotes CreditNote[]    // <-- add this for relation
-}
-
-model RefundProduct {
-  id         String   @id @default(uuid())
-  refund     Refund   @relation(fields: [refundId], references: [id])
-  refundId   String
-  product    Product  @relation(fields: [productId], references: [id])
-  productId  String
-  quantity   Int
-  priceAtRefund Float?
-}
-
-enum RefundSourceType {
-  STAND
-  STORAGE
-}
-
-model UserPartner {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  partner   Partner  @relation(fields: [partnerId], references: [id])
-  partnerId String
-
-  @@unique([userId, partnerId])
-}
-
-model UserStand {
-  id      String @id @default(uuid())
-  user    User   @relation(fields: [userId], references: [id])
-  userId  String
-  stand   Stand  @relation(fields: [standId], references: [id])
-  standId String
-
-  @@unique([userId, standId])
-}
-
-model UserStorage {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  storage   Storage  @relation(fields: [storageId], references: [id])
-  storageId String
-
-  @@unique([userId, storageId])
-}
-
-model Transfer {
-  id                   String            @id @default(uuid())
-  createdAt            DateTime          @default(now())
-  sourceStorageId      String
-  destinationStorageId String
-  user                 User              @relation(fields: [userId], references: [id])
-  userId               String
-  products             TransferProduct[]
-  status               String            @default("PENDING") // PENDING, COMPLETED
-  confirmedById        String?
-  confirmedAt          DateTime?
-
-  @@index([sourceStorageId])
-  @@index([destinationStorageId])
-  @@index([userId])
-}
-
-model TransferProduct {
-  id         String   @id @default(uuid())
-  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
-  transferId String
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
-  productId  String
-  quantity   Int
-
-  @@unique([transferId, productId])
-}
-
-model ImportProduct {
-  id        String   @id @default(uuid())
-  import    Import   @relation(fields: [importId], references: [id])
-  importId  String
-  product   Product  @relation(fields: [productId], references: [id])
-  productId String
-  quantity  Int
-}
-
-model Import {
-  id          String   @id @default(uuid())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
-  stand       Stand?   @relation(fields: [standId], references: [id])
-  standId     String?
-  storage     Storage? @relation(fields: [storageId], references: [id])
-  storageId   String?
-  fileName    String   @unique
-  createdAt   DateTime @default(now())
-  importProducts ImportProduct[]
-}
-
-model CashRegister {
-  id           String        @id @default(uuid())
-  storage      Storage       @relation(fields: [storageId], references: [id])
-  storageId    String        @unique
-  cashBalance  Float         @default(0)
-  payments     Payment[]
-  cashMovements CashMovement[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-}
-
-model Payment {
-  id             String      @id @default(uuid())
-  amount         Float
-  method         PaymentMethod
-  revision       Revision    @relation(fields: [revisionId], references: [id])
-  revisionId     String
-  invoice        Invoice?    @relation(fields: [invoiceId], references: [id])
-  invoiceId      String?
-  cashRegister   CashRegister @relation(fields: [cashRegisterId], references: [id])
-  cashRegisterId String
-  user           User        @relation(fields: [userId], references: [id])
-  userId         String
-  createdAt      DateTime    @default(now())
-}
-
-model CashMovement {
-  id             String      @id @default(uuid())
-  amount         Float
-  type           CashMovementType
-  cashRegister   CashRegister @relation(fields: [cashRegisterId], references: [id])
-  cashRegisterId String
-  user           User        @relation(fields: [userId], references: [id])
-  userId         String
-  reason         String?
-  createdAt      DateTime    @default(now())
-}
-
-enum CashMovementType {
-  DEPOSIT
-  WITHDRAWAL
-}
-
-// --- Deliveries domain ---
-
-enum DeliveryStatus {
-  DRAFT
-  ACCEPTED
-}
-
-enum DeliveryPaidStatus {
-  NOT_PAID
-  PAID
-}
-
-model DeliveryPartner {
-  id              String   @id @default(uuid())
-  name            String
-  bulstat         String?
-  contactPerson   String?
-  email           String?
-  phone           String?
-  address         String?
-  country         String?
-  city            String?
-  mol             String?
-  bankAccountBG   String?
-  bankAccountEUR  String?
-  createdAt       DateTime @default(now())
-
-  deliveries      Delivery[]
-  products        ProductDeliveryPartner[]
-}
-
-model Delivery {
-  id              String            @id @default(uuid())
-  number          Int               @unique
-  supplier        DeliveryPartner   @relation(fields: [supplierId], references: [id])
-  supplierId      String
-  storage         Storage           @relation(fields: [storageId], references: [id])
-  storageId       String
-  user            User              @relation(fields: [userId], references: [id])
-  userId          String
-  createdAt       DateTime          @default(now())
-  acceptedAt      DateTime?
-  acceptedBy      User?             @relation("DeliveryAcceptedBy", fields: [acceptedById], references: [id])
-  acceptedById    String?
-  status          DeliveryStatus    @default(DRAFT)
-  paidStatus      DeliveryPaidStatus @default(NOT_PAID)
-
-  products        DeliveryProduct[]
-  payments        DeliveryPayment[]
-}
-
-model DeliveryProduct {
-  id           String   @id @default(uuid())
-  delivery     Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  deliveryId   String
-  product      Product? @relation(fields: [productId], references: [id])
-  productId    String?
-  quantity     Int
-  unitPrice    Float    // unit delivery price from the delivery document
-  clientPrice  Float?    // unit client price from the delivery document
-  // Unresolved product info (for drafts imported from XML)
-  barcode      String?
-  pcd          String?
-  name         String?
-
-  @@unique([deliveryId, productId])
-}
-
-model DeliveryPayment {
-  id            String    @id @default(uuid())
-  delivery      Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  deliveryId    String
-  amount        Float
-  method        PaymentMethod @default(CASH)
-  createdAt     DateTime  @default(now())
-  user          User      @relation(fields: [userId], references: [id])
-  userId        String
-  // supplier      DeliveryPartner @relation(fields: [supplierId], references: [id])
-  supplierId    String?
-}
-
-// Join table: Product ↔ DeliveryPartner (many-to-many)
-model ProductDeliveryPartner {
-  id                 String           @id @default(uuid())
-  product            Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId          String
-  deliveryPartner    DeliveryPartner  @relation(fields: [deliveryPartnerId], references: [id], onDelete: Cascade)
-  deliveryPartnerId  String
-  firstSeenAt        DateTime         @default(now())
-
-  @@unique([productId, deliveryPartnerId])
-}
+
+  generator client {
+    provider = "prisma-client-js"
+  }
+
+  datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
+
+  model Stand {
+    id        String   @id @default(uuid())
+    name      String
+    store     Store    @relation(fields: [storeId], references: [id])
+    storeId   String
+    rows      Int?
+    barcode   String?  @unique
+    columns   Int?
+    createdAt DateTime @default(now())
+    email     String?
+    isActive  Boolean  @default(true)
+    regionId    String?
+    region      Region?     @relation(fields: [regionId], references: [id])
+
+
+    deactivatedAt DateTime?
+
+    standProducts StandProduct[]
+    checks        Check[]
+    revisions     Revision[]
+
+    userStands UserStand[]
+    imports    Import[]
+    // region     Region[]
+  }
+
+  model Product {
+    id            String   @id @default(uuid())
+    name          String
+    invoiceName   String?  @map("invoice_name")
+    barcode       String   @unique
+    pcode         String?  @unique
+    clientPrice   Float // цена на продажба (за магазини)
+    deliveryPrice Float    @default(0) // цена на доставка (от XML)
+    pcd           String? // препоръчкителна цена доставчик
+    quantity      Int      @default(0)
+    active        Boolean  @default(true)
+    createdAt     DateTime @default(now())
+    image         String?
+
+    standProducts           StandProduct[]
+    checkedProducts         CheckedProduct[]
+    missingProducts         MissingProduct[]
+    storageProducts         StorageProduct[]
+    refundProducts          RefundProduct[]
+    transferProducts        TransferProduct[]
+    importProducts          ImportProduct[]
+    storageRevisionProducts StorageRevisionProduct[]
+    deliveryProducts        DeliveryProduct[]
+
+    priceGroupProducts PriceGroupProduct[]
+    deliveryPartners   ProductDeliveryPartner[]
+  }
+
+  model StandProduct {
+    id        String  @id @default(uuid())
+    stand     Stand   @relation(fields: [standId], references: [id])
+    standId   String
+    product   Product @relation(fields: [productId], references: [id])
+    productId String
+    quantity  Int
+    row       Int?
+    column    Int?
+
+    @@unique([standId, productId])
+  }
+
+  model Check {
+    id        String   @id @default(uuid())
+    stand     Stand    @relation(fields: [standId], references: [id])
+    standId   String
+    user      User     @relation(fields: [userId], references: [id])
+    userId    String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    checkedProducts CheckedProduct[]
+    revisions       Revision[] // One-to-many relationship with revisions
+  }
+
+  model CheckedProduct {
+    id                   String  @id @default(uuid())
+    check                Check   @relation(fields: [checkId], references: [id])
+    checkId              String
+    product              Product @relation(fields: [productId], references: [id])
+    productId            String
+    quantity             Int
+    originalQuantity     Int? // Original quantity for sale mode comparison
+    standQuantityAtCheck Int? // Stand quantity at the time of check
+    status               String // "ok", "missing", "replaced"
+  }
+
+  model User {
+    id            String    @id @default(uuid())
+    name          String?
+    email         String    @unique
+    password      String // хеширана с bcrypt
+    role          Role      @default(USER)
+    emailVerified DateTime?
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime? @updatedAt
+
+    revisions          Revision[]
+    refunds            Refund[]
+    transfers          Transfer[]
+    userPartners       UserPartner[]
+    userStands         UserStand[]
+    userStorages       UserStorage[]
+    imports            Import[]
+    payments           Payment[]
+    storageRevisions   StorageRevision[]
+    cashMovements      CashMovement[]
+    checks             Check[]
+    deliveries         Delivery[]
+    deliveriesAccepted Delivery[]        @relation("DeliveryAcceptedBy")
+    deliveryPayments   DeliveryPayment[]
+    image              String?
+    sessions           Session[]
+    accounts           Account[]
+
+    @@map("users")
+  }
+
+  enum Role {
+    ADMIN
+    USER
+  }
+
+  model Partner {
+    id                 String      @id // Външен ID (въвежда се ръчно)
+    name               String // Име на фирмата
+    bulstat            String? // Булстат
+    contactPerson      String? // Лице за контакт
+    email              String? // Имейл
+    phone              String? // Телефон
+    address            String? // Седалище на фирмата
+    country            String? // Държава
+    city               String? // Град
+    mol                String? // МОЛ - Материално отговорно лице
+    percentageDiscount Float? // Процентна отстъпка за партньора
+    bankAccountBG      String? // Банкова сметка BG
+    bankAccountEUR     String? // Банкова сметка EUR
+    // Price group linkage (snake_case column mapping)
+    priceGroupId       String?     @map("price_group_id")
+    priceGroup         PriceGroup? @relation(fields: [priceGroupId], references: [id])
+
+    stores    Store[] // Връзка към магазини
+    revisions Revision[]
+
+    userPartners UserPartner[]
+
+    @@index([priceGroupId], map: "idx_partner_price_group_id")
+  }
+
+  model Store {
+    id        String   @id @default(uuid()) // Генерирано ID
+    name      String?
+    address   String // Локация (адрес)
+    contact   String? // Лице за контакт
+    phone     String? // Телефон
+    cityId    String?
+    city      City?     @relation(fields: [cityId], references: [id])
+    createdAt DateTime @default(now())
+
+
+    partner   Partner @relation(fields: [partnerId], references: [id])
+    partnerId String // Външният ID на фирмата
+
+    stands    Stand[] // Щендери в магазина
+    schedules StoreSchedule[] // График за проверка
+  }
+
+  model StoreSchedule {
+    id        String   @id @default(uuid())
+    store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+    storeId   String
+    date      DateTime
+    type      String? // e.g., "check", "delivery", "maintenance"
+    notes     String?
+    createdAt DateTime @default(now())
+
+    @@unique([storeId, date])
+  }
+
+  model Revision {
+    id         String         @id @default(uuid())
+    number     Int            @unique // Global sequential sale number
+    stand      Stand?         @relation(fields: [standId], references: [id])
+    standId    String?
+    storage    Storage?       @relation(fields: [storageId], references: [id])
+    storageId  String?
+    partner    Partner?       @relation(fields: [partnerId], references: [id])
+    partnerId  String?
+    user       User           @relation(fields: [userId], references: [id])
+    userId     String
+    createdAt  DateTime       @default(now())
+    type       String         @default("manual") // NEW FIELD: origin of revision (e.g., 'import', 'manual', etc.)
+    status     RevisionStatus @default(NOT_PAID) // <-- new field
+    checkId    String? // Reference to the check that generated this sale
+    saleAmount Decimal        @default(0) @db.Decimal(10, 2)
+
+    check Check? @relation(fields: [checkId], references: [id]) // Optional relationship with check
+
+    invoice    Invoice? @relation("RevisionInvoice")
+
+    missingProducts MissingProduct[]
+    payments        Payment[]
+
+
+    }
+
+  // Price groups (snake_case table names via @@map)
+
+  model PriceGroup {
+    id        String    @id @default(uuid())
+    name      String
+    isActive  Boolean   @default(true) @map("is_active")
+    createdAt DateTime  @default(now()) @map("created_at")
+    updatedAt DateTime? @map("updated_at")
+
+    products PriceGroupProduct[]
+    partners Partner[]
+
+    @@map("price_groups")
+  }
+
+  model PriceGroupProduct {
+    id           String     @id @default(uuid())
+    priceGroup   PriceGroup @relation(fields: [priceGroupId], references: [id])
+    priceGroupId String     @map("price_group_id")
+    product      Product    @relation(fields: [productId], references: [id])
+    productId    String     @map("product_id")
+    price        Decimal    @db.Decimal(10, 2)
+    createdAt    DateTime   @default(now()) @map("created_at")
+    updatedAt    DateTime?  @map("updated_at")
+
+    @@unique([priceGroupId, productId])
+    @@index([priceGroupId], map: "idx_price_group_products_group")
+    @@index([productId], map: "idx_price_group_products_product")
+    @@map("price_group_products")
+  }
+
+  enum RevisionStatus {
+    PAID
+    NOT_PAID
+  }
+
+  model MissingProduct {
+    id              String   @id @default(uuid())
+    revision        Revision @relation(fields: [revisionId], references: [id])
+    revisionId      String
+    product         Product  @relation(fields: [productId], references: [id])
+    productId       String
+    missingQuantity Int
+    givenQuantity   Int? // Quantity actually scanned/transferred (doesn't affect stats)
+    priceAtSale     Float?
+  }
+
+  model Storage {
+    id        String   @id @default(uuid())
+    name      String   @unique
+    createdAt DateTime @default(now())
+
+    storageProducts  StorageProduct[]
+    userStorages     UserStorage[]
+    revisions        Revision[]
+    imports          Import[]
+    cashRegister     CashRegister?
+    storageRevisions StorageRevision[]
+    deliveries       Delivery[]
+  }
+
+  model StorageProduct {
+    id        String  @id @default(uuid())
+    storage   Storage @relation(fields: [storageId], references: [id], onDelete: Cascade)
+    storageId String
+    product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+    productId String
+    quantity  Int
+
+    @@unique([storageId, productId])
+  }
+
+  model StorageRevision {
+    id        String   @id @default(uuid())
+    storage   Storage  @relation(fields: [storageId], references: [id])
+    storageId String
+    user      User     @relation(fields: [userId], references: [id])
+    userId    String
+    createdAt DateTime @default(now())
+
+    products StorageRevisionProduct[]
+
+    @@map("storage_revisions")
+  }
+
+  model StorageRevisionProduct {
+    id                String          @id @default(uuid())
+    storageRevision   StorageRevision @relation(fields: [storageRevisionId], references: [id], onDelete: Cascade)
+    storageRevisionId String
+    product           Product         @relation(fields: [productId], references: [id])
+    productId         String
+    originalQuantity  Int
+    checkedQuantity   Int
+
+    @@unique([storageRevisionId, productId])
+    @@map("storage_revision_products")
+  }
+
+  model Invoice {
+    id             String        @id @default(uuid())
+    invoiceNumber  Int           @unique
+    issuedAt       DateTime      @default(now())
+    // Partner info
+    partnerName    String
+    partnerBulstat String?
+    partnerMol     String?
+    partnerAddress String?
+    partnerCountry String?
+    partnerCity    String?
+    // User info
+    preparedBy     String
+    // Products as JSON
+    products       Json
+    // Totals
+    totalValue     Float
+    vatBase        Float
+    vatAmount      Float
+    paymentMethod  PaymentMethod @default(CASH)
+    // Reference to revision number
+    revisionNumber Int?
+
+    revisionId  String?    @unique
+    revision    Revision?  @relation("RevisionInvoice", fields: [revisionId], references: [id])
+
+
+    deliveryId String? @unique
+    delivery   Delivery? @relation("DeliveryInvoice", fields: [deliveryId], references: [id])
+
+
+    creditNotes CreditNote[] // An invoice can have many credit notes
+    payments    Payment[]
+
+
+  }
+
+  model CreditNote {
+    id               String        @id @default(uuid())
+    creditNoteNumber Int           @unique
+    issuedAt         DateTime      @default(now())
+    // Partner info
+    partnerName      String
+    partnerBulstat   String?
+    partnerMol       String?
+    partnerAddress   String?
+    partnerCountry   String?
+    partnerCity      String?
+    // User info
+    preparedBy       String
+    // Products as JSON
+    products         Json
+    // Totals
+    totalValue       Float
+    vatBase          Float
+    vatAmount        Float
+    paymentMethod    PaymentMethod @default(CASH)
+    // Reference to the credited invoice
+    invoiceId        String
+    invoice          Invoice       @relation(fields: [invoiceId], references: [id])
+    // Reference to the refund (optional)
+    refundId         String? // <-- add this
+    refund           Refund?       @relation(fields: [refundId], references: [id])
+  }
+
+  enum PaymentMethod {
+    CASH
+    BANK
+  }
+
+  model Refund {
+    id                  String           @id @default(uuid())
+    user                User             @relation(fields: [userId], references: [id])
+    userId              String
+    note                String?
+    sourceType          RefundSourceType
+    sourceId            String // standId or storageId
+    createdAt           DateTime         @default(now())
+    refundProducts      RefundProduct[]
+    returnedToStorageId String? // storage where products were returned
+    returnedAt          DateTime? // when products were returned
+    creditNotes         CreditNote[] // <-- add this for relation
+  }
+
+  model RefundProduct {
+    id            String  @id @default(uuid())
+    refund        Refund  @relation(fields: [refundId], references: [id])
+    refundId      String
+    product       Product @relation(fields: [productId], references: [id])
+    productId     String
+    quantity      Int
+    priceAtRefund Float?
+  }
+
+  enum RefundSourceType {
+    STAND
+    STORAGE
+  }
+
+  model UserPartner {
+    id        String  @id @default(uuid())
+    user      User    @relation(fields: [userId], references: [id])
+    userId    String
+    partner   Partner @relation(fields: [partnerId], references: [id])
+    partnerId String
+
+    @@unique([userId, partnerId])
+  }
+
+  model UserStand {
+    id      String @id @default(uuid())
+    user    User   @relation(fields: [userId], references: [id])
+    userId  String
+    stand   Stand  @relation(fields: [standId], references: [id])
+    standId String
+
+    @@unique([userId, standId])
+  }
+
+  model UserStorage {
+    id        String  @id @default(uuid())
+    user      User    @relation(fields: [userId], references: [id])
+    userId    String
+    storage   Storage @relation(fields: [storageId], references: [id])
+    storageId String
+
+    @@unique([userId, storageId])
+  }
+
+  model Transfer {
+    id                   String            @id @default(uuid())
+    createdAt            DateTime          @default(now())
+    sourceStorageId      String
+    destinationStorageId String
+    user                 User              @relation(fields: [userId], references: [id])
+    userId               String
+    products             TransferProduct[]
+    status               String            @default("PENDING") // PENDING, COMPLETED
+    confirmedById        String?
+    confirmedAt          DateTime?
+
+    @@index([sourceStorageId])
+    @@index([destinationStorageId])
+    @@index([userId])
+  }
+
+  model TransferProduct {
+    id         String   @id @default(uuid())
+    transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+    transferId String
+    product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+    productId  String
+    quantity   Int
+
+    @@unique([transferId, productId])
+  }
+
+  model ImportProduct {
+    id        String  @id @default(uuid())
+    import    Import  @relation(fields: [importId], references: [id])
+    importId  String
+    product   Product @relation(fields: [productId], references: [id])
+    productId String
+    quantity  Int
+  }
+
+  model Import {
+    id             String          @id @default(uuid())
+    user           User            @relation(fields: [userId], references: [id])
+    userId         String
+    stand          Stand?          @relation(fields: [standId], references: [id])
+    standId        String?
+    storage        Storage?        @relation(fields: [storageId], references: [id])
+    storageId      String?
+    fileName       String          @unique
+    createdAt      DateTime        @default(now())
+    importProducts ImportProduct[]
+  }
+
+  model CashRegister {
+    id            String         @id @default(uuid())
+    storage       Storage        @relation(fields: [storageId], references: [id])
+    storageId     String         @unique
+    cashBalance   Float          @default(0)
+    payments      Payment[]
+    cashMovements CashMovement[]
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+  }
+
+  model Payment {
+    id             String        @id @default(uuid())
+    amount         Float
+    method         PaymentMethod
+    revision       Revision      @relation(fields: [revisionId], references: [id])
+    revisionId     String
+    invoice        Invoice?      @relation(fields: [invoiceId], references: [id])
+    invoiceId      String?
+    cashRegister   CashRegister  @relation(fields: [cashRegisterId], references: [id])
+    cashRegisterId String
+    user           User          @relation(fields: [userId], references: [id])
+    userId         String
+    createdAt      DateTime      @default(now())
+  }
+
+  model CashMovement {
+    id             String           @id @default(uuid())
+    amount         Float
+    type           CashMovementType
+    cashRegister   CashRegister     @relation(fields: [cashRegisterId], references: [id])
+    cashRegisterId String
+    user           User             @relation(fields: [userId], references: [id])
+    userId         String
+    reason         String?
+    createdAt      DateTime         @default(now())
+  }
+
+  enum CashMovementType {
+    DEPOSIT
+    WITHDRAWAL
+  }
+
+  // --- Deliveries domain ---
+
+  enum DeliveryStatus {
+    DRAFT
+    ACCEPTED
+  }
+
+  enum DeliveryPaidStatus {
+    NOT_PAID
+    PAID
+  }
+
+  model DeliveryPartner {
+    id             String   @id @default(uuid())
+    name           String
+    bulstat        String?
+    contactPerson  String?
+    email          String?
+    phone          String?
+    address        String?
+    country        String?
+    city           String?
+    mol            String?
+    bankAccountBG  String?
+    bankAccountEUR String?
+    createdAt      DateTime @default(now())
+
+    deliveries Delivery[]
+    products   ProductDeliveryPartner[]
+  }
+
+  model Delivery {
+    id           String             @id @default(uuid())
+    number       Int                @unique
+    supplier     DeliveryPartner    @relation(fields: [supplierId], references: [id])
+    supplierId   String
+    storage      Storage            @relation(fields: [storageId], references: [id])
+    storageId    String
+    user         User               @relation(fields: [userId], references: [id])
+    userId       String
+    createdAt    DateTime           @default(now())
+    acceptedAt   DateTime?
+    acceptedBy   User?              @relation("DeliveryAcceptedBy", fields: [acceptedById], references: [id])
+    acceptedById String?
+    status       DeliveryStatus     @default(DRAFT)
+    paidStatus   DeliveryPaidStatus @default(NOT_PAID)
+
+    products DeliveryProduct[]
+    payments DeliveryPayment[]
+    invoice    Invoice? @relation("DeliveryInvoice")
+
+  }
+
+  model DeliveryProduct {
+    id          String   @id @default(uuid())
+    delivery    Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+    deliveryId  String
+    product     Product? @relation(fields: [productId], references: [id])
+    productId   String?
+    quantity    Int
+    unitPrice   Float // unit delivery price from the delivery document
+    clientPrice Float? // unit client price from the delivery document
+    // Unresolved product info (for drafts imported from XML)
+    barcode     String?
+    pcd         String?
+    name        String?
+
+    @@unique([deliveryId, productId])
+  }
+
+  model DeliveryPayment {
+    id         String        @id @default(uuid())
+    delivery   Delivery      @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+    deliveryId String
+    amount     Float
+    method     PaymentMethod @default(CASH)
+    createdAt  DateTime      @default(now())
+    user       User          @relation(fields: [userId], references: [id])
+    userId     String
+    // supplier      DeliveryPartner @relation(fields: [supplierId], references: [id])
+    supplierId String?
+  }
+
+  // Join table: Product ↔ DeliveryPartner (many-to-many)
+
+  model ProductDeliveryPartner {
+    id                String          @id @default(uuid())
+    product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+    productId         String
+    deliveryPartner   DeliveryPartner @relation(fields: [deliveryPartnerId], references: [id], onDelete: Cascade)
+    deliveryPartnerId String
+    firstSeenAt       DateTime        @default(now())
+
+    @@unique([productId, deliveryPartnerId])
+  }
+
+  model Session {
+    id        String   @id
+    expiresAt DateTime
+    token     String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    ipAddress String?
+    userAgent String?
+    userId    String
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([token])
+    @@map("session")
+  }
+
+  model Account {
+    id                    String    @id
+    accountId             String
+    providerId            String
+    userId                String
+    user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    createdAt             DateTime  @default(now())
+    updatedAt             DateTime  @updatedAt
+
+    @@map("account")
+  }
+
+  model Verification {
+    id         String   @id
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @default(now()) @updatedAt
+
+    @@map("verification")
+  }
+
+
+  model Region {
+    id     String  @id @default(uuid())
+    name   String
+
+    stands Stand[]
+  }
+
+
+  model City {
+    id        String   @id @default(cuid())
+    name      String
+    stores    Store[]
+  }

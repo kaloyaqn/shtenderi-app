@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 import { toast } from "sonner";
 import TableLink from "@/components/ui/table-link";
 import LoadingScreen from "@/components/LoadingScreen";

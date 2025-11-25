@@ -18,7 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
+import { authClient } from "@/lib/auth-client";
 import BasicHeader from "@/components/BasicHeader";
 import Link from "next/link";
 import { IconTruckReturn } from "@tabler/icons-react";
@@ -32,7 +33,9 @@ export default function DashboardHome() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      signOut({ callbackUrl: '/login', redirect: true });
+      authClient.signOut().then(() => {
+        window.location.href = '/login';
+      });
     }
   }, [status]);
 

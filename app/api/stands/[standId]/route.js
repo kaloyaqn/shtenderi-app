@@ -1,9 +1,14 @@
 import { getStandById, updateStand, deleteStand } from "@/lib/stands/stand";
+import { getServerSession } from "@/lib/get-session-better-auth";
 
 export async function GET(req, { params }) {
     try {
-        const { standId } = params;
+        const session = await getServerSession();
+        if (!session) return new Response('Unauthorized', { status: 401 });
+
+        const { standId } = await params;
         const stand = await getStandById(standId);
+        console.log(stand, "STAND")
         return Response.json(stand);
     } catch (err) {
         console.error('[STAND_GET_ERROR]', err);
@@ -18,7 +23,12 @@ export async function GET(req, { params }) {
 
 export async function PATCH(req, { params }) {
     try {
-        const { standId } = params;
+        const session = await getServerSession();
+        if (!session || session.user?.role !== 'ADMIN') {
+            return new Response('Forbidden', { status: 403 });
+        }
+
+        const { standId } = await params;
         const body = await req.json();
         const updatedStand = await updateStand(standId, body);
         return Response.json(updatedStand);
@@ -35,7 +45,12 @@ export async function PATCH(req, { params }) {
 
 export async function DELETE(req, { params }) {
     try {
-        const { standId } = params;
+        const session = await getServerSession();
+        if (!session || session.user?.role !== 'ADMIN') {
+            return new Response('Forbidden', { status: 403 });
+        }
+
+        const { standId } = await params;
         await deleteStand(standId);
         return new Response(null, { status: 204 });
     } catch (err) {

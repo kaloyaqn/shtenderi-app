@@ -28,7 +28,7 @@ import {
   ArrowLeftRight,
   Loader2,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 import BasicHeader from "@/components/BasicHeader";
 
 export default function GeneralResupplyPage() {

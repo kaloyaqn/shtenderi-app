@@ -1,7 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getServerSession } from "@/lib/get-session-better-auth";
 import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import SessionLayout from "./SessionLayout";
@@ -11,9 +10,11 @@ import AnnouncementModal from "@/components/announcements/NewDesign";
 import VersionBanner from "@/components/version-banner";
 import PageHelpTour from "@/components/help/PageHelpTour";
 import CommandProvider from "@/components/command-provider";
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
+
 
 export default async function DashboardLayout({ children }) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   console.log("Current user session:", session);
 
   if (!session) {
@@ -29,12 +30,15 @@ export default async function DashboardLayout({ children }) {
           "--header-height": "calc(var(--spacing) * 12)",
         }}
       >
-        <AppSidebar variant="inset" />
+        <AppSidebar variant="inset" session={session} />
         <SidebarInset className="md:p-4 p-1 pb-4">
           <Toaster position="top-center" />
           {/* <AnnouncementModal /> */}
           <ErrorBoundary>
-            <div className="md:pb-0 pb-[84px]">{children}</div>
+            <NuqsAdapter>
+              <div className="md:pb-0 pb-[84px]">{children}</div>
+
+            </NuqsAdapter>
           </ErrorBoundary>
         </SidebarInset>
         <MobileNavWrapper />

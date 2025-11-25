@@ -8,6 +8,9 @@ export async function GET(req, { params }) {
     const products = await prisma.storageProduct.findMany({
       where: {
         storageId: storageId,
+        // product: {
+        //   isActive: true,
+        // },
       },
       include: {
         product: true, // Include the full product details
@@ -31,7 +34,7 @@ export async function POST(req, { params }) {
       const { storageId } = await params;
       const body = await req.json();
       const { productId, quantity } = body;
-  
+
       if (!productId || quantity === undefined) {
         return new NextResponse('Product ID and quantity are required', { status: 400 });
       }
@@ -40,7 +43,7 @@ export async function POST(req, { params }) {
       if (isNaN(numericQuantity) || numericQuantity < 0) {
         return new NextResponse('Invalid quantity', { status: 400 });
       }
-  
+
       const newStorageProduct = await prisma.storageProduct.upsert({
         where: {
             storageId_productId: {
@@ -59,10 +62,10 @@ export async function POST(req, { params }) {
           quantity: numericQuantity,
         },
       });
-  
+
       return NextResponse.json(newStorageProduct);
     } catch (error) {
       console.error('[STORAGE_PRODUCTS_POST]', error);
       return new NextResponse('Internal error', { status: 500 });
     }
-} 
+}

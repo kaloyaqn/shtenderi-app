@@ -1,14 +1,14 @@
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 
 export async function POST(req, { params }) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session || session.user.role !== 'ADMIN') {
     return new Response('Forbidden', { status: 403 });
   }
 
-  const { userId } = params;
+  const { userId } = await params;
   const { storageIds } = await req.json();
 
   if (!Array.isArray(storageIds)) {

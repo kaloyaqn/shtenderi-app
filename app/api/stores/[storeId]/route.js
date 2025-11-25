@@ -1,68 +1,92 @@
-import { getStoreById, updateStore, deleteStore, updateStoreSchedule } from '@/lib/stores/store'
+import {prisma} from "@/lib/prisma";
 
-
-// GET: Връща магазин по ID с партньор
+// GET store by ID
 export async function GET(req, { params }) {
   try {
-    const { storeId } = params
-    const store = await getStoreById(storeId)
-    return Response.json(store)
+    const { storeId } = await params;
+
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      include: {
+        partner: true,
+        city: true,
+        stands: {
+          include: {
+            region: true,
+          }
+        }
+      }
+    });
+
+    const revenue = await prisma.revision.aggregate({
+      _sum: { saleAmount: true },
+      where: {
+        stand: {
+          storeId: storeId,
+        },
+      },
+    });
+
+
+
+    return Response.json({      ...store,
+    revenue: revenue._sum.saleAmount ?? 0,});
   } catch (error) {
-    console.error('[STORE_GET_ERROR]', error)
-    const status = error.status || 500
-    const message = error.message || 'Failed to fetch store'
-    return new Response(JSON.stringify({ error: message }), {
-      status,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    console.error("[STORE_GET_ERROR]", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to fetch store" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 }
 
-// PUT: Редактира магазин
-
+// UPDATE store
 export async function PUT(req, { params }) {
   try {
     const { storeId } = params;
+    const data = await req.json();
 
-    const url = new URL(req.url, `http://${req.headers.get("host")}`);
-    const hasScheduleQuery = url.searchParams.has('schedule');
+    const updated = await prisma.store.update({
+      where: { id: storeId },
+      data: {
+        name: data.name,
+        address: data.address,
+        contact: data.contact,
+        phone: data.phone,
+        partnerId: data.partnerId,
+        cityId: data.cityId || null,
+      },
+      include: {
+        partner: { select: { id: true, name: true, percentageDiscount: true } },
+        city: { select: { id: true, name: true } },
+      },
+    });
 
-    const body = await req.json();
-
-    if (hasScheduleQuery) {
-      // If ?schedule is present, update only the schedule
-      console.log("KUR")
-      const updated = await updateStoreSchedule(storeId, body);
-      return Response.json(updated);
-    }
-
-    // Otherwise, update the whole store
-    const store = await updateStore(storeId, body);
-    return Response.json(store);
+    return Response.json(updated);
   } catch (error) {
-    console.error('[STORE_PUT_ERROR]', error)
-    const status = error.status || 500
-    const message = error.message || 'Failed to update store'
-    return new Response(JSON.stringify({ error: message }), {
-      status,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    console.error("[STORE_PUT_ERROR]", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to update store" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 }
 
-// DELETE: Изтрива магазин
+// DELETE store
 export async function DELETE(req, { params }) {
   try {
-    const { storeId } = params
-    await deleteStore(storeId)
-    return new Response(null, { status: 204 })
+    const { storeId } = params;
+
+    await prisma.store.delete({
+      where: { id: storeId },
+    });
+
+    return new Response(null, { status: 204 });
   } catch (error) {
-    console.error('[STORE_DELETE_ERROR]', error)
-    const status = error.status || 500
-    const message = error.message || 'Failed to delete store'
-    return new Response(JSON.stringify({ error: message }), {
-      status,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    console.error("[STORE_DELETE_ERROR]", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to delete store" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
-} 
+}

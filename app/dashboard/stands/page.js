@@ -10,10 +10,11 @@ import {
   Building,
   Package,
   Eye,
+  Filter,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,10 +35,19 @@ import BasicHeader from "@/components/BasicHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import PageHelpTour from "@/components/help/PageHelpTour";
+import useSWR, { mutate } from "swr";
+import { fetcher, multiFetcher } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Combobox } from "@/components/ui/combobox";
+import { Label } from "@/components/ui/label";
+import { useQueryState } from "nuqs";
 
 export default function Stands() {
   const [stands, setStands] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [standToDelete, setStandToDelete] = useState(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -46,27 +56,30 @@ export default function Stands() {
   const isAdmin = session?.user?.role === "ADMIN";
   const isMobile = useIsMobile();
 
-  const fetchStands = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/stands");
-      if (!res.ok) throw new Error("Failed to fetch stands");
-      const data = await res.json();
-      setStands(data);
-    } catch (err) {
-      console.error("Error fetching stands", err);
-      setStands([]); // Ensure stands is an empty array on error
-    } finally {
-      setLoading(false);
-    }
-  };
+  // filters
+  const [isFilterOpen, setFiltersOpen] = useState(false);
+  const [name, setName] = useQueryState("name");
+  const [cityId, setCityId] = useQueryState("cityId");
+  const [regionId, setRegionId] = useQueryState("regionId");
+
+  const { data, error, isLoading } = useSWR(
+    [
+      `/api/stands?city=${cityId}&region=${regionId}&name=${name}`,
+      "/api/cities",
+      "/api/regions",
+    ],
+    multiFetcher,
+  );
+
+  const cities = data?.[1] || [];
+  const regions = data?.[2] || [];
 
   useEffect(() => {
-    if (session) {
-      // Only fetch stands if session is available
-      fetchStands();
-    }
-  }, [session]);
+    if (data) setStands(data?.[0]);
+    console.log(data);
+  }, [data]);
+
+  async function fetchFilters() {}
 
   const handleDelete = async () => {
     if (!standToDelete || !isAdmin) return;
@@ -81,7 +94,7 @@ export default function Stands() {
         throw new Error(error.error || "Failed to delete stand");
       }
 
-      fetchStands(); // Refresh the data
+      mutate("/api/stands");
     } catch (error) {
       console.error("Error deleting stand:", error);
     } finally {
@@ -96,21 +109,64 @@ export default function Stands() {
       header: "Име на щендер",
       cell: ({ row }) => {
         const stand = row.original;
+
         return (
-          <TableLink href={`/dashboard/stands/${stand.id}`}>
-            {stand.name}
-          </TableLink>
+          <span className="flex items-center">
+            <TableLink href={`/dashboard/stands/${stand.id}`}>
+              {stand.name}
+            </TableLink>
+
+            {stand.region?.name && (
+              <Badge variant="success">
+                {stand.region?.name ? `${stand.region.name}  ` : ""}
+              </Badge>
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "lastCheckAt",
+      header: "Чекиран",
+      cell: ({ row }) => {
+        return (
+          <>
+            <TableLink href={`/dashboard/checks/${row.original.lastCheckId}`}>
+              {row.original.lastCheckAt
+                ? new Date(row.original.lastCheckAt).toLocaleString("bg-BG", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })
+                : ""}
+            </TableLink>
+          </>
         );
       },
     },
     {
       accessorKey: "store.partner.name",
       header: "партньор",
+      cell: ({ row }) => {
+        return (
+          <TableLink
+            href={`/dashboard/partners/${row.original.store.partnerId}`}
+          >
+            {row.original.store.partner.name}
+          </TableLink>
+        );
+      },
     },
 
     {
       accessorKey: "store.name",
       header: "магазин",
+      cell: ({ row }) => {
+        return (
+          <TableLink href={`/dashboard/stores/${row.original.store.id}`}>
+            {row.original.store.name}
+          </TableLink>
+        );
+      },
     },
     {
       header: "Търговец",
@@ -123,22 +179,38 @@ export default function Stands() {
           .join(", ");
       },
     },
-    {
-      accessorKey: "_count.standProducts",
-      header: "Брой продукти",
-    },
+    // {
+    //   accessorKey: "_count.standProducts",
+    //   header: "Брой продукти",
+    // },
     {
       accessorKey: "store.partner.percentageDiscount",
       header: "%",
-      cell: ({row}) => {
+      cell: ({ row }) => {
         const PD = row.original.store.partner.percentageDiscount;
 
-        return (
-          <Badge variant={'outline'}>{PD || 0}%</Badge>
-        )
-      }
+        return <Badge variant={"outline"}>{PD || 0}%</Badge>;
+      },
     },
-    // We might want to show the store name here later
+    {
+      accessorKey: "createdAt",
+      header: "Създаден",
+      cell: ({ row }) => {
+        const date = row.original.createdAt;
+        if (!date) return "-";
+        // Format date as dd.MM.yyyy
+        const d = new Date(date);
+        return (
+          <span>
+            {d.toLocaleDateString("bg-BG", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            })}
+          </span>
+        );
+      },
+    },
     {
       id: "actions",
       cell: ({ row }) => {
@@ -167,30 +239,30 @@ export default function Stands() {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingScreen />;
   }
 
-  if (!loading && stands.length === 0) {
-    return (
-      <>
-        <NoAcess
-          icon={<IconLayoutRows className="h-12 w-12 text-gray-400" />}
-          help_text={`Ако имате нужда от помощ, свържете се с администратор.`}
-          subtitlte={`
-        Нямате зачислени щендери. За добавяне на нови складове се свържете с администратор.
-        `}
-          title={isAdmin ? "Няма намерени щендери" : "Нямате зачислени щендери"}
-        />
+  // if (!isLoading && stands.length === 0) {
+  //   return (
+  //     <>
+  //       <NoAcess
+  //         icon={<IconLayoutRows className="h-12 w-12 text-gray-400" />}
+  //         help_text={`Ако имате нужда от помощ, свържете се с администратор.`}
+  //         subtitlte={`
+  //       Нямате зачислени щендери. За добавяне на нови складове се свържете с администратор.
+  //       `}
+  //         title={isAdmin ? "Няма намерени щендери" : "Нямате зачислени щендери"}
+  //       />
 
-        {isAdmin && (
-          <Button onClick={() => router.push("/dashboard/stands/create")}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        )}
-      </>
-    );
-  }
+  //       {isAdmin && (
+  //         <Button onClick={() => router.push("/dashboard/stands/create")}>
+  //           <Plus className="h-4 w-4" />
+  //         </Button>
+  //       )}
+  //     </>
+  //   );
+  // }
 
   if (isMobile) {
     return (
@@ -201,18 +273,68 @@ export default function Stands() {
           title={isAdmin ? "Всички щендери" : "Твоите зачислени щендери"}
           subtitle={"Виж твоите зачислени щендери "}
         >
-          {isAdmin && (
+          {/* {isAdmin && (
             <Button onClick={() => router.push("/dashboard/stands/create")}>
               <Plus className="h-4 w-4" />
             </Button>
-          )}
+          )}*/}
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Filter /> Филтри
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent padding={0} sideOffset={0} className="w-sm">
+              <div className="">
+                <div className="w-full p-4 bg-gray-50 border-b border-b-gray-300 rounded-t-md">
+                  <h4 className="leading-none font-medium">Филтри</h4>
+                  <p className="text-muted-foreground text-sm ">
+                    Избери филтрите
+                  </p>
+                </div>
+                <div className="p-4 flex flex-col gap-4">
+                  <div className="w-full grid gap-2">
+                    <Label>Регион</Label>
+                    <Combobox
+                      placeholder="Избери регион"
+                      onValueChange={(value) => setRegionId(value)}
+                      value={regionId}
+                      options={regions.map((region) => ({
+                        key: region.id,
+                        value: region.id,
+                        label: region.name,
+                      }))}
+                    />
+                  </div>
+
+                  <div className="w-full grid gap-2">
+                    <Label>Град</Label>
+                    <Combobox
+                      options={cities.map((city) => ({
+                        key: city.id,
+                        value: city.id,
+                        label: city.name,
+                      }))}
+                      placeholder="Избери град"
+                      onValueChange={(value) => setCityId(value)}
+                      value={cityId}
+                    />
+                  </div>
+
+                  <Button className={"mt-2"} variant="outline">
+                    <Filter /> Филтрирай
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </BasicHeader>
         <div className="space-y-3 mt-2">
           {/* Visible filter/help section for Joyride */}
           {stands.map((stand) => (
             <Card
-            id="card"
-
+              id="card"
               key={stand.id}
               className="border border-gray-200 shadow-sm py-0"
             >
@@ -222,10 +344,18 @@ export default function Stands() {
                     <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                       <Store className="h-5 w-5 text-green-600" />
                     </div>
-                    <div className="min-w-0">
-                      <h3 id="stand-name" className="font-medium text-gray-900 text-sm whitespace-pre-line break-words">
+                    <div className="min-w-0 flex items-center gap-2">
+                      <h3
+                        id="stand-name"
+                        className="font-medium text-gray-900 text-sm whitespace-pre-line break-words"
+                      >
                         {stand.name}
                       </h3>
+                      {stand.region?.name && (
+                        <Badge variant="success">
+                          {stand.region?.name ? `${stand.region.name}  ` : ""}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <Button
@@ -246,8 +376,9 @@ export default function Stands() {
                       <span className="text-gray-500">Партньор:</span>
                     </div>
                     <span
-                    id="stand-partner"
-                    className="text-gray-900 font-medium">
+                      id="stand-partner"
+                      className="text-gray-900 font-medium"
+                    >
                       {stand.store?.partner?.name || "-"}
                     </span>
                   </div>
@@ -258,8 +389,9 @@ export default function Stands() {
                       <span className="text-gray-500">Магазин:</span>
                     </div>
                     <span
-                    id="stand-store"
-                    className="text-gray-900 font-medium">
+                      id="stand-store"
+                      className="text-gray-900 font-medium"
+                    >
                       {stand.store?.name || "-"}
                     </span>
                   </div>
@@ -267,14 +399,13 @@ export default function Stands() {
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center space-x-2">
                       <Package className="h-4 w-4 text-gray-400" />
-                      <span
-                      className="text-gray-500">Брой продукти:</span>
+                      <span className="text-gray-500">Брой продукти:</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span
-                      id="stand-products"
-                      
-                      className="text-gray-900 font-bold">
+                        id="stand-products"
+                        className="text-gray-900 font-bold"
+                      >
                         {stand._count?.standProducts ?? "-"}
                       </span>
                       {stand._count?.standProducts === 0 && (
@@ -311,13 +442,67 @@ export default function Stands() {
             Управление на щендери и зареждане на стока
           </p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => router.push("/dashboard/stands/create")}>
-            <Plus className="h-4 w-4" />
-            Добави щендер
-          </Button>
-        )}
+
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Filter /> Филтри
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent padding={0} sideOffset={0} className="w-md">
+              <div className="">
+                <div className="w-full p-4 bg-gray-50 border-b border-b-gray-300 rounded-t-md">
+                  <h4 className="leading-none font-medium">Филтри</h4>
+                  <p className="text-muted-foreground text-sm ">
+                    Избери филтрите
+                  </p>
+                </div>
+                <div className="p-4 flex flex-col gap-4">
+                  <div className="w-full grid gap-2">
+                    <Label>Регион</Label>
+                    <Combobox
+                      placeholder="Избери регион"
+                      onValueChange={(value) => setRegionId(value)}
+                      value={regionId}
+                      options={regions.map((region) => ({
+                        key: region.id,
+                        value: region.id,
+                        label: region.name,
+                      }))}
+                    />
+                  </div>
+
+                  <div className="w-full grid gap-2">
+                    <Label>Град</Label>
+                    <Combobox
+                      options={cities.map((city) => ({
+                        key: city.id,
+                        value: city.id,
+                        label: city.name,
+                      }))}
+                      placeholder="Избери град"
+                      onValueChange={(value) => setCityId(value)}
+                      value={cityId}
+                    />
+                  </div>
+
+                  <Button className={"mt-2"} variant="outline">
+                    <Filter /> Филтрирай
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          {isAdmin && (
+            <Button onClick={() => router.push("/dashboard/stands/create")}>
+              <Plus className="h-4 w-4" />
+              Добави щендер
+            </Button>
+          )}
+        </div>
       </div>
+
       <DataTable columns={columns} data={stands} searchKey="name" />
 
       {isAdmin && (

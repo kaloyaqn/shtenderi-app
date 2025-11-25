@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
 
-// List all users (GET)
+
 export async function GET(req) {
   if (req.nextUrl?.pathname?.endsWith('/me')) {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+
+    const session = await getServerSession();
+    if (!session || !session.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const user = await prisma.user.findUnique({
@@ -36,7 +36,7 @@ export async function GET(req) {
   }
 
   // Add authentication check for main users endpoint
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -93,7 +93,7 @@ export async function GET(req) {
 // Create a new user (POST)
 export async function POST(req) {
   // Add authentication check for creating users
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -126,4 +126,4 @@ export async function POST(req) {
   } catch (err) {
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
-} 
+}

@@ -68,8 +68,8 @@ export default function TransferDetailPage() {
         try {
             // Use server-enriched destinationType to determine endpoint
             const isStandTransfer = transfer.destinationType === 'STAND';
-
-            const endpoint = isStandTransfer
+            
+            const endpoint = isStandTransfer 
                 ? `/api/transfers/${transferId}/confirm-stand`
                 : `/api/transfers/${transferId}/confirm`;
             
@@ -264,9 +264,9 @@ export default function TransferDetailPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="border rounded-lg shadow-sm">
-                    <PrintableTransfer ref={printRef} transfer={transfer} />
-                </div>
+            <div className="border rounded-lg shadow-sm">
+                <PrintableTransfer ref={printRef} transfer={transfer} />
+            </div>
             )}
         </div>
     );

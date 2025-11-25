@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req, { params }) {
@@ -15,7 +15,7 @@ export async function GET(req, { params }) {
 
 export async function PUT(req, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const data = await req.json();
     const updated = await prisma.deliveryPartner.update({ where: { id: params.partnerId }, data });
@@ -28,7 +28,7 @@ export async function PUT(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     await prisma.deliveryPartner.delete({ where: { id: params.partnerId } });
     return NextResponse.json({ ok: true });

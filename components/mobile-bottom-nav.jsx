@@ -23,7 +23,7 @@ import {
   Receipt,
   Archive
 } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "@/lib/session-context";
 import { useState } from "react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { IconTransfer } from "@tabler/icons-react";
@@ -42,6 +42,9 @@ const navItems = [
 const extraNavItems = [
   { href: "/dashboard/partners", label: "Партньори", icon: PersonStanding },
   { href: "/dashboard/checks", label: "Проверки", icon: CheckCheckIcon },
+  { href: "/dashboard/revisions", label: "Продажби", icon: FileText },
+  { href: "/dashboard/transfers", label: "Трансфери", icon: Truck },
+  { href: "/dashboard/refunds", label: "Рекламации", icon: Archive },
 ];
 
 // All pages for admin users

@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/get-session-better-auth';
+
 import { getEffectivePrice } from '@/lib/pricing/get-effective-price';
 
 export async function POST(req, { params }) {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
