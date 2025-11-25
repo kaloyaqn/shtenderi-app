@@ -38,6 +38,7 @@ export default function PriceGroupView() {
   // Local diffs
   const [addIds, setAddIds] = useState(new Set());      // products NOT in group that user selected
   const [removeIds, setRemoveIds] = useState(new Set()); // products IN group that user deselected
+  const [addedProducts, setAddedProducts] = useState(new Map()); // cache of newly selected products
   // Local price edits: Map<productId, priceString>
   const [prices, setPrices] = useState({});
   const seededRef = useRef(false);
@@ -61,6 +62,7 @@ export default function PriceGroupView() {
     setPrices({});
     setAddIds(new Set());
     setRemoveIds(new Set());
+    setAddedProducts(new Map());
   }, [params.id]);
 
   // Single source of truth: what should appear in Column 2
@@ -84,7 +86,7 @@ export default function PriceGroupView() {
   // Build the list to show in Column 2 (and to send)
   const selectedProducts = useMemo(
     () => Array.from(selectedIds).map(id => {
-      const prod = productById.get(id);
+      const prod = productById.get(id) ?? addedProducts.get(id);
       // If this product is already in the group, also find its group price for display
       const gpEntry = safeGroupProducts.find(gp => gp.product?.id === id);
       return {
@@ -103,11 +105,13 @@ export default function PriceGroupView() {
         if (aNew === bNew) return 0;
         return aNew ? -1 : 1;
       }),
-    [selectedIds, productById, safeGroupProducts, groupIds, prices]
+    [selectedIds, productById, safeGroupProducts, groupIds, prices, addedProducts]
   );
 
   // Column 1 checkbox toggle (works for both baseline and non-baseline items)
-  const toggleSelect = (id) => {
+  const toggleSelect = (product) => {
+    const id = product?.id;
+    if (!id) return;
     const inBaseline = groupIds.has(id);
     const currentlySelected = selectedIds.has(id);
 
@@ -127,6 +131,15 @@ export default function PriceGroupView() {
         else next.add(id);                        // check → add
         return next;
       });
+      setAddedProducts(prev => {
+        const next = new Map(prev);
+        if (currentlySelected) {
+          next.delete(id);
+        } else {
+          next.set(id, product);
+        }
+        return next;
+      });
     }
   };
 
@@ -137,6 +150,11 @@ export default function PriceGroupView() {
     } else {
       setAddIds(prev => {
         const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setAddedProducts(prev => {
+        const next = new Map(prev);
         next.delete(id);
         return next;
       });
@@ -158,7 +176,7 @@ export default function PriceGroupView() {
             type="checkbox"
             id={`checkbox-${id}`}
             checked={checked}
-            onChange={() => toggleSelect(id)}
+            onChange={() => toggleSelect(row.original)}
           />
         );
       },
