@@ -225,11 +225,14 @@ export default function RevisionsListPage() {
             className={`px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 border ${
               type === "import"
                 ? "border-blue-400 text-blue-700"
+                : type === "admin"
+                ? "border-red-400 text-red-700 bg-red-100!"
                 : "border-gray-300 text-gray-600"
             }`}
           >
-            {type === "import" ? "Импорт" : "Ръчно"}
+            {type === "import" ? "Импорт" : type === "admin" ? "Виртуална" : "Ръчно"}
           </span>
+
         );
       },
     },
