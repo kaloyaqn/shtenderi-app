@@ -75,25 +75,29 @@ const Combobox = React.forwardRef(({
             </CommandEmpty>
 
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.label}
-                  onSelect={(currentValue) => {
-                    const selected = options.find(opt => opt.label === currentValue)
-                    onValueChange(selected ? selected.value : "")
-                    setOpen(false)
-                  }}
-                >
-                  <CheckIcon
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
+              {options.map((option) => {
+                const searchValue =
+                  option.searchValue ??
+                  (typeof option.label === "string" ? option.label : option.value)
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={searchValue}
+                    onSelect={() => {
+                      onValueChange(option.value)
+                      setOpen(false)
+                    }}
+                  >
+                    <CheckIcon
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === option.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {option.label}
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           </CommandList>
 
