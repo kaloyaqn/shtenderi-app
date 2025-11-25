@@ -22,6 +22,7 @@ export default function CreateStorePage() {
   const [loading, setLoading] = useState(false)
   const [partners, setPartners] = useState([])
   const [partnersLoading, setPartnersLoading] = useState(true)
+  const [partnerId, setPartnerId] = useState("");
   const [cityId, setCityId] = useState("");
   const [citySearch, setCitySearch] = useState("")
 
@@ -59,7 +60,7 @@ export default function CreateStorePage() {
       address: formData.get('address')?.trim(),
       contact: formData.get('contact')?.trim(),
       phone: formData.get('phone')?.trim(),
-      partnerId: formData.get('partnerId'),
+      partnerId: partnerId,
       cityId: cityId || ""
     }
 
@@ -153,12 +154,13 @@ export default function CreateStorePage() {
                     placeholder="Въведете телефон"
                   />
                 </div>
-                <div>
+                <div className="grid gap-2">
+                  <Label>Град</Label>
                   <Combobox
                     name="cityId"
                     value={cityId}
                     onValueChange={setCityId}
-                    onSearchChange={setCitySearch}    // 👈 You get the typed text here
+                    onSearchChange={setCitySearch}
                     options={cityOptions}
                     placeholder="Изберете град"
                     emptyContent={(text) => (
@@ -176,7 +178,19 @@ export default function CreateStorePage() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="partnerId">Партньор *</Label>
-                  <select
+
+                  <Combobox
+                    onValueChange={setPartnerId}
+                    value={partnerId}
+                    options={partners.map((partner) => ({
+                      key:partner.id,
+                      value:partner.id,
+                      label:partner.name,
+                      }))}
+                    placeholder="Избери партньор"
+                    emptyText="Няма такъв партньор. Създай го."
+                    />
+                  {/* <select
                     id="partnerId"
                     name="partnerId"
                     required
@@ -189,7 +203,7 @@ export default function CreateStorePage() {
                         {partner.name}
                       </option>
                     ))}
-                  </select>
+                  </select>*/}
                 </div>
               </div>
               {error && (

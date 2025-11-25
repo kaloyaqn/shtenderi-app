@@ -79,9 +79,9 @@ export async function POST(req) {
     // Create revision and update storage quantities in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // 1. Generate next revision number
-      const lastRevision = await tx.revision.findFirst({ 
-        orderBy: { number: 'desc' }, 
-        select: { number: true } 
+      const lastRevision = await tx.revision.findFirst({
+        orderBy: { number: 'desc' },
+        select: { number: true }
       });
       const nextNumber = (lastRevision?.number || 0) + 1;
 
@@ -104,7 +104,8 @@ export async function POST(req) {
           number: nextNumber,
           standId: destinationStandId,
           userId: session.user.id,
-          type: 'admin' // Special type to identify admin virtual sales
+          type: 'admin', // Special type to identify admin virtual sales
+          partnerId: partner.id,
         }
       });
 

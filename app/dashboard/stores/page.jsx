@@ -52,7 +52,11 @@ export default function StoresPage() {
     {
       accessorKey: "partner",
       header: "Партньор",
-      cell: ({ row }) => row.original.partner?.name || "-",
+      cell: ({ row }) => (
+        <TableLink href={`/dashboard/partners/${row.original.partner.id}`}>
+        {row.original.partner?.name || "-"}
+        </TableLink>
+      ),
       filterFn: (row, columnId, filterValue) => {
         const partner = row.original.partner;
         if (!partner || !partner.name) return false;
@@ -176,4 +180,4 @@ export default function StoresPage() {
       </AlertDialog>
     </div>
   )
-} 
+}

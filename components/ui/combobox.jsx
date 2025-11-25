@@ -28,11 +28,11 @@ const Combobox = React.forwardRef(({
   className,
   disabled = false,
   onSearchChange,
-  emptyContent,            // 👈 NEW (function returning JSX)
+  emptyContent,
   ...props
 }, ref) => {
   const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState("")   // 👈 NEW: track search input
+  const [search, setSearch] = React.useState("")
 
   const selectedOption = options.find(option => option.value === value)
 
@@ -56,46 +56,48 @@ const Combobox = React.forwardRef(({
       <PopoverContent className="w-full p-0" align="start">
         <Command className="w-full">
 
-          {/* 🔥 UPDATED: Controlled input with callback */}
           <CommandInput
             className="w-full"
             placeholder={searchPlaceholder}
             value={search}
             onValueChange={(val) => {
               setSearch(val)
-              onSearchChange?.(val)     // 👈 Send value to parent
+              onSearchChange?.(val)
             }}
           />
 
           <CommandList className="w-full">
 
-            {/* 🔥 UPDATED: dynamic empty state */}
-            <CommandEmpty>
+            <CommandEmpty className="p-4 text-sm">
               {emptyContent
-                ? emptyContent(search)   // 👈 Pass search text into custom empty state
+                ? emptyContent(search)
                 : emptyText}
             </CommandEmpty>
 
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.label}
-                  onSelect={(currentValue) => {
-                    const selected = options.find(opt => opt.label === currentValue)
-                    onValueChange(selected ? selected.value : "")
-                    setOpen(false)
-                  }}
-                >
-                  <CheckIcon
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
+              {options.map((option) => {
+                const searchValue =
+                  option.searchValue ??
+                  (typeof option.label === "string" ? option.label : option.value)
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={searchValue}
+                    onSelect={() => {
+                      onValueChange(option.value)
+                      setOpen(false)
+                    }}
+                  >
+                    <CheckIcon
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === option.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {option.label}
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           </CommandList>
 

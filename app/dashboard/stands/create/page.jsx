@@ -23,6 +23,10 @@ import QRCode from 'react-qr-code'
 import { useReactToPrint } from "react-to-print"
 import { PrinterIcon } from "lucide-react"
 import { toast } from "sonner"
+import { Combobox } from "@/components/ui/combobox"
+import useSWR from "swr"
+import { fetcher } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
 
 export default function CreateStandPage() {
   const router = useRouter()
@@ -38,6 +42,31 @@ export default function CreateStandPage() {
   });
 
   const [email, setEmail] = useState("");
+  const [regionId, setRegionId] = useState("");
+
+
+  const { data: regions, isLoading, error: swrError } = useSWR('/api/regions', fetcher);
+
+  async function createRegion(name) {
+    try {
+      const res = await fetch("/api/regions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      })
+
+      if (!res.ok) throw new Error("Грешка при създаване на регион")
+
+      const newRegion = await res.json();
+
+      mutate("/api/regions");
+      setRegionId(newRegion.id);
+
+    }
+    catch (err) {
+      setError(err.message)
+    }
+  }
 
   useEffect(() => {
     async function fetchStores() {
@@ -66,7 +95,7 @@ export default function CreateStandPage() {
     const formData = new FormData(e.target)
     const data = {
       name: formData.get('name')?.trim(),
-      region: formData.get("region")?.trim(),
+      regionId: regionId,
       storeId: selectedStore,
       email: email.trim(),
     }
@@ -120,10 +149,21 @@ export default function CreateStandPage() {
 
                 <div className="grid gap-2">
                   <Label htmlFor="region">Регион на щанда</Label>
-                  <Input
+                  {/* <Input
                     id="region"
                     name="region"
                     placeholder="Въведете регион на щанда"
+                  />*/}
+
+                  <Combobox
+                  value={regionId}
+                  onValueChange={(value) => setRegionId(value)}
+                  options={regions?.map((region) => ({
+                    key: region.id,
+                    label: region.name,
+                    value: region.id
+                  }))}
+                  placeholder="Избери регион"
                   />
                 </div>
 
@@ -139,7 +179,7 @@ export default function CreateStandPage() {
 
                 <div className="grid gap-2 w-full">
                   <Label htmlFor="store">Магазин *</Label>
-                  <Select onValueChange={setSelectedStore} value={selectedStore}>
+                  {/* <Select onValueChange={setSelectedStore} value={selectedStore}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Изберете магазин" />
                     </SelectTrigger>
@@ -150,7 +190,21 @@ export default function CreateStandPage() {
                         </SelectItem>
                       ))}
                     </SelectContent>
-                  </Select>
+                  </Select>*/}
+
+                  <Combobox
+                    onValueChange={setSelectedStore}
+                    value={selectedStore}
+                    options={stores.map((store) => ({
+                      key:store.id,
+                      value:store.id,
+                      label: <>{store.name} <Badge variant={"outline"}>{store.partner.name}</Badge></>
+                      }))}
+                    placeholder="Избери магазин"
+                    emptyText="Няма такъв магазин. Създай го."
+                  >
+
+                  </Combobox>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Имейл на щанда</Label>

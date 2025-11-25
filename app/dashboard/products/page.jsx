@@ -605,7 +605,10 @@ export default function ProductsPage() {
     if (row.original.active === false) {
       return "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300";
     }
-    if (row.original.quantity === 0) {
+    const assignedQuantity = Array.isArray(row.original?.standProducts)
+      ? row.original.standProducts.reduce((sum, sp) => sum + sp.quantity, 0)
+      : 0;
+    if (assignedQuantity === 0) {
       return "bg-red-50 dark:bg-red-950";
     }
     return "";
@@ -763,20 +766,15 @@ export default function ProductsPage() {
           (sum, sp) => sum + sp.quantity,
           0
         );
-        const unassignedQuantity = product.quantity - assignedQuantity;
+        const unassignedQuantity =
+          Number(product.storageQuantity || 0) +
+          Number(product.draftDeliveriesQuantity || 0);
         return (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="cursor-help">
-                  <EditableCell
-                    value={product.quantity}
-                    type="number"
-                    min={0}
-                    onSave={(val) =>
-                      handleUpdateProductField(product.id, "quantity", val)
-                    }
-                  />
+                <div className="cursor-help font-semibold text-sm">
+                  {assignedQuantity}
                 </div>
               </TooltipTrigger>
               <TooltipContent>

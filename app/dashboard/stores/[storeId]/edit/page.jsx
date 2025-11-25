@@ -25,6 +25,7 @@ export default function EditStorePage({ params }) {
 
   const [store, setStore] = useState(null)
   const [partners, setPartners] = useState([])
+  const [partnerId, setPartnerId] = useState("");
   const [partnersLoading, setPartnersLoading] = useState(true)
 
   const [cities, setCities] = useState([])
@@ -51,6 +52,7 @@ export default function EditStorePage({ params }) {
         setStore(storeData)
         setPartners(partnersData)
         setCities(citiesData)
+        setPartnerId(storeData.partnerId)
 
         const detectedCityId =
           storeData.cityId ||
@@ -99,7 +101,7 @@ export default function EditStorePage({ params }) {
       address: formData.get("address")?.trim(),
       contact: formData.get("contact")?.trim(),
       phone: formData.get("phone")?.trim(),
-      partnerId: formData.get("partnerId"),
+      partnerId: partnerId,
       cityId: cityId || null,
     }
 
@@ -151,12 +153,12 @@ export default function EditStorePage({ params }) {
 
                 <div className="grid gap-2">
                   <Label>Име *</Label>
-                  <Input name="name" required defaultValue={store.name} />
+                  <Input name="name" required defaultValue={store.name} placeholder="Въведи име на магазин"/>
                 </div>
 
                 <div className="grid gap-2">
                   <Label>Адрес *</Label>
-                  <Input name="address" required defaultValue={store.address} />
+                  <Input name="address" required defaultValue={store.address}  placeholder="Въведи адрес на магазин"/>
                 </div>
 
                 {/* CITY COMBOBOX */}
@@ -183,17 +185,17 @@ export default function EditStorePage({ params }) {
 
                 <div className="grid gap-2">
                   <Label>Лице за контакт</Label>
-                  <Input name="contact" defaultValue={store.contact} />
+                  <Input name="contact" defaultValue={store.contact} placeholder="Въведи лице за контакт"/>
                 </div>
 
                 <div className="grid gap-2">
                   <Label>Телефон</Label>
-                  <Input name="phone" defaultValue={store.phone} />
+                  <Input name="phone" defaultValue={store.phone} placeholder="Въведи телефон за контакт"/>
                 </div>
 
                 <div className="grid gap-2">
                   <Label>Партньор *</Label>
-                  <select
+                  {/* <select
                     name="partnerId"
                     required
                     className="border rounded px-3 py-2"
@@ -205,7 +207,21 @@ export default function EditStorePage({ params }) {
                         {p.name}
                       </option>
                     ))}
-                  </select>
+                  </select>*/}
+
+                  <Combobox
+                    onValueChange={setPartnerId}
+                    value={partnerId}
+                    options={partners.map((partner) => ({
+                      key:partner.id,
+                      value:partner.id,
+                      label:partner.name,
+                      }))}
+                    placeholder="Избери партньор"
+                    emptyText="Няма такъв партньор. Създай го."
+                  >
+
+                  </Combobox>
                 </div>
 
               </div>
