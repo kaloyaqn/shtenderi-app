@@ -198,7 +198,7 @@ export default function CreateStandPage() {
                     options={stores.map((store) => ({
                       key:store.id,
                       value:store.id,
-                      label: <>{store.name} <Badge variant={"outline"}>{store.partner.name}</Badge></>
+                      label: store.name
                       }))}
                     placeholder="Избери магазин"
                     emptyText="Няма такъв магазин. Създай го."
