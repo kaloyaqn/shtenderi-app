@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, Di
 import { useEffect } from "react";
 import TableLink from '@/components/ui/table-link';
 import { fetcher } from '@/lib/utils';
+import LoadingScreen from '@/components/LoadingScreen';
 
 
 const columns = [
@@ -106,8 +107,8 @@ function DeleteButton({ id }) {
 export default function PriceGroupsPage() {
     const { data, error, isLoading, mutate: refetch } = useSWR("/api/price-groups", fetcher);
 
-    if (error) return <>error batio</>
-    if (isLoading) return <>zarejda batio</>
+  if (error) return <>Error: {error}</>
+    if (isLoading) return <><LoadingScreen /></>
     return (
         <>
             <BasicHeader
@@ -129,7 +130,7 @@ export default function PriceGroupsPage() {
                 </Dialog>
             </BasicHeader>
 
-            <DataTable 
+            <DataTable
                 searchKey={'name'}
                 columns={columns}
                 data={data}

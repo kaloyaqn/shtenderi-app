@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { fetcher } from "@/lib/utils";
 import { Loader2Icon } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useMemo, useState, useEffect, useRef } from "react"; 
+import { useMemo, useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -93,6 +93,7 @@ export default function PriceGroupView() {
         id,
         name: prod?.name ?? "(без име)",
         pcode: prod?.pcode,
+        barcode: prod?.barcode,
         clientPrice: prod?.clientPrice,
         groupPrice: prices[id] ?? (gpEntry?.price ?? ""), // editable value shown in input
         _inBaseline: groupIds.has(id),
@@ -220,7 +221,7 @@ export default function PriceGroupView() {
 
     return (
         <>
-      <BasicHeader 
+      <BasicHeader
       title={`Ценова група ${pgInfo && pgInfo.name || ""}`}
       subtitle={`Добави, редактирай или премахни продукти в ценовата група.`}
       >
@@ -230,7 +231,7 @@ export default function PriceGroupView() {
             </> : <>Запази промени</>}
         </Button>
       </BasicHeader>
-    
+
 
       <div className="grid grid-cols-2 gap-4 w-full">
         <div className="col-span-1 border border-gray-200 rounded-md p-4 py-6">
@@ -243,7 +244,7 @@ export default function PriceGroupView() {
                   ]}
 
           columns={columns} data={safeAllProducts} />
-            
+
             </>}
         </div>
         <div className="col-span-1 border border-gray-200 rounded-md p-4 py-6">
@@ -268,7 +269,7 @@ export default function PriceGroupView() {
                             <div className="font-medium text-gray-800 text-xs">{p.name}</div>
                           </td>
                           <td className="px-2 py-2 align-top">
-                            <div className="font-medium text-gray-800 text-xs">{p.pcode ?? "—"}</div>
+                            <div className="font-medium flex flex-col gap-1 text-gray-800 text-xs">{p.pcode ?? "—"} <span>{p.barcode ?? "-"}</span></div>
                           </td>
                           <td className="px-2 py-2 align-top">
                             <div className="font-medium text-gray-800 text-sm">{p.clientPrice ?? "—"} лв.</div>

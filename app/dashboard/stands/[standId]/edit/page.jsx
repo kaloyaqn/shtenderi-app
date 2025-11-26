@@ -169,6 +169,7 @@ export default function EditStandPage({ params }) {
                       label: region.name,
                       value: region.id
                     }))}
+
                     placeholder="Избери регион"
                     emptyContent={(text) => (
                       <Button
