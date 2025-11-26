@@ -27,6 +27,7 @@ import {
     PersonStanding,
     SearchCheckIcon,
     Store,
+    Truck,
     Undo2Icon,
     User
 } from "lucide-react";
@@ -79,13 +80,13 @@ const groupedDocuments = {
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
     { name: "Доставки", url: "/dashboard/deliveries", icon: PackageOpenIcon, adminOnly: true },
-    { 
-      name: "Справки", 
-      icon: IconReport, 
+    {
+      name: "Справки",
+      icon: IconReport,
       hasSubmenus: [
         { title: "Продажби", link: "/dashboard/reports/sale" },
         { title: "Партньор", icon: IconSearch, link: "/dashboard/reports/partner" },
-        { title: "Подменю 3", icon: IconCash, link: "/dashboard/example3" }
+        { title: "Доставка", icon: Truck, link: "/dashboard/reports/delivery" }
       ]
     },
   ],
