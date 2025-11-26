@@ -24,6 +24,7 @@ import {
 import { IconBox, IconBoxModel2Off, IconBrandFoursquare, IconFileSad, IconMoodEmpty } from "@tabler/icons-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 export default function ReportDelivery() {
   const [productId, setProductId] = useQueryState("product", {
@@ -213,6 +214,42 @@ export default function ReportDelivery() {
         </Popover>
       </BasicHeader>
 
+      {productId !== "" && (
+        <div className="flex gap-2 w-full mb-2">
+
+          {data?.totalCount !== undefined && (
+            <Card className='w-full'>
+              <CardContent>
+                <CardTitle>Общо количество</CardTitle>
+                <h3 className="text-2xl mt-3 font-bold">
+                  {data.totalCount ?? 0}
+                </h3>
+              </CardContent>
+            </Card>
+          )}
+          {data?.acceptedCount !== undefined && (
+            <Card className='w-full'>
+              <CardContent>
+                <CardTitle>Общо прието количество</CardTitle>
+                <h3 className="text-2xl text-green-700 mt-3 font-bold">
+                  {data.acceptedCount ?? 0}
+                </h3>
+              </CardContent>
+            </Card>
+          )}
+          {data?.draftCount !== undefined && (
+            <Card className='w-full'>
+              <CardContent>
+                <CardTitle>Общо неприето количество</CardTitle>
+                <h3 className="text-2xl text-red-700 mt-3 font-bold">
+                  {data.draftCount ?? 0}
+                </h3>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {productId === "" ? (
         <>
           <Empty>
@@ -232,7 +269,7 @@ export default function ReportDelivery() {
       ) : isLoading ? (
         <LoadingScreen />
       ) : (
-        <DataTable columns={columns} data={data} />
+        <DataTable columns={columns} data={data.delivery_products} />
       )}
     </>
   );

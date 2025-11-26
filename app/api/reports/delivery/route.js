@@ -43,9 +43,19 @@ export async function GET(req) {
       },
     });
 
+const totalCount = delivery_products.length;
+    const draftCount = delivery_products.filter(
+      dp => dp.delivery && dp.delivery.status === 'DRAFT'
+    ).length;
+    const acceptedCount = delivery_products.filter(
+      dp => dp.delivery && dp.delivery.status === 'ACCEPTED'
+    ).length;
 
-
-    return NextResponse.json(delivery_products);
+    // Debug output or additional response logic can use these counts.
+    console.log('Total deliveries:', totalCount);
+    console.log('Draft deliveries:', draftCount);
+    console.log('Accepted deliveries:', acceptedCount);
+    return NextResponse.json({delivery_products, totalCount, draftCount, acceptedCount});
 
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
