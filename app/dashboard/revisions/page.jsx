@@ -65,7 +65,7 @@ export default function RevisionsListPage() {
   const [filterSource, setFilterSource] = useQueryState("source");
   const [statusFilter, setStatusFilter] = useQueryState("status");
   const [dateFrom, setDateFrom] = useQueryState("dateFrom", { defaultValue: "" });
-  const [dateTo, setDateTo] = useQueryState("dateTo", {defaultValue: ""});
+  const [dateTo, setDateTo] = useQueryState("dateTo", { defaultValue: "" });
 
   const {
     data: stands,
@@ -129,12 +129,12 @@ export default function RevisionsListPage() {
 
   const revisionsKey = session
     ? (() => {
-        let url = `/api/revisions?stand=${standId}`;
-        const params = [];
-        if (statusFilter) params.push(`status=${statusFilter}`);
-        if (params.length) url += `?${params.join("&")}`;
-        return url;
-      })()
+      let url = `/api/revisions?stand=${standId}`;
+      const params = [];
+      if (statusFilter) params.push(`status=${statusFilter}`);
+      if (params.length) url += `?${params.join("&")}`;
+      return url;
+    })()
     : null;
 
   const {
@@ -204,10 +204,10 @@ export default function RevisionsListPage() {
     {
       accessorKey: "missingProductsTotalPrice",
       header: "Цена",
-      cell: ({row}) => {
+      cell: ({ row }) => {
         return (
           <>
-          {row.original.missingProductsTotalPrice.toFixed(2)} лв.
+            {row.original.missingProductsTotalPrice.toFixed(2)} лв.
           </>
         )
       }
