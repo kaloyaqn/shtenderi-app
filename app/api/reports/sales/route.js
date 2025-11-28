@@ -11,12 +11,12 @@ export async function GET(req) {
         // }
 
         // if (session.user.role !== "ADMIN") {
-        //    return new NextResponse("Not an admin!", {status: 401}) 
+        //    return new NextResponse("Not an admin!", {status: 401})
         // }
 
         const {searchParams} = new URL(req.url);
 
-        
+
         const stand = searchParams.get('stand')?.split(',')
         const userId = searchParams.get('userId')?.split(',')
         const dateFrom = searchParams.get("dateFrom");
@@ -28,9 +28,9 @@ export async function GET(req) {
         const revisionType = searchParams.get("revisionType"); // import, manual
         const productId = searchParams.get("productId")?.split(','); // product filter
         const productName = searchParams.get("productName"); // product name filter
-        
+
         console.log('API Debug - Received params:', { stand, userId, dateFrom, dateTo, status, type, partnerId, barcode, revisionType, productId, productName });
-        
+
         let whereClause = {
             revision: {
                 ...(stand?.length && {
@@ -87,7 +87,7 @@ export async function GET(req) {
         // Fetch missing products
         const missingProducts = await prisma.missingProduct.findMany({
             where: whereClause,
-            orderBy: { 
+            orderBy: {
                 revision: {
                     createdAt: "desc"
                 }
@@ -100,6 +100,7 @@ export async function GET(req) {
                         partner: true,
                         storage: true,
                         user: true,
+                        invoice: true,
                     }
                 }
             }
@@ -183,7 +184,7 @@ export async function GET(req) {
 
         const refundProducts = await prisma.refundProduct.findMany({
             where: refundProductsWhereClause,
-            orderBy: { 
+            orderBy: {
                 refund: {
                     createdAt: "desc"
                 }
@@ -238,7 +239,7 @@ export async function GET(req) {
             .filter(rp => rp.refund.sourceType === 'STAND')
             .map(rp => rp.refund.sourceId)
         )];
-        
+
         const storageIds = [...new Set(filteredRefundProducts
             .filter(rp => rp.refund.sourceType === 'STORAGE')
             .map(rp => rp.refund.sourceId)
@@ -270,10 +271,10 @@ export async function GET(req) {
 
         // Add source information to refund products
         const refundProductsWithSource = finalRefundProducts.map(rp => {
-            const sourceInfo = rp.refund.sourceType === 'STAND' 
+            const sourceInfo = rp.refund.sourceType === 'STAND'
                 ? standsLookup[rp.refund.sourceId]
                 : storagesLookup[rp.refund.sourceId];
-            
+
             // Get partner information for stands
             let partner = null;
             if (rp.refund.sourceType === 'STAND' && sourceInfo) {
@@ -282,7 +283,7 @@ export async function GET(req) {
                     partner = store.partner;
                 }
             }
-            
+
             return {
                 ...rp,
                 sourceInfo,

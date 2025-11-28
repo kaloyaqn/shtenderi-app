@@ -10,6 +10,7 @@ export async function GET(req, { params }) {
       include: {
         partner: true,
         city: true,
+        channel:true,
         stands: {
           include: {
             region: true,
@@ -55,6 +56,7 @@ export async function PUT(req, { params }) {
         phone: data.phone,
         partnerId: data.partnerId,
         cityId: data.cityId || null,
+        channelId: data.channelId || null
       },
       include: {
         partner: { select: { id: true, name: true, percentageDiscount: true } },

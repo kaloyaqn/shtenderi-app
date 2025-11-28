@@ -85,6 +85,7 @@ const groupedDocuments = {
       icon: IconReport,
       hasSubmenus: [
         { title: "Продажби", link: "/dashboard/reports/sale" },
+        { title: "Справка на успеха", link: "/dashboard/reports/channel" },
         { title: "Партньор", icon: IconSearch, link: "/dashboard/reports/partner" },
         { title: "Доставка", icon: Truck, link: "/dashboard/reports/delivery" }
       ]

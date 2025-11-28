@@ -172,6 +172,8 @@
     city      City?     @relation(fields: [cityId], references: [id])
     createdAt DateTime @default(now())
 
+    channelId    String?
+    channel      Channel?     @relation(fields: [channelId], references: [id])
 
     partner   Partner @relation(fields: [partnerId], references: [id])
     partnerId String // Външният ID на фирмата
@@ -691,6 +693,12 @@
 
   model City {
     id        String   @id @default(cuid())
+    name      String
+    stores    Store[]
+  }
+
+  model Channel {
+    id        String   @id @default(uuid())
     name      String
     stores    Store[]
   }

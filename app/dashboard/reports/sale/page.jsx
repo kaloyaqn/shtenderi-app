@@ -14,7 +14,7 @@ export default function ReportsSale() {
   const {
     // Data
     stands, users, partners, products,
-    
+
     // Filter states
     selectedStand, setSelectedStand,
     selectedUser, setSelectedUser,
@@ -26,7 +26,7 @@ export default function ReportsSale() {
     productName, setProductName,
     barcode, setBarcode,
     revisionType, setRevisionType,
-    
+
     // Actions
     handleClear,
   } = useReportFilters();
@@ -215,6 +215,84 @@ export default function ReportsSale() {
       },
     },
     {
+      accessorKey: "revision.createdAt",
+      header: "Дата",
+      cell: ({ row }) => {
+        if (!row.original) return "-";
+        const date =
+          row.original.type === "missing"
+            ? row.original.revision?.createdAt
+            : row.original.refund?.createdAt;
+        return date ? new Date(date).toLocaleString() : "-";
+      },
+    },
+    {
+      accessorKey: "partnerAndSource",
+      header: "Партньор / Източник",
+      cell: ({ row }) => {
+        if (!row.original) return "-";
+
+        // Get partner
+        let partner = null;
+        if (row.original.type === "missing") {
+          partner = row.original.revision?.partner;
+        } else if (row.original.type === "refund") {
+          partner = row.original.partner;
+        }
+
+        // Get source
+        let sourceNode = "-";
+        if (row.original.type === "missing") {
+          const stand = row.original.revision?.stand;
+          const storage = row.original.revision?.storage;
+          if (storage) {
+            sourceNode = (
+              <TableLink href={`/dashboard/storages/${storage.id}`}>
+                {storage.name}
+              </TableLink>
+            );
+          } else if (stand) {
+            sourceNode = (
+              <TableLink className={'text-xs'} href={`/dashboard/stands/${stand.id}`}>
+                {stand.name}
+              </TableLink>
+            );
+          }
+        } else {
+          const sourceInfo = row.original.sourceInfo;
+          if (sourceInfo) {
+            const isStand = row.original.refund?.sourceType === "STAND";
+            const href = isStand
+              ? `/dashboard/stands/${sourceInfo.id}`
+              : `/dashboard/storages/${sourceInfo.id}`;
+            sourceNode = (
+              <TableLink className='text-xs' href={href}>{sourceInfo.name}</TableLink>
+            );
+          }
+        }
+
+        // Render both partner and source, stacked
+        return (
+          <div className="flex flex-col gap-1">
+            <div>
+              <span className="text-xs text-muted-foreground">Партньор: </span>
+              {partner && partner.id && partner.name ? (
+                <TableLink className={'text-xs'} href={`/dashboard/partners/${partner.id}`}>
+                  {partner.name}
+                </TableLink>
+              ) : (
+                "-"
+              )}
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground">Източник: </span>
+              {sourceNode}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "product.name",
       header: "Продукт",
       cell: ({ row }) => {
@@ -374,97 +452,51 @@ export default function ReportsSale() {
           )
         },
       },
+      {
+        accessorKey: "revision.number",
+        header: "№",
+        cell: ({ row }) => {
 
-    {
-      accessorKey: "revision.createdAt",
-      header: "Дата",
-      cell: ({ row }) => {
-        if (!row.original) return "-";
-        const date =
-          row.original.type === "missing"
-            ? row.original.revision?.createdAt
-            : row.original.refund?.createdAt;
-        return date ? new Date(date).toLocaleString() : "-";
-      },
-    },
-    {
-      accessorKey: "user",
-      header: "Потребител",
-      cell: ({ row }) => {
-        if (!row.original) return "-";
-        const user =
-          row.original.type === "missing"
-            ? row.original.revision?.user
-            : row.original.refund?.user;
-        return user?.name || "-";
-      },
-    },
-        {
-          accessorKey: "partnerAndSource",
-          header: "Партньор / Източник",
-          cell: ({ row }) => {
-            if (!row.original) return "-";
-
-            // Get partner
-            let partner = null;
-            if (row.original.type === "missing") {
-              partner = row.original.revision?.partner;
-            } else if (row.original.type === "refund") {
-              partner = row.original.partner;
-            }
-
-            // Get source
-            let sourceNode = "-";
-            if (row.original.type === "missing") {
-              const stand = row.original.revision?.stand;
-              const storage = row.original.revision?.storage;
-              if (storage) {
-                sourceNode = (
-                  <TableLink href={`/dashboard/storages/${storage.id}`}>
-                    {storage.name}
-                  </TableLink>
-                );
-              } else if (stand) {
-                sourceNode = (
-                  <TableLink className={'text-xs'} href={`/dashboard/stands/${stand.id}`}>
-                    {stand.name}
-                  </TableLink>
-                );
-              }
-            } else {
-              const sourceInfo = row.original.sourceInfo;
-              if (sourceInfo) {
-                const isStand = row.original.refund?.sourceType === "STAND";
-                const href = isStand
-                  ? `/dashboard/stands/${sourceInfo.id}`
-                  : `/dashboard/storages/${sourceInfo.id}`;
-                sourceNode = (
-                  <TableLink className='text-xs' href={href}>{sourceInfo.name}</TableLink>
-                );
-              }
-            }
-
-            // Render both partner and source, stacked
-            return (
-              <div className="flex flex-col gap-1">
-                <div>
-                  <span className="text-xs text-muted-foreground">Партньор: </span>
-                  {partner && partner.id && partner.name ? (
-                    <TableLink className={'text-xs'} href={`/dashboard/partners/${partner.id}`}>
-                      {partner.name}
-                    </TableLink>
-                  ) : (
-                    "-"
-                  )}
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Източник: </span>
-                  {sourceNode}
-                </div>
-              </div>
-            );
-          },
+          return (
+            <>
+              {row.original.revision && (
+                <TableLink href={`/dashboard/revisions/${row.original.revision.id}`}>
+                {row.original.revision.number}
+                </TableLink>
+              )}
+            </>
+          )
         },
+      },
+      {
+        accessorKey: "invoice",
+        header: "Фактура",
+        cell: ({ row }) => {
+
+          return (
+            <>
+              {row.original.invoice && (
+                <TableLink href={`/dashboard/revisions/${row.original?.invoice?.id}`}>
+                {row.original?.invoice?.invoiceNumber}
+                </TableLink>
+              )}
+            </>
+          )
+        },
+      },
+    // {
+    //   accessorKey: "user",
+    //   header: "Потребител",
+    //   cell: ({ row }) => {
+    //     if (!row.original) return "-";
+    //     const user =
+    //       row.original.type === "missing"
+    //         ? row.original.revision?.user
+    //         : row.original.refund?.user;
+    //     return user?.name || "-";
+    //   },
+    // },
+
   ];
 
   return (
@@ -489,20 +521,20 @@ export default function ReportsSale() {
                 setDateFrom={setDateFrom}
                 dateTo={dateTo}
                 setDateTo={setDateTo}
-                
+
                 // Product filters
                 products={products}
                 selectedProducts={selectedProducts}
                 setSelectedProducts={setSelectedProducts}
                 productName={productName}
                 setProductName={setProductName}
-                
+
                 // Type filters
                 productType={productType}
                 setProductType={setProductType}
                 revisionType={revisionType}
                 setRevisionType={setRevisionType}
-                
+
                 // Entity filters
                 stands={stands}
                 selectedStand={selectedStand}
@@ -513,7 +545,7 @@ export default function ReportsSale() {
                 partners={partners}
                 selectedPartner={selectedPartner}
                 setSelectedPartner={setSelectedPartner}
-                
+
                 // Actions
                 onSubmit={handleFormSubmit}
                 onClear={handleClear}

@@ -19,7 +19,7 @@ import LogoStendo from "@/public/svg/LogoStendo"
 export function LoginForm({
   className,
   ...props
-}) 
+})
 {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -34,17 +34,17 @@ export function LoginForm({
 
     try {
       // First, ensure Account exists for legacy users
-      const legacyRes = await fetch('/api/auth/legacy-sign-in', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
+      // const legacyRes = await fetch('/api/auth/legacy-sign-in', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ email, password }),
+      // })
 
-      if (!legacyRes.ok) {
-        const errorData = await legacyRes.json()
-        setError(errorData.error?.message || 'Невалиден email или парола.')
-        return
-      }
+      // if (!legacyRes.ok) {
+      //   const errorData = await legacyRes.json()
+      //   setError(errorData.error?.message || 'Невалиден email или парола.')
+      //   return
+      // }
 
       // Account is now created, use Better Auth's normal sign-in
       const res = await authClient.signIn.email({
@@ -84,22 +84,22 @@ export function LoginForm({
                 <Input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  id="email" 
-                  type="email" 
-                  placeholder="m@example.com" 
-                  required 
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
                 />
               </div>
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
                 </div>
-                <Input 
+                <Input
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  id="password" 
-                  type="password" 
-                  required 
+                  id="password"
+                  type="password"
+                  required
                 />
               </div>
               <div className="flex flex-col gap-3">
