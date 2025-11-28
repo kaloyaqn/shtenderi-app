@@ -170,6 +170,14 @@ export async function GET(req) {
       },
     });
 
+    // Sum price of missingProducts for each revision
+    revisions.forEach(rev => {
+      rev.missingProductsTotalPrice = rev.missingProducts?.reduce(
+        (sum, mp) => sum + (mp.priceAtSale ?? 0),
+        0
+      ) ?? 0;
+    });
+
     return NextResponse.json(revisions);
   } catch (err) {
     console.error(err);

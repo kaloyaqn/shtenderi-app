@@ -203,6 +203,12 @@ export default function CheckIdPage() {
                 <p className="text-base">{effectiveTotal.toFixed(2)} лв.                </p>
               </div>
               <div>
+                <span className="text-xs text-gray-500">Партньор</span>
+                <p className="text-base">
+                  {check.stand?.store?.partner?.name|| "N/A"}
+                </p>
+              </div>
+              <div>
                 <span className="text-xs text-gray-500">Потребител</span>
                 <p className="text-base">
                   {check.user?.name || check.user?.email || "N/A"}
@@ -332,6 +338,12 @@ export default function CheckIdPage() {
                   </label>
                   <p className="text-lg font-semibold">
                   {effectiveTotal.toFixed(2)} лв.
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500">Партньор</span>
+                  <p className="text-base">
+                    {check.stand?.store?.partner?.name || "N/A"}
                   </p>
                 </div>
               <div>

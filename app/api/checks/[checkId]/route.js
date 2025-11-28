@@ -12,17 +12,38 @@ export async function GET(req, { params }) {
   const check = await prisma.check.findUnique({
     where: { id: checkId },
     include: {
-      stand: { select: { id: true, name: true } },
-      user: { select: { id: true, name: true, email: true } },
+      stand: {
+        select: {
+          id: true,
+          name: true,
+          store: {
+            select: {
+              partner: {
+                select: {
+                  id:true,
+                  name:true,
+                }
+              }
+            }
+          }
+        }
+      },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      },
       checkedProducts: { include: { product: true } },
-      revisions: { 
-        select: { 
-          id: true, 
-          number: true, 
-          createdAt: true, 
+      revisions: {
+        select: {
+          id: true,
+          number: true,
+          createdAt: true,
           status: true,
           missingProducts: { select: { missingQuantity: true, givenQuantity: true } }
-        } 
+        }
       },
     },
   });
@@ -41,4 +62,4 @@ export async function GET(req, { params }) {
     }
   }
   return NextResponse.json(check);
-} 
+}

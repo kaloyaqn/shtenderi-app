@@ -186,10 +186,31 @@ export default function RevisionsListPage() {
   // }, [revisions]);
 
   const columns = [
+
     {
       accessorKey: "number",
       header: "№",
       cell: ({ row }) => row.original.number,
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Дата",
+      cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
+    },
+    {
+      accessorKey: "partnerName",
+      header: "Партньор",
+    },
+    {
+      accessorKey: "missingProductsTotalPrice",
+      header: "Цена",
+      cell: ({row}) => {
+        return (
+          <>
+          {row.original.missingProductsTotalPrice.toFixed(2)} лв.
+          </>
+        )
+      }
     },
     {
       accessorKey: "source",
@@ -236,19 +257,13 @@ export default function RevisionsListPage() {
         );
       },
     },
-    {
-      accessorKey: "partnerName",
-      header: "Партньор",
-    },
+
+
     {
       accessorKey: "userName",
       header: "Потребител",
     },
-    {
-      accessorKey: "createdAt",
-      header: "Дата",
-      cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
-    },
+
     // {
     //   accessorKey: "missingProducts",
     //   header: "кол.",
