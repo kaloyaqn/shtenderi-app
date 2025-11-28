@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" });
   }
 
-  const cities = await prisma.region.findMany()
+  const cities = await prisma.channel.findMany()
 
   return NextResponse.json(cities);
 }
@@ -25,11 +25,11 @@ export async function POST(req) {
 
   const { name } = await req.json();
 
-  const region = await prisma.region.create({
+  const channel = await prisma.channel.create({
     data: {
       name: name
     }
   });
 
-  return NextResponse.json(region);
+  return NextResponse.json(channel);
 }

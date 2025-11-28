@@ -21,12 +21,13 @@ import {
 } from "@/components/ui/select"
 import QRCode from 'react-qr-code'
 import { useReactToPrint } from "react-to-print"
-import { PrinterIcon } from "lucide-react"
+import { Plus, PrinterIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Combobox } from "@/components/ui/combobox"
 import useSWR from "swr"
 import { fetcher } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import RegionsModal from "@/components/modals/regionsModal"
 
 export default function CreateStandPage() {
   const router = useRouter()
@@ -155,16 +156,29 @@ export default function CreateStandPage() {
                     placeholder="Въведете регион на щанда"
                   />*/}
 
-                  <Combobox
-                  value={regionId}
-                  onValueChange={(value) => setRegionId(value)}
-                  options={regions?.map((region) => ({
-                    key: region.id,
-                    label: region.name,
-                    value: region.id
-                  }))}
-                  placeholder="Избери регион"
-                  />
+                  <div className="flex">
+                    <Combobox
+                    value={regionId}
+                    onValueChange={(value) => setRegionId(value)}
+                    options={regions?.map((region) => ({
+                      key: region.id,
+                      label: region.name,
+                      value: region.id
+                    }))}
+                    placeholder="Избери регион"
+                    emptyContent={(text) => (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full mx-4"
+                        onClick={() => createRegion(text)}
+                      >
+                        <Plus /> Създай регион "{text}"
+                      </Button>
+                    )}
+                    />
+
+                    <RegionsModal /></div>
                 </div>
 
                 <div className="grid gap-2">

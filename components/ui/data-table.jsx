@@ -344,7 +344,7 @@ export function DataTable({
                     data-state={row.getIsSelected() && "selected"}
                     className={
                       row.original.id === updatedRowId
-                        ? "bg-green-50"
+                        ? "" //bg-green-50
                         : rowClassName
                         ? rowClassName(row)
                         : undefined

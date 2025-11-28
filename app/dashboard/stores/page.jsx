@@ -42,12 +42,8 @@ export default function StoresPage() {
       },
     },
     {
-      accessorKey: "contact",
-      header: "Лице за контакт",
-    },
-    {
-      accessorKey: "phone",
-      header: "Телефон",
+      accessorKey: "city.name",
+      header: "Град",
     },
     {
       accessorKey: "partner",
@@ -64,10 +60,24 @@ export default function StoresPage() {
       },
     },
     {
+      accessorKey: "channel.name",
+      header: "Сегмент/Канал",
+    },
+    {
       accessorKey: "stands",
       header: "Щендери",
       cell: ({ row }) => Array.isArray(row.original.stands) ? row.original.stands.length : 0,
     },
+    {
+      accessorKey: "contact",
+      header: "Лице за контакт",
+    },
+    {
+      accessorKey: "phone",
+      header: "Телефон",
+    },
+
+
     {
       id: "actions",
       cell: ({ row }) => {
