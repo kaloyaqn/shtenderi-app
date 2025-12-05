@@ -106,6 +106,31 @@ export default function MobilePageRevisionId({
     finally { setAppendBusy(false); }
   };
 
+  async function downloadPdf(revision, adminName) {
+    const res = await fetch("/api/prints/sale", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ revision, adminName: "Bashta mi" })
+    });
+
+    if (!res.ok) {
+      alert("Грешка при генериране на PDF");
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `stock-${revision.number}.pdf`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
@@ -192,7 +217,7 @@ export default function MobilePageRevisionId({
                 </Button>
                 {/* PRINT STOCK BUTTON */}
                 {revision && (
-                    <PrintStockButton 
+                    <PrintStockButton
                         missingProducts={revision.missingProducts.map(mp => ({
                             ...mp,
                             missingQuantity: mp.givenQuantity ?? mp.missingQuantity
@@ -200,6 +225,7 @@ export default function MobilePageRevisionId({
                         revisionNumber={revision.number}
                     />
                 )}
+
                 {/* PRINT STOCK BUTTON */}
                 <Button
                   variant="outline"
@@ -266,10 +292,18 @@ export default function MobilePageRevisionId({
               </div>
             )}
 
-              <PrintStockButton 
+              <PrintStockButton
                 revisionNumber={revision.number}
                   missingProducts={revision.missingProducts}
                 />
+                <Button
+                  size="sm"
+                  className="w-full text-xs mt-2"
+                  variant={"outline"}
+                  type="button"
+                  onClick={() => downloadPdf(revision, "Bashta mi")}>
+                  Изтегли А4
+                </Button>
           </CardContent>
         </Card>
 

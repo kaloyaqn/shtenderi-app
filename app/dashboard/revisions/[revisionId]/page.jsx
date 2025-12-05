@@ -51,6 +51,7 @@ import PaymentsTable from "@/components/tables/revisions/PaymentsTable";
 import MobilePageRevisionId from "@/components/mobile/revisions/revisionId/MobilePage";
 import PaymentsCardMobile from "@/components/mobile/revisions/revisionId/PaymentsCardMobile";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
+import { downloadPdf } from "@/lib/print/prints";
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -697,8 +698,14 @@ export default function RevisionDetailPage() {
           <Truck /> Зареди от склад
         </Button> */}
 
-<Button variant={""} onClick={handlePrintStock}>
+{/* <Button variant={""} onClick={handlePrintStock}>
           <Printer /> Принтирай
+        </Button>*/}
+
+        <Button
+          onClick={() => downloadPdf(revision, "Test")}
+        >
+        <Printer />  Принтирай
         </Button>
       </BasicHeader>
 
