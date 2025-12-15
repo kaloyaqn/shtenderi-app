@@ -30,6 +30,7 @@ import PrintStockButton from "@/components/buttons/print-stock-button";
 import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { downloadSalePdf } from "@/lib/print/prints";
 
 export default function MobilePageRevisionId({
   revision,
@@ -106,30 +107,7 @@ export default function MobilePageRevisionId({
     finally { setAppendBusy(false); }
   };
 
-  async function downloadPdf(revision, adminName) {
-    const res = await fetch("/api/prints/sale", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ revision, adminName: "Bashta mi" })
-    });
 
-    if (!res.ok) {
-      alert("Грешка при генериране на PDF");
-      return;
-    }
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `stock-${revision.number}.pdf`;
-    link.click();
-
-    URL.revokeObjectURL(url);
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -301,7 +279,7 @@ export default function MobilePageRevisionId({
                   className="w-full text-xs mt-2"
                   variant={"outline"}
                   type="button"
-                  onClick={() => downloadPdf(revision, "Bashta mi")}>
+                  onClick={() => downloadSalePdf(revision, "Bashta mi")}>
                   Изтегли А4
                 </Button>
           </CardContent>
