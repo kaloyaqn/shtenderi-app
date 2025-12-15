@@ -139,8 +139,8 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <a href="#">
-                <LogoStendo />
-                <span className="text-base font-semibold">Stendo</span>
+                <LogoStendo className="w-18! h-16!"/>
+                {/* <span className="text-base font-semibold">Stendo</span>*/}
                 {hasMounted && process.env.NEXT_PUBLIC_SUSTOQNIE === 'development' && (
                   <span className="ml-2 font-bold text-red-500 text-xs align-middle">
                     DEV ВЕРСИЯ

@@ -70,7 +70,7 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <LogoStendo className="size-10"/>
+          <LogoStendo className="w-32 "/>
           <CardTitle>Вход в Stendo</CardTitle>
           <CardDescription>
            Въведи имейла и паролата си, за да влезнеш.

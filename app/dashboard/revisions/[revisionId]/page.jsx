@@ -51,7 +51,7 @@ import PaymentsTable from "@/components/tables/revisions/PaymentsTable";
 import MobilePageRevisionId from "@/components/mobile/revisions/revisionId/MobilePage";
 import PaymentsCardMobile from "@/components/mobile/revisions/revisionId/PaymentsCardMobile";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
-import { downloadPdf } from "@/lib/print/prints";
+import { downloadSalePdf } from "@/lib/print/prints";
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -703,7 +703,7 @@ export default function RevisionDetailPage() {
         </Button>*/}
 
         <Button
-          onClick={() => downloadPdf(revision, "Test")}
+          onClick={() => downloadSalePdf(revision, "Test")}
         >
         <Printer />  Принтирай
         </Button>
