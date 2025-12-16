@@ -2,24 +2,54 @@
 
 import BasicHeader from "@/components/BasicHeader";
 import { fetcher } from "@/lib/utils";
-
-import useSWR from "swr";
-import { useState } from "react";
-
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { DataTable } from "@/components/ui/data-table";
+import { Label } from "@/components/ui/label";
+import { Filter, X } from "lucide-react";
+import { useQueryState } from "nuqs";
+
+import useSWR from "swr";
+import { useState } from "react";
+import { useProductFilter } from "@/hooks/use-product-filter";
 
 export default function ChannelReport() {
-  const { data, isLoading } = useSWR(`/api/reports/channel`, fetcher);
+  const [dateFrom, setDateFrom] = useQueryState("dateFrom");
+  const [dateTo, setDateTo] = useQueryState("dateTo");
+  const [productQuery, setProductQuery] = useQueryState("product");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const { productInputRef, openProductPicker } = useProductFilter({
+    onProductSelect: (product) => {
+      setProductQuery(product?.name || null);
+      setIsFilterOpen(false);
+    },
+    onShortcut: () => setIsFilterOpen(true),
+  });
+
+  const query = new URLSearchParams();
+  if (dateFrom) query.set("dateFrom", dateFrom);
+  if (dateTo) query.set("dateTo", dateTo);
+  if (productQuery) query.set("product", productQuery);
+
+  const { data, isLoading } = useSWR(
+    `/api/reports/channel${query.toString() ? `?${query.toString()}` : ""}`,
+    fetcher
+  );
 
   if (isLoading || !data) return <div className="p-4">Зареждане...</div>;
 
-  const products = data.products;
+  const products = data?.products ?? [];
 
   // -------------------------------------------------
   // 1) Collect unique channels from API response
@@ -46,6 +76,13 @@ export default function ChannelReport() {
     {
       accessorKey: "productName",
       header: "Продукт",
+    },
+    {
+      accessorKey: "totalAllSegments",
+      header: "Общо (всички сегменти)",
+      cell: ({ row }) => (
+        <span className="font-semibold">{row.original.totalAllSegments}</span>
+      ),
     },
 
     ...safeChannels.map((ch) => ({
@@ -113,6 +150,7 @@ export default function ChannelReport() {
     const row = {
       productName: product.productName,
       stores: product.stores, // keep all stores for this product
+      totalAllSegments: product.totalAllSegments ?? 0,
     };
 
     // Initialize each channel's qty to 0
@@ -136,7 +174,95 @@ export default function ChannelReport() {
       <BasicHeader
         title="Справка на успеха"
         subtitle="Направи справка на успеха"
-      />
+      >
+        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline">
+              <Filter /> Филтри
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent padding={0} sideOffset={0} className="w-sm">
+            <div className="">
+              <div className="w-full p-4 bg-gray-50 border-b border-b-gray-300 rounded-t-md">
+                <h4 className="leading-none font-medium">Филтри</h4>
+                <p className="text-muted-foreground text-sm ">
+                  Избери филтрите
+                </p>
+              </div>
+              <div className="p-4 flex flex-col gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="productQuery">Продукт</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="productQuery"
+                      ref={productInputRef}
+                      type="text"
+                      placeholder="Филтър по продукт (Ctrl+K)"
+                      value={productQuery || ""}
+                      onChange={(e) => setProductQuery(e.target.value || null)}
+                      className="min-w-[220px]"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        openProductPicker(productQuery ? String(productQuery) : "")
+                      }
+                    >
+                      Търси
+                    </Button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Ctrl/Cmd + K за избор от номенклатура
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="grid gap-2 w-full">
+                    <Label htmlFor="dateFrom">Дата от</Label>
+                    <Input
+                      id="dateFrom"
+                      type="date"
+                      value={dateFrom || ""}
+                      onChange={(e) => setDateFrom(e.target.value || null)}
+                    />
+                  </div>
+                  <div className="grid gap-2 w-full">
+                    <Label htmlFor="dateTo">Дата до</Label>
+                    <Input
+                      id="dateTo"
+                      type="date"
+                      value={dateTo || ""}
+                      onChange={(e) => setDateTo(e.target.value || null)}
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  className="mt-2 w-full"
+                  variant="outline"
+                  onClick={() => setIsFilterOpen(false)}
+                >
+                  <Filter /> Филтрирай
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    className="w-full"
+                    variant="secondary"
+                    onClick={() => {
+                      setDateFrom(null);
+                      setDateTo(null);
+                      setProductQuery(null);
+                    }}
+                  >
+                    <X /> Изчисти
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </BasicHeader>
 
       <div className="p-4">
         <DataTable data={rows} columns={columns} />
