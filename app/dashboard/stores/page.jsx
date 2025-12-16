@@ -6,7 +6,7 @@ import { useQueryState } from "nuqs"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Pencil, Trash2, PlusIcon, Filter } from "lucide-react"
+import { Plus, Pencil, Trash2, PlusIcon, Filter, RefreshCcw } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +40,7 @@ export default function StoresPage() {
   const [cityId, setCityId] = useQueryState("cityId")
   const [channelId, setChannelId] = useQueryState("channelId")
   const [partnerId, setPartnerId] = useQueryState("partnerId")
+  const [includeInactive, setIncludeInactive] = useQueryState("includeInactive")
 
   const [cities, setCities] = useState([])
   const [channels, setChannels] = useState([])
@@ -51,9 +52,11 @@ export default function StoresPage() {
       header: "Име на магазин",
       cell: ({ row }) => {
         const store = row.original;
+        const inactive = store.isActive === false;
         return (
           <TableLink
             href={`/dashboard/stores/${store.id}`}
+            className={inactive ? "text-red-600" : ""}
           >
             {store.name}
           </TableLink>
@@ -63,15 +66,25 @@ export default function StoresPage() {
     {
       accessorKey: "city.name",
       header: "Град",
+      cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
+        return <span className={inactive ? "text-red-600" : ""}>{row.original.city?.name}</span>;
+      }
     },
     {
       accessorKey: "partner",
       header: "Партньор",
-      cell: ({ row }) => (
-        <TableLink href={`/dashboard/partners/${row.original.partner.id}`}>
-        {row.original.partner?.name || "-"}
-        </TableLink>
-      ),
+      cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
+        return (
+          <TableLink
+            href={`/dashboard/partners/${row.original.partner.id}`}
+            className={inactive ? "text-red-600" : ""}
+          >
+          {row.original.partner?.name || "-"}
+          </TableLink>
+        );
+      },
       filterFn: (row, columnId, filterValue) => {
         const partner = row.original.partner;
         if (!partner || !partner.name) return false;
@@ -81,19 +94,35 @@ export default function StoresPage() {
     {
       accessorKey: "channel.name",
       header: "Сегмент/Канал",
+      cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
+        return <span className={inactive ? "text-red-600" : ""}>{row.original.channel?.name}</span>;
+      }
     },
     {
       accessorKey: "stands",
       header: "Щендери",
-      cell: ({ row }) => Array.isArray(row.original.stands) ? row.original.stands.length : 0,
+      cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
+        const value = Array.isArray(row.original.stands) ? row.original.stands.length : 0;
+        return <span className={inactive ? "text-red-600" : ""}>{value}</span>;
+      },
     },
     {
       accessorKey: "contact",
       header: "Лице за контакт",
+      cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
+        return <span className={inactive ? "text-red-600" : ""}>{row.original.contact}</span>;
+      }
     },
     {
       accessorKey: "phone",
       header: "Телефон",
+      cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
+        return <span className={inactive ? "text-red-600" : ""}>{row.original.phone}</span>;
+      }
     },
 
 
@@ -101,6 +130,7 @@ export default function StoresPage() {
       id: "actions",
       cell: ({ row }) => {
         const store = row.original
+        const inactive = store.isActive === false;
         return (
           <div className="flex items-center gap-2">
             <Button
@@ -109,15 +139,24 @@ export default function StoresPage() {
             >
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button
-              variant="table"
-              onClick={() => {
-                setStoreToDelete(store)
-                setDeleteDialogOpen(true)
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {inactive ? (
+              <Button
+                variant="table"
+                onClick={() => handleActivate(store)}
+              >
+                <RefreshCcw className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="table"
+                onClick={() => {
+                  setStoreToDelete(store)
+                  setDeleteDialogOpen(true)
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )
       },
@@ -132,6 +171,7 @@ export default function StoresPage() {
       if (channelId) params.set("channel", channelId)
       if (partnerId) params.set("partner", partnerId)
       if (name) params.set("name", name)
+      if (includeInactive === "1") params.set("includeInactive", "1")
 
       const query = params.toString()
       const response = await fetch(`/api/stores${query ? `?${query}` : ""}`)
@@ -186,6 +226,23 @@ export default function StoresPage() {
     }
   }
 
+  const handleActivate = async (store) => {
+    try {
+      const response = await fetch(`/api/stores/${store.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: true }),
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to activate store')
+      }
+      fetchStores()
+    } catch (error) {
+      console.error('Error activating store:', error)
+    }
+  }
+
   useEffect(() => {
     fetchFilterData()
   }, [])
@@ -193,7 +250,7 @@ export default function StoresPage() {
   useEffect(() => {
     fetchStores()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cityId, channelId, partnerId, name])
+  }, [cityId, channelId, partnerId, name, includeInactive])
 
   if (loading && data.length === 0) {
     return <LoadingScreen />
@@ -271,6 +328,18 @@ export default function StoresPage() {
                     onValueChange={(value) => setPartnerId(value)}
                     value={partnerId}
                   />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    id="includeInactive"
+                    type="checkbox"
+                    checked={includeInactive === "1"}
+                    onChange={(e) => setIncludeInactive(e.target.checked ? "1" : null)}
+                  />
+                  <Label htmlFor="includeInactive" className="cursor-pointer">
+                    Показвай деактивирани
+                  </Label>
                 </div>
               </div>
             </div>

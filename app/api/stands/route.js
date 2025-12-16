@@ -13,6 +13,7 @@ export async function GET(req) {
     const cityId   = searchParams.get("city");
     const partner  = searchParams.get("partner");
     const name     = searchParams.get("name");
+    const includeInactive = searchParams.get("includeInactive") === "1";
 
     const storeFilter = {};
 
@@ -27,7 +28,7 @@ export async function GET(req) {
     }
 
     const where = {
-      isActive: true,
+      ...(includeInactive ? {} : { isActive: true }),
 
       ...(session.user.role === "USER" && {
         userStands: {

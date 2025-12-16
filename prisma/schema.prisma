@@ -104,6 +104,8 @@
     id            String    @id @default(uuid())
     name          String?
     email         String    @unique
+    isActive      Boolean   @default(true)
+    deactivatedAt DateTime?
     password      String // хеширана с bcrypt
     role          Role      @default(USER)
     emailVerified DateTime?
@@ -139,6 +141,8 @@
   model Partner {
     id                 String      @id // Външен ID (въвежда се ръчно)
     name               String // Име на фирмата
+    isActive           Boolean     @default(true)
+    deactivatedAt      DateTime?
     bulstat            String? // Булстат
     contactPerson      String? // Лице за контакт
     email              String? // Имейл
@@ -165,6 +169,8 @@
   model Store {
     id        String   @id @default(uuid()) // Генерирано ID
     name      String?
+    isActive  Boolean  @default(true)
+    deactivatedAt DateTime?
     address   String // Локация (адрес)
     contact   String? // Лице за контакт
     phone     String? // Телефон

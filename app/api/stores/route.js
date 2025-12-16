@@ -9,12 +9,14 @@ export async function GET(req) {
     const channelId = searchParams.get("channel");
     const partnerId = searchParams.get("partner");
     const name = searchParams.get("name");
+    const includeInactive = searchParams.get("includeInactive") === "1";
 
     const stores = await getAllStores({
       cityId,
       channelId,
       partnerId,
       name,
+      includeInactive,
     });
 
     return Response.json(stores)

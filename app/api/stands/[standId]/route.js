@@ -30,6 +30,19 @@ export async function PATCH(req, { params }) {
 
         const { standId } = await params;
         const body = await req.json();
+
+        // Allow activation toggle without requiring other fields
+        if (Object.prototype.hasOwnProperty.call(body, "isActive")) {
+            const updated = await prisma.stand.update({
+                where: { id: standId },
+                data: {
+                    isActive: body.isActive,
+                    deactivatedAt: body.isActive ? null : new Date(),
+                },
+            });
+            return Response.json(updated);
+        }
+
         const updatedStand = await updateStand(standId, body);
         return Response.json(updatedStand);
     } catch (err) {
