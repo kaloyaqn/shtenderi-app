@@ -86,6 +86,7 @@ const groupedDocuments = {
       hasSubmenus: [
         { title: "Продажби", link: "/dashboard/reports/sale" },
         { title: "Справка на успеха", link: "/dashboard/reports/channel" },
+        { title: "Оборот по клиенти", link: "/dashboard/reports/clients" },
         { title: "Партньор", icon: IconSearch, link: "/dashboard/reports/partner" },
         { title: "Доставка", icon: Truck, link: "/dashboard/reports/delivery" }
       ]

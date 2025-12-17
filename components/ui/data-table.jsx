@@ -51,9 +51,10 @@ export function DataTable({
   isMobile,
   extraFilters,
   noFilters,
-  updatedRowId
+  updatedRowId,
+  initialSorting = []
 }) {
-  const [sorting, setSorting] = useState([]);
+  const [sorting, setSorting] = useState(initialSorting);
   const [columnFilters, setColumnFilters] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [isMobileState, setIsMobileState] = useState(false);
