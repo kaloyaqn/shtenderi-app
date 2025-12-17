@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, UserIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, UserIcon, Filter } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,12 +23,19 @@ import BasicHeader from "@/components/BasicHeader";
 import NoAcess from "@/components/NoAccess";
 import { Badge } from "@/components/ui/badge";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useQueryState } from "nuqs";
 import CreatePartnerPage from "./create/page";
 
 export default function PartnersPage() {
@@ -38,6 +45,7 @@ export default function PartnersPage() {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [partnerToDelete, setPartnerToDelete] = useState(null);
+  const [includeInactive, setIncludeInactive] = useQueryState("includeInactive");
 
   const columns = [
     {
@@ -146,8 +154,10 @@ export default function PartnersPage() {
   };
 
   const fetchPartners = async () => {
+    setLoading(true);
     try {
-      const response = await fetch("/api/partners");
+      const query = includeInactive === "1" ? "?includeInactive=1" : "";
+      const response = await fetch(`/api/partners${query}`);
       if (!response.ok) {
         if (response.status === 401) {
           toast.error("Моля, влезте в системата");
@@ -171,7 +181,7 @@ export default function PartnersPage() {
       // Fetch only when session is available
       fetchPartners();
     }
-  }, [session]);
+  }, [session, includeInactive]);
 
   if (loading) {
     return <LoadingScreen />;
@@ -196,23 +206,65 @@ export default function PartnersPage() {
   return (
     <div className="">
       <BasicHeader title={"Партньори"} subtitle={"Управлявай партньорите си."}>
-        {userIsAdmin && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Добави партньор
+        <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Filter /> Филтри
               </Button>
-            </DialogTrigger>
+            </PopoverTrigger>
+            <PopoverContent padding={0} sideOffset={0} className="w-sm">
+              <div className="">
+                <div className="w-full p-4 bg-gray-50 border-b border-b-gray-300 rounded-t-md">
+                  <h4 className="leading-none font-medium">Филтри</h4>
+                  <p className="text-muted-foreground text-sm ">
+                    Избери филтрите
+                  </p>
+                </div>
+                <div className="p-4 flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="includeInactive"
+                      type="checkbox"
+                      checked={includeInactive === "1"}
+                      onChange={(e) =>
+                        setIncludeInactive(e.target.checked ? "1" : null)
+                      }
+                    />
+                    <Label htmlFor="includeInactive" className="cursor-pointer">
+                      Показвай деактивирани партньори
+                    </Label>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {}}
+                  >
+                    <Filter /> Филтрирай
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
 
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Създай партньор</DialogTitle>
-              </DialogHeader>
-              <CreatePartnerPage fetchPartners={fetchPartners} />
-            </DialogContent>
-          </Dialog>
-        )}
+          {userIsAdmin && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Добави партньор
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Създай партньор</DialogTitle>
+                </DialogHeader>
+                <CreatePartnerPage fetchPartners={fetchPartners} />
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </BasicHeader>
 
       <DataTable
