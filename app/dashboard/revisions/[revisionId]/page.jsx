@@ -703,7 +703,7 @@ export default function RevisionDetailPage() {
         </Button>*/}
 
         <Button
-          onClick={() => downloadSalePdf(revision, "Test")}
+          onClick={() => downloadSalePdf(revision, "Test", "a4")}
         >
         <Printer />  Принтирай
         </Button>

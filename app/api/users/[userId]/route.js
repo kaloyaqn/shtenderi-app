@@ -13,7 +13,13 @@ export async function DELETE(req, { params }) {
   const { userId } = await params;
 
   try {
-    await prisma.user.delete({ where: { id: userId } });
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        deactivatedAt: new Date(),
+      },
+    });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('[USER_DELETE_ERROR]', error);
@@ -54,7 +60,7 @@ export async function GET(req, { params }) {
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userId, isActive: true },
       select: {
         id: true,
         name: true,

@@ -12,7 +12,7 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: session.user.id, isActive: true },
       select: {
         id: true,
         name: true,
@@ -48,6 +48,7 @@ export async function GET(req) {
 
   try {
     const users = await prisma.user.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         name: true,

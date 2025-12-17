@@ -61,10 +61,11 @@ export default function Stands() {
   const [name, setName] = useQueryState("name");
   const [cityId, setCityId] = useQueryState("cityId");
   const [regionId, setRegionId] = useQueryState("regionId");
+  const [includeInactive, setIncludeInactive] = useQueryState("includeInactive");
 
   const { data, error, isLoading } = useSWR(
     [
-      `/api/stands?city=${cityId}&region=${regionId}&name=${name}`,
+      `/api/stands?city=${cityId}&region=${regionId}&name=${name}&includeInactive=${includeInactive}`,
       "/api/cities",
       "/api/regions",
     ],
@@ -109,9 +110,10 @@ export default function Stands() {
       header: "Име на щендер",
       cell: ({ row }) => {
         const stand = row.original;
+        const inactive = stand.isActive === false;
 
         return (
-          <span className="flex items-center">
+          <span className={`flex items-center ${inactive ? "text-red-600" : ""}`}>
             <TableLink href={`/dashboard/stands/${stand.id}`}>
               {stand.name}
             </TableLink>
@@ -147,9 +149,11 @@ export default function Stands() {
       accessorKey: "store.partner.name",
       header: "партньор",
       cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
         return (
           <TableLink
             href={`/dashboard/partners/${row.original.store.partnerId}`}
+            className={inactive ? "text-red-600" : ""}
           >
             {row.original.store.partner.name}
           </TableLink>
@@ -161,8 +165,9 @@ export default function Stands() {
       accessorKey: "store.name",
       header: "магазин",
       cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
         return (
-          <TableLink href={`/dashboard/stores/${row.original.store.id}`}>
+          <TableLink href={`/dashboard/stores/${row.original.store.id}`} className={inactive ? "text-red-600" : ""}>
             {row.original.store.name}
           </TableLink>
         );
@@ -173,6 +178,7 @@ export default function Stands() {
       accessorKey: "userStands",
       cell: ({ row }) => {
         const userStands = row.original.userStands || [];
+        const inactive = row.original.isActive === false;
         if (userStands.length === 0) return "-";
         return userStands
           .map((us) => us.user?.name || us.user?.email)
@@ -187,9 +193,10 @@ export default function Stands() {
       accessorKey: "store.partner.percentageDiscount",
       header: "%",
       cell: ({ row }) => {
+        const inactive = row.original.isActive === false;
         const PD = row.original.store.partner.percentageDiscount;
 
-        return <Badge variant={"outline"}>{PD || 0}%</Badge>;
+        return <Badge variant={"outline"} className={inactive ? "text-red-600 border-red-400" : ""}>{PD || 0}%</Badge>;
       },
     },
     {
@@ -216,6 +223,7 @@ export default function Stands() {
       cell: ({ row }) => {
         const stand = row.original;
         if (!isAdmin) return null;
+        const inactive = stand.isActive === false;
         return (
           <div className="flex items-center gap-2 md:flex-row flex-col md:justify-start justify-center w-full">
             <Button
@@ -224,15 +232,39 @@ export default function Stands() {
             >
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button
-              variant="table"
-              onClick={() => {
-                setStandToDelete(stand);
-                setDeleteDialogOpen(true);
-              }}
-            >
-              <Trash2 className="h-2 w-2" />
-            </Button>
+            {inactive ? (
+              <Button
+                variant="table"
+                onClick={async () => {
+                  try {
+                    await fetch(`/api/stands/${stand.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ isActive: true }),
+                    });
+                    mutate([
+                      `/api/stands?city=${cityId}&region=${regionId}&name=${name}&includeInactive=${includeInactive}`,
+                      "/api/cities",
+                      "/api/regions",
+                    ]);
+                  } catch (err) {
+                    console.error("Error activating stand:", err);
+                  }
+                }}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="table"
+                onClick={() => {
+                  setStandToDelete(stand);
+                  setDeleteDialogOpen(true);
+                }}
+              >
+                <Trash2 className="h-2 w-2" />
+              </Button>
+            )}
           </div>
         );
       },
@@ -321,6 +353,18 @@ export default function Stands() {
                       value={cityId}
                     />
                   </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    id="includeInactive"
+                    type="checkbox"
+                    checked={includeInactive === "1"}
+                    onChange={(e) => setIncludeInactive(e.target.checked ? "1" : null)}
+                  />
+                  <Label htmlFor="includeInactive" className="cursor-pointer">
+                    Показвай деактивирани
+                  </Label>
+                </div>
 
                   <Button className={"mt-2"} variant="outline">
                     <Filter /> Филтрирай
@@ -486,6 +530,18 @@ export default function Stands() {
                       value={cityId}
                     />
                   </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    id="includeInactive"
+                    type="checkbox"
+                    checked={includeInactive === "1"}
+                    onChange={(e) => setIncludeInactive(e.target.checked ? "1" : null)}
+                  />
+                  <Label htmlFor="includeInactive" className="cursor-pointer">
+                    Показвай деактивирани
+                  </Label>
+                </div>
 
                   <Button className={"mt-2"} variant="outline">
                     <Filter /> Филтрирай

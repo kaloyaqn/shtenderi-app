@@ -12,26 +12,76 @@ function getBase64FromPublic(relPath) {
 }
 
 export async function POST(req) {
-  const { revision, adminName } = await req.json();
+  const { searchParams } = new URL(req.url);
+  const method = (searchParams.get("method") || "roll").toLowerCase(); // default roll
 
+  const { revision, adminName } = await req.json();
   if (!revision) {
     return new Response("Revision data missing", { status: 400 });
   }
 
-  const html = buildHtml(revision, adminName);
+  // Keep roll exactly as you have it
+  if (method === "roll") {
+    const html = buildHtmlRoll(revision, adminName);
+    return await generatePdfViaPuppeteerAutoHeight(html);
+  }
 
+  // Separate A4 HTML/CSS so it won't break
+  if (method === "a4") {
+    const html = buildHtmlA4(revision, adminName);
+    return await generatePdfViaPuppeteerA4(html);
+  }
+
+  return new Response("Invalid method. Use ?method=roll or ?method=a4", {
+    status: 400,
+  });
+}
+
+/* ===========================
+   ROLL: your exact working generator
+=========================== */
+async function generatePdfViaPuppeteerAutoHeight(html) {
   const browser = await puppeteer.launch({
     headless: "new",
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
   const page = await browser.newPage();
+
+  // 210mm at 96dpi ≈ 794px. Setting viewport prevents reflow surprises.
+  await page.setViewport({ width: 794, height: 1000, deviceScaleFactor: 1 });
+
   await page.setContent(html, { waitUntil: "networkidle0" });
 
+  // Wait for fonts (important since you embed base64 fonts)
+  await page.evaluate(async () => {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  });
+
+  // Measure the real rendered height
+  const contentHeightPx = await page.evaluate(() => {
+    const el = document.documentElement;
+    const body = document.body;
+    return Math.max(
+      el.scrollHeight,
+      body.scrollHeight,
+      el.offsetHeight,
+      body.offsetHeight,
+      el.clientHeight
+    );
+  });
+
+  // Add a little extra for printer cutter spacing (tweak if needed)
+  const finalHeightPx = contentHeightPx + 40;
+
   const pdf = await page.pdf({
-    format: "A4",
     printBackground: true,
-    preferCSSPageSize: true,
+    width: "210mm",
+    height: `${finalHeightPx}px`,
+    margin: { top: "0px", right: "0px", bottom: "0px", left: "0px" },
+    pageRanges: "1",
   });
 
   await browser.close();
@@ -40,16 +90,59 @@ export async function POST(req) {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=stock-receipt.pdf",
+      "Content-Disposition": "attachment; filename=stock-receipt-roll.pdf",
     },
   });
 }
 
-function buildHtml(revision, adminName) {
+/* ===========================
+   A4: separate generator (proper pagination)
+=========================== */
+async function generatePdfViaPuppeteerA4(html) {
+  const browser = await puppeteer.launch({
+    headless: "new",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+
+  const page = await browser.newPage();
+
+  // Normal viewport for A4-like rendering
+  await page.setViewport({ width: 1200, height: 800, deviceScaleFactor: 1 });
+
+  await page.setContent(html, { waitUntil: "networkidle0" });
+
+  await page.evaluate(async () => {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  });
+
+  const pdf = await page.pdf({
+    format: "A4",
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: { top: "15mm", right: "12mm", bottom: "15mm", left: "12mm" },
+  });
+
+  await browser.close();
+
+  return new Response(pdf, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=stock-receipt-a4.pdf",
+    },
+  });
+}
+
+/* ===========================
+   ROLL HTML: unchanged (your working CSS)
+=========================== */
+function buildHtmlRoll(revision, adminName) {
   // ---- Embed fonts & logo as base64 -----------------------------------
   const onestRegularBase64 = getBase64FromPublic("fonts/Onest-Regular.ttf");
   const onestBoldBase64 = getBase64FromPublic("fonts/Onest-Bold.ttf");
-  const logoBase64 = getBase64FromPublic("/logo/logo.png"); // put logo.png in /public
+  const logoBase64 = getBase64FromPublic("logo/logo.png");
 
   const css = `
   @font-face {
@@ -65,10 +158,139 @@ function buildHtml(revision, adminName) {
     font-style: normal;
   }
 
+  /* Roll print styling */
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
   body {
     font-family: "Onest", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    padding: 32px;
-    color: #222;
+    width: 210mm;
+    box-sizing: border-box;
+    padding: 12mm;
+    color: #000;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .header img {
+    height: 42px;
+    /* Make logo black for thermal/mono printing */
+    filter: grayscale(1) brightness(0);
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 10px 0 12px 0;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 16px 0 6px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .info-block {
+    width: 50%;
+    font-size: 12px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 11px;
+  }
+
+  th {
+    font-weight: 700;
+    padding: 6px 4px;
+    border-bottom: 1px solid #000;
+    text-align: left;
+  }
+
+  td {
+    padding: 6px 4px;
+    border-bottom: 1px solid #ccc;
+    vertical-align: top;
+  }
+
+  /* Avoid breaking rows */
+  table, thead, tbody, tr, td, th {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .total td {
+    font-weight: 700;
+    border-top: 1px solid #000;
+    border-bottom: none;
+  }
+
+  .signature {
+    margin-top: 18px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  `;
+
+  return buildHtmlDocument(revision, adminName, css, logoBase64);
+}
+
+/* ===========================
+   A4 HTML: separate CSS (fixes broken pagination)
+   Key changes vs roll:
+   - NO fixed 210mm width
+   - Allow table to split across pages
+   - Avoid breaking INSIDE a row only
+=========================== */
+function buildHtmlA4(revision, adminName) {
+  const onestRegularBase64 = getBase64FromPublic("fonts/Onest-Regular.ttf");
+  const onestBoldBase64 = getBase64FromPublic("fonts/Onest-Bold.ttf");
+  const logoBase64 = getBase64FromPublic("logo/logo.png");
+
+  const css = `
+  @font-face {
+    font-family: "Onest";
+    src: url("data:font/ttf;base64,${onestRegularBase64}") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "Onest";
+    src: url("data:font/ttf;base64,${onestBoldBase64}") format("truetype");
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  @page {
+    size: A4;
+    margin: 15mm 12mm;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: "Onest", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #000;
     font-size: 13px;
     line-height: 1.45;
   }
@@ -77,29 +299,30 @@ function buildHtml(revision, adminName) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
 
   .header img {
-    height: 50px;
+    height: 46px;
+    filter: grayscale(1) brightness(0);
   }
 
   h1 {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
-    margin: 0 0 20px 0;
+    margin: 0 0 14px 0;
   }
 
   .section-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
-    margin: 24px 0 10px;
+    margin: 16px 0 8px;
   }
 
   .info-row {
     display: flex;
     justify-content: space-between;
-    gap: 40px;
+    gap: 24px;
   }
 
   .info-block {
@@ -109,45 +332,53 @@ function buildHtml(revision, adminName) {
 
   table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 12px;
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid #e5e5e5;
-    font-size: 13px;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 12px;
   }
 
+  thead { display: table-header-group; } /* repeat header on new pages */
+  tfoot { display: table-footer-group; }
+
   th {
-    background: #f6f6f6;
     font-weight: 700;
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
+    padding: 8px 6px;
+    border-bottom: 1px solid #000;
     text-align: left;
+    background: #f5f5f5;
   }
 
   td {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+    padding: 8px 6px;
+    border-bottom: 1px solid #ddd;
+    vertical-align: top;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
 
-  tr:last-child td {
+  /* IMPORTANT: allow page breaks between rows, but not inside a row */
+  tr { break-inside: avoid; page-break-inside: avoid; }
+
+  .total td {
+    font-weight: 700;
+    border-top: 1px solid #000;
     border-bottom: none;
   }
 
-  .total {
-    background: #fafafa;
-    font-weight: 700;
-  }
-
   .signature {
-    margin-top: 40px;
-    font-size: 14px;
+    margin-top: 18px;
+    font-size: 13px;
     font-weight: 700;
   }
   `;
 
-  // ---- Build products rows --------------------------------------------
+  return buildHtmlDocument(revision, adminName, css, logoBase64);
+}
+
+/* ===========================
+   Shared HTML markup (same data)
+=========================== */
+function buildHtmlDocument(revision, adminName, css, logoBase64) {
   const productsHtml = (revision.missingProducts || [])
     .map((mp) => {
       const name = mp.product?.invoiceName || mp.product?.name || "-";
@@ -161,7 +392,7 @@ function buildHtml(revision, adminName) {
           <td>${ean}</td>
           <td>${name}</td>
           <td>${qty}</td>
-          <td>${price.toFixed(2)}</td>
+          <td>${Number(price).toFixed(2)}</td>
           <td>${total}</td>
         </tr>
       `;
@@ -181,7 +412,6 @@ function buildHtml(revision, adminName) {
     }, 0)
     .toFixed(2);
 
-  // ---- Final HTML ------------------------------------------------------
   return `
 <!DOCTYPE html>
 <html lang="bg">
@@ -191,7 +421,6 @@ function buildHtml(revision, adminName) {
 </head>
 
 <body>
-
   <div class="header">
     <img src="data:image/png;base64,${logoBase64}" alt="Logo" />
     <div style="text-align:right;">
@@ -199,7 +428,7 @@ function buildHtml(revision, adminName) {
     </div>
   </div>
 
-  <h1>СТОКОВА РАЗПИСКА <strong>№ ${revision.number}</strong></h1>
+  <h1>СТОКОВА РАЗПИСКА № ${revision.number}</h1>
 
   <div class="info-row">
     <div class="info-block">
@@ -229,12 +458,10 @@ function buildHtml(revision, adminName) {
         <th>Общо</th>
       </tr>
     </thead>
-
     <tbody>
       ${productsHtml}
-
       <tr class="total">
-        <td>Общо:</td>
+        <td>ОБЩО</td>
         <td></td>
         <td>${totalQty}</td>
         <td></td>
@@ -243,8 +470,7 @@ function buildHtml(revision, adminName) {
     </tbody>
   </table>
 
-  <div class="signature">Изготвил: ${revision.user?.name}</div>
-
+  <div class="signature">Изготвил: ${revision.user?.name || adminName || ""}</div>
 </body>
 </html>
 `;

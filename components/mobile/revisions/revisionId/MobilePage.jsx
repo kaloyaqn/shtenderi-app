@@ -195,13 +195,19 @@ export default function MobilePageRevisionId({
                 </Button>
                 {/* PRINT STOCK BUTTON */}
                 {revision && (
-                    <PrintStockButton
-                        missingProducts={revision.missingProducts.map(mp => ({
-                            ...mp,
-                            missingQuantity: mp.givenQuantity ?? mp.missingQuantity
-                        }))}
-                        revisionNumber={revision.number}
-                    />
+                    // <PrintStockButton
+                    //     missingProducts={revision.missingProducts.map(mp => ({
+                    //         ...mp,
+                    //         missingQuantity: mp.givenQuantity ?? mp.missingQuantity
+                    //     }))}
+                    //     revisionNumber={revision.number}
+                    // />
+
+                    <Button
+                    onClick={() => downloadSalePdf(revision, "Test", "roll")}
+                  >
+                  <Printer />  Принтирай
+                  </Button>
                 )}
 
                 {/* PRINT STOCK BUTTON */}
@@ -246,7 +252,7 @@ export default function MobilePageRevisionId({
                 >
                   Добави продукти
                 </Button>
-                <Button
+                {/* <Button
                   variant="outline"
                   size="sm"
                   className="h-7 text-xs flex-1 bg-transparent"
@@ -254,7 +260,7 @@ export default function MobilePageRevisionId({
                 >
                   <Printer className="h-3 w-3 mr-1" />
                   Принтирай
-                </Button>
+                </Button> */}
 
                 <Button
                   variant="outline"
@@ -270,18 +276,27 @@ export default function MobilePageRevisionId({
               </div>
             )}
 
-              <PrintStockButton
+              {/* <PrintStockButton
                 revisionNumber={revision.number}
                   missingProducts={revision.missingProducts}
-                />
-                <Button
+                /> */}
+                                  <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full text-xs"
+
+                    onClick={() => downloadSalePdf(revision, "Test", "roll")}
+                  >
+                  <Printer />  Принтирай
+                  </Button>
+                {/* <Button
                   size="sm"
                   className="w-full text-xs mt-2"
                   variant={"outline"}
                   type="button"
                   onClick={() => downloadSalePdf(revision, "Bashta mi")}>
                   Изтегли А4
-                </Button>
+                </Button> */}
           </CardContent>
         </Card>
 

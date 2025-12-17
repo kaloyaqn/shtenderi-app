@@ -3,11 +3,13 @@ import { getServerSession } from '@/lib/get-session-better-auth';
 
 
 // GET: Връща всички партньори с магазини
-export async function GET() {
+export async function GET(req) {
   try {
     const session = await getServerSession();
     if (!session) return new Response('Unauthorized', { status: 401 });
-    const partners = await partnerService.getAllPartners(session.user);
+    const { searchParams } = new URL(req.url);
+    const includeInactive = searchParams.get('includeInactive') === '1';
+    const partners = await partnerService.getAllPartners(session.user, includeInactive);
     return Response.json(partners);
   } catch (error) {
     console.error('[PARTNERS_GET_ERROR]', error);

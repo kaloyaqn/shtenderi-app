@@ -1,9 +1,24 @@
 import { getAllStores, createStore } from '@/lib/stores/store'
 
-// GET: Връща всички магазини с партньор
-export async function GET() {
+// GET: Връща всички магазини с възможност за филтри
+export async function GET(req) {
   try {
-    const stores = await getAllStores()
+    const { searchParams } = new URL(req.url);
+
+    const cityId = searchParams.get("city");
+    const channelId = searchParams.get("channel");
+    const partnerId = searchParams.get("partner");
+    const name = searchParams.get("name");
+    const includeInactive = searchParams.get("includeInactive") === "1";
+
+    const stores = await getAllStores({
+      cityId,
+      channelId,
+      partnerId,
+      name,
+      includeInactive,
+    });
+
     return Response.json(stores)
   } catch (error) {
     console.error('[STORES_GET_ERROR]', error)

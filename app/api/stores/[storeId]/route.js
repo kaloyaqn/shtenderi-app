@@ -47,6 +47,18 @@ export async function PUT(req, { params }) {
     const { storeId } = params;
     const data = await req.json();
 
+    // Allow toggling activation state without requiring other fields
+    if (Object.prototype.hasOwnProperty.call(data, "isActive")) {
+      const updated = await prisma.store.update({
+        where: { id: storeId },
+        data: {
+          isActive: data.isActive,
+          deactivatedAt: data.isActive ? null : new Date(),
+        },
+      });
+      return Response.json(updated);
+    }
+
     const updated = await prisma.store.update({
       where: { id: storeId },
       data: {
@@ -79,8 +91,12 @@ export async function DELETE(req, { params }) {
   try {
     const { storeId } = params;
 
-    await prisma.store.delete({
+    await prisma.store.update({
       where: { id: storeId },
+      data: {
+        isActive: false,
+        deactivatedAt: new Date(),
+      },
     });
 
     return new Response(null, { status: 204 });
