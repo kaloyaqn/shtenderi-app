@@ -8,6 +8,7 @@ export async function GET(req) {
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
     const productQuery = (searchParams.get("product") || "").trim().toLowerCase();
+    const productPcode = (searchParams.get("pcode") || "").trim().toLowerCase();
 
     const from = dateFrom ? new Date(dateFrom) : new Date("2000-01-01");
     const to = dateTo ? new Date(dateTo) : new Date("2100-01-01");
@@ -59,9 +60,11 @@ export async function GET(req) {
         const product = sp.product;
 
         // Optional product filter (by name contains)
-        if (productQuery && !product.name.toLowerCase().includes(productQuery)) {
-          continue;
-        }
+        const matchesName =
+          !productQuery || product.name.toLowerCase().includes(productQuery);
+        const matchesPcode =
+          !productPcode || (product.pcode || "").toLowerCase().includes(productPcode);
+        if (!matchesName || !matchesPcode) continue;
 
         // Ensure product entry exists
         if (!productMap[product.id]) {

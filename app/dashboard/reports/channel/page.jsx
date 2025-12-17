@@ -23,15 +23,18 @@ import { useQueryState } from "nuqs";
 import useSWR from "swr";
 import { useState } from "react";
 import { useProductFilter } from "@/hooks/use-product-filter";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function ChannelReport() {
   const [dateFrom, setDateFrom] = useQueryState("dateFrom");
   const [dateTo, setDateTo] = useQueryState("dateTo");
   const [productQuery, setProductQuery] = useQueryState("product");
+  const [productPcode, setProductPcode] = useQueryState("pcode");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { productInputRef, openProductPicker } = useProductFilter({
     onProductSelect: (product) => {
       setProductQuery(product?.name || null);
+      setProductPcode(product?.pcode || null);
       setIsFilterOpen(false);
     },
     onShortcut: () => setIsFilterOpen(true),
@@ -41,19 +44,17 @@ export default function ChannelReport() {
   if (dateFrom) query.set("dateFrom", dateFrom);
   if (dateTo) query.set("dateTo", dateTo);
   if (productQuery) query.set("product", productQuery);
+  if (productPcode) query.set("pcode", productPcode);
 
   const { data, isLoading } = useSWR(
     `/api/reports/channel${query.toString() ? `?${query.toString()}` : ""}`,
     fetcher
   );
 
-  if (isLoading || !data) return <div className="p-4">Зареждане...</div>;
+  // if (isLoading || !data) return <div className="p-4">Зареждане...</div>;
 
   const products = data?.products ?? [];
 
-  // -------------------------------------------------
-  // 1) Collect unique channels from API response
-  // -------------------------------------------------
   const channelSet = new Set();
 
   products.forEach((product) => {
@@ -90,11 +91,10 @@ export default function ChannelReport() {
       header: ch.label,
 
       cell: ({ row }) => {
-        const qty = row.original[ch.key]; // total qty for this product in this channel
+        const qty = row.original[ch.key];
         const productName = row.original.productName;
         const stores = row.original.stores || [];
 
-        // 💡 Only stores from THIS channel
         const storesForChannel = stores.filter(
           (s) => s.channelName === ch.label
         );
@@ -205,7 +205,9 @@ export default function ChannelReport() {
                     <Button
                       variant="outline"
                       onClick={() =>
-                        openProductPicker(productQuery ? String(productQuery) : "")
+                        openProductPicker(
+                          productQuery ? String(productQuery) : ""
+                        )
                       }
                     >
                       Търси
@@ -214,6 +216,18 @@ export default function ChannelReport() {
                   <span className="text-xs text-muted-foreground">
                     Ctrl/Cmd + K за избор от номенклатура
                   </span>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="productPcode">Продуктов код</Label>
+                  <Input
+                    id="productPcode"
+                    type="text"
+                    placeholder="Филтър по продуктов код"
+                    value={productPcode || ""}
+                    onChange={(e) => setProductPcode(e.target.value || null)}
+                    className="min-w-[220px]"
+                  />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -253,6 +267,7 @@ export default function ChannelReport() {
                       setDateFrom(null);
                       setDateTo(null);
                       setProductQuery(null);
+                      setProductPcode(null);
                     }}
                   >
                     <X /> Изчисти
@@ -264,8 +279,12 @@ export default function ChannelReport() {
         </Popover>
       </BasicHeader>
 
-      <div className="p-4">
-        <DataTable data={rows} columns={columns} />
+      <div className="">
+        {isLoading || !data ? (
+          <LoadingScreen />
+        ) : (
+          <DataTable data={rows} columns={columns} />
+        )}
       </div>
     </>
   );
