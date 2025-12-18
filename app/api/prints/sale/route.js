@@ -1,6 +1,7 @@
 import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
+import nodemailer from "nodemailer";
 
 export const runtime = "nodejs";
 
@@ -14,22 +15,57 @@ function getBase64FromPublic(relPath) {
 export async function POST(req) {
   const { searchParams } = new URL(req.url);
   const method = (searchParams.get("method") || "roll").toLowerCase(); // default roll
+  const sendEmail = searchParams.get("send_email") === "1";
+  const emailTo = searchParams.get("email");
 
   const { revision, adminName } = await req.json();
   if (!revision) {
     return new Response("Revision data missing", { status: 400 });
   }
+  if (sendEmail && !emailTo) {
+    return new Response("Missing ?email=... for send_email=1", { status: 400 });
+  }
 
   // Keep roll exactly as you have it
   if (method === "roll") {
     const html = buildHtmlRoll(revision, adminName);
-    return await generatePdfViaPuppeteerAutoHeight(html);
+    const pdf = await generatePdfBufferViaPuppeteerAutoHeight(html);
+    if (sendEmail) {
+      await sendRevisionEmail({
+        to: emailTo,
+        subject: `Стокова разписка № ${revision.number}`,
+        html: buildEmailHtml(revision, adminName),
+        attachments: [
+          {
+            filename: `stock-receipt-${revision.number}.pdf`,
+            content: pdf,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+    }
+    return buildPdfResponse(pdf, `stock-receipt-roll-${revision.number}.pdf`);
   }
 
   // Separate A4 HTML/CSS so it won't break
   if (method === "a4") {
     const html = buildHtmlA4(revision, adminName);
-    return await generatePdfViaPuppeteerA4(html);
+    const pdf = await generatePdfBufferViaPuppeteerA4(html);
+    if (sendEmail) {
+      await sendRevisionEmail({
+        to: emailTo,
+        subject: `Стокова разписка № ${revision.number}`,
+        html: buildEmailHtml(revision, adminName),
+        attachments: [
+          {
+            filename: `stock-receipt-${revision.number}.pdf`,
+            content: pdf,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+    }
+    return buildPdfResponse(pdf, `stock-receipt-a4-${revision.number}.pdf`);
   }
 
   return new Response("Invalid method. Use ?method=roll or ?method=a4", {
@@ -40,7 +76,17 @@ export async function POST(req) {
 /* ===========================
    ROLL: your exact working generator
 =========================== */
-async function generatePdfViaPuppeteerAutoHeight(html) {
+function buildPdfResponse(pdf, filename) {
+  return new Response(pdf, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename=${filename}`,
+    },
+  });
+}
+
+async function generatePdfBufferViaPuppeteerAutoHeight(html) {
   const browser = await puppeteer.launch({
     headless: "new",
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -86,19 +132,13 @@ async function generatePdfViaPuppeteerAutoHeight(html) {
 
   await browser.close();
 
-  return new Response(pdf, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=stock-receipt-roll.pdf",
-    },
-  });
+  return pdf;
 }
 
 /* ===========================
    A4: separate generator (proper pagination)
 =========================== */
-async function generatePdfViaPuppeteerA4(html) {
+async function generatePdfBufferViaPuppeteerA4(html) {
   const browser = await puppeteer.launch({
     headless: "new",
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -126,13 +166,7 @@ async function generatePdfViaPuppeteerA4(html) {
 
   await browser.close();
 
-  return new Response(pdf, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=stock-receipt-a4.pdf",
-    },
-  });
+  return pdf;
 }
 
 /* ===========================
@@ -228,6 +262,13 @@ function buildHtmlRoll(revision, adminName) {
     padding: 6px 4px;
     border-bottom: 1px solid #ccc;
     vertical-align: top;
+  }
+
+  /* Keep EAN compact and single-line */
+  th:first-child,
+  td:first-child {
+    white-space: nowrap;
+    font-size: 10px;
   }
 
   /* Avoid breaking rows */
@@ -356,6 +397,15 @@ function buildHtmlA4(revision, adminName) {
     overflow-wrap: anywhere;
   }
 
+  /* Keep EAN compact and single-line */
+  th:first-child,
+  td:first-child {
+    white-space: nowrap;
+    font-size: 11px;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
   /* IMPORTANT: allow page breaks between rows, but not inside a row */
   tr { break-inside: avoid; page-break-inside: avoid; }
 
@@ -474,4 +524,125 @@ function buildHtmlDocument(revision, adminName, css, logoBase64) {
 </body>
 </html>
 `;
+}
+
+function buildEmailHtml(revision, adminName) {
+  const rows = (revision.missingProducts || [])
+    .slice(0, 50)
+    .map((mp) => {
+      const name = mp.product?.invoiceName || mp.product?.name || "-";
+      const ean = mp.product?.barcode || "-";
+      const qty = mp.givenQuantity ?? mp.missingQuantity;
+      const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+      const total = (qty * price).toFixed(2);
+
+      return `
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;white-space:nowrap;font-size:12px;">${ean}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">${name}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap;">${qty}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap;">${Number(
+            price
+          ).toFixed(2)} лв.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap;">${total} лв.</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const totalQty = (revision.missingProducts || []).reduce(
+    (s, mp) => s + (mp.givenQuantity ?? mp.missingQuantity),
+    0
+  );
+
+  const totalSum = (revision.missingProducts || [])
+    .reduce((s, mp) => {
+      const qty = mp.givenQuantity ?? mp.missingQuantity;
+      const price = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+      return s + qty * price;
+    }, 0)
+    .toFixed(2);
+
+  return `
+  <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;color:#111827;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+      <img src="https://stendo.bg/logo/logo.png" alt="Stendo" style="height:34px;display:block;" />
+      <div style="text-align:right;color:#6b7280;font-size:12px;">
+        ${new Date(revision.createdAt).toLocaleDateString("bg-BG")} г.
+      </div>
+    </div>
+    <h2 style="margin:0 0 8px 0;">Стокова разписка № ${revision.number}</h2>
+    <div style="margin-bottom:16px;font-size:14px;">
+      <div><strong>Получател:</strong> ${revision.partner?.name || "-"}</div>
+      <div><strong>Изготвил:</strong> ${revision.user?.name || adminName || "-"}</div>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:6px 8px;border-bottom:2px solid #111827;">EAN</th>
+          <th style="text-align:left;padding:6px 8px;border-bottom:2px solid #111827;">Продукт</th>
+          <th style="text-align:right;padding:6px 8px;border-bottom:2px solid #111827;">Кол.</th>
+          <th style="text-align:right;padding:6px 8px;border-bottom:2px solid #111827;">Ед. цена</th>
+          <th style="text-align:right;padding:6px 8px;border-bottom:2px solid #111827;">Общо</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows || `<tr><td colspan="5" style="padding:10px 8px;color:#6b7280;">Няма редове</td></tr>`}
+        <tr>
+          <td colspan="2" style="padding:10px 8px;border-top:2px solid #111827;"><strong>ОБЩО</strong></td>
+          <td style="padding:10px 8px;border-top:2px solid #111827;text-align:right;"><strong>${totalQty}</strong></td>
+          <td style="padding:10px 8px;border-top:2px solid #111827;"></td>
+          <td style="padding:10px 8px;border-top:2px solid #111827;text-align:right;"><strong>${totalSum} лв.</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:14px;color:#6b7280;font-size:12px;">
+      PDF файлът е прикачен към този имейл.
+    </div>
+  </div>
+  `;
+}
+
+async function sendRevisionEmail({ to, subject, html, attachments }) {
+  const host = process.env.SMTP_HOST || "smtp.fastmail.com";
+  const port = Number(process.env.SMTP_PORT || 465);
+  const secure =
+    typeof process.env.SMTP_SECURE !== "undefined"
+      ? process.env.SMTP_SECURE === "true"
+      : port === 465;
+
+  const user = process.env.SMTP_USER || process.env.FASTMAIL_USER;
+  const pass =
+    process.env.SMTP_PASS ||
+    process.env.FASTMAIL_PASS ||
+    process.env.FASTMAIL_API_TOKEN ||
+    process.env.FASTMAIL_TOKEN;
+  const from =
+    process.env.SMTP_FROM ||
+    process.env.FASTMAIL_FROM ||
+    "invoices@stendo.bg";
+
+  if (!user || !pass) {
+    throw new Error(
+      "Missing SMTP credentials: set SMTP_USER/SMTP_PASS (or FASTMAIL_USER/FASTMAIL_PASS)."
+    );
+  }
+
+  const transport = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
+
+  await transport.sendMail({
+    from,
+    to,
+    subject,
+    html,
+    text: `Стокова разписка № ${subject?.match(/\d+/)?.[0] || ""} (виж прикачения PDF).`,
+    attachments,
+  });
 }

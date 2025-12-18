@@ -30,13 +30,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  EditIcon,
-  Printer,
-  Send,
-  Truck,
-  AlertTriangle,
-} from "lucide-react";
+import { EditIcon, Printer, Send, Truck, AlertTriangle, Loader2, Check } from "lucide-react";
 import { IconBox, IconInvoice } from "@tabler/icons-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSession } from "@/lib/session-context";
@@ -50,8 +44,15 @@ import CreatePaymentRevisionForm from "@/components/forms/payments-revision/Crea
 import PaymentsTable from "@/components/tables/revisions/PaymentsTable";
 import MobilePageRevisionId from "@/components/mobile/revisions/revisionId/MobilePage";
 import PaymentsCardMobile from "@/components/mobile/revisions/revisionId/PaymentsCardMobile";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
-import { downloadSalePdf } from "@/lib/print/prints";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer";
+import { downloadSalePdf, sendPdfEmail } from "@/lib/print/prints";
 
 export default function RevisionDetailPage() {
   const params = useParams();
@@ -90,6 +91,8 @@ export default function RevisionDetailPage() {
   // --- Desktop only: payments state and fetch (must be at top for hook order) ---
   const [payments, setPayments] = useState([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [sendingSaleEmail, setSendingSaleEmail] = useState(false);
+  const [saleEmailSent, setSaleEmailSent] = useState(false);
 
   const fetchPayments = async () => {
     setPaymentsLoading(true);
@@ -125,21 +128,25 @@ export default function RevisionDetailPage() {
       // If this revision was created from a check, fetch all missing products from the check
       if (data.checkId) {
         try {
-          const checkRes = await fetch(`/api/stands/${data.standId}/checks/${data.checkId}`);
+          const checkRes = await fetch(
+            `/api/stands/${data.standId}/checks/${data.checkId}`
+          );
           if (checkRes.ok) {
             const checkData = await checkRes.json();
-            console.log('Check data:', checkData);
+            console.log("Check data:", checkData);
             // Find ALL products that were missing from the check (not just unscanned ones)
-            const soldProductIds = data.missingProducts.map(mp => mp.productId);
-            const allMissingFromCheck = checkData.checkedProducts.filter(cp =>
-              cp.quantity > 0 && !soldProductIds.includes(cp.productId)
+            const soldProductIds = data.missingProducts.map(
+              (mp) => mp.productId
             );
-            console.log('Missing from check:', {
+            const allMissingFromCheck = checkData.checkedProducts.filter(
+              (cp) => cp.quantity > 0 && !soldProductIds.includes(cp.productId)
+            );
+            console.log("Missing from check:", {
               soldProductIds,
               allMissingFromCheck,
-              checkProducts: checkData.checkedProducts
+              checkProducts: checkData.checkedProducts,
             });
-            console.log('Sample unscanned product:', allMissingFromCheck[0]);
+            console.log("Sample unscanned product:", allMissingFromCheck[0]);
             setUnscannedProducts(allMissingFromCheck);
           }
         } catch (error) {
@@ -323,6 +330,27 @@ export default function RevisionDetailPage() {
     }
   };
 
+  const handleSendSalePdfEmail = async () => {
+    const email = revision?.partner?.email || revision?.stand?.email;
+    if (!email) {
+      toast.error("Партньорът няма имейл.");
+      return;
+    }
+
+    setSendingSaleEmail(true);
+    setSaleEmailSent(false);
+    try {
+      await sendPdfEmail(revision, adminName, "a4", email);
+      setSaleEmailSent(true);
+      toast.success("Стоковата разписка е изпратена!");
+      setTimeout(() => setSaleEmailSent(false), 2500);
+    } catch (e) {
+      toast.error(e?.message || "Грешка при изпращане на имейл");
+    } finally {
+      setSendingSaleEmail(false);
+    }
+  };
+
   const handleCreateAndGoToInvoices = async () => {
     if (!paymentMethod) {
       toast.error("Моля, изберете начин на плащане.");
@@ -391,51 +419,94 @@ export default function RevisionDetailPage() {
   // Load storages when append dialog opens (ensures dropdown is populated)
   useEffect(() => {
     if (!appendOpen) return;
-    fetch('/api/storages')
-      .then(res => res.json())
+    fetch("/api/storages")
+      .then((res) => res.json())
       .then(setStorages)
       .catch(() => setStorages([]));
   }, [appendOpen]);
 
   // Load stock for selected source to show available quantities and cap input
   useEffect(() => {
-    if (!appendSourceId) { setAppendSourceStock({}); return; }
+    if (!appendSourceId) {
+      setAppendSourceStock({});
+      return;
+    }
     fetch(`/api/storages/${appendSourceId}/products`)
-      .then(r => r.json())
-      .then(list => {
-        const map = {}; (list||[]).forEach(sp => { map[String(sp.productId)] = sp.quantity || 0; });
+      .then((r) => r.json())
+      .then((list) => {
+        const map = {};
+        (list || []).forEach((sp) => {
+          map[String(sp.productId)] = sp.quantity || 0;
+        });
         setAppendSourceStock(map);
       })
       .catch(() => setAppendSourceStock({}));
   }, [appendSourceId]);
 
   const handleAppendScan = async (e) => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== "Enter") return;
     const code = appendBarcode.trim();
     if (!code) return;
     try {
-      const found = await fetch(`/api/products/search?q=${encodeURIComponent(code)}`).then(r => r.json()).catch(() => []);
+      const found = await fetch(
+        `/api/products/search?q=${encodeURIComponent(code)}`
+      )
+        .then((r) => r.json())
+        .catch(() => []);
       const prod = Array.isArray(found) && found.length > 0 ? found[0] : null;
-      if (!prod) { toast.error('Продуктът не е намерен'); return; }
-      setAppendItems(prev => [{ productId: prod.id, name: prod.name || '', barcode: prod.barcode || code, quantity: 1 }, ...prev]);
+      if (!prod) {
+        toast.error("Продуктът не е намерен");
+        return;
+      }
+      setAppendItems((prev) => [
+        {
+          productId: prod.id,
+          name: prod.name || "",
+          barcode: prod.barcode || code,
+          quantity: 1,
+        },
+        ...prev,
+      ]);
       setAppendBarcode("");
-    } catch { toast.error('Грешка при търсене на продукт'); }
+    } catch {
+      toast.error("Грешка при търсене на продукт");
+    }
   };
 
   const submitAppend = async () => {
-    if (!appendSourceId) { toast.error('Моля, изберете източник (склад)'); return; }
-    if (appendItems.length === 0) { toast.error('Добавете продукти'); return; }
+    if (!appendSourceId) {
+      toast.error("Моля, изберете източник (склад)");
+      return;
+    }
+    if (appendItems.length === 0) {
+      toast.error("Добавете продукти");
+      return;
+    }
     setAppendBusy(true);
     try {
-      const items = appendItems.map(i => ({ productId: i.productId, quantity: Number(i.quantity || 0) })).filter(i => i.productId && i.quantity > 0);
-      const res = await fetch(`/api/revisions/${revisionId}/append-lines`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sourceStorageId: appendSourceId, items }) });
+      const items = appendItems
+        .map((i) => ({
+          productId: i.productId,
+          quantity: Number(i.quantity || 0),
+        }))
+        .filter((i) => i.productId && i.quantity > 0);
+      const res = await fetch(`/api/revisions/${revisionId}/append-lines`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceStorageId: appendSourceId, items }),
+      });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || 'Грешка при добавяне');
-      toast.success('Добавени са продукти към продажбата');
-      setAppendOpen(false); setAppendItems([]); setAppendBarcode("");
+      if (!res.ok) throw new Error(j?.error || "Грешка при добавяне");
+      toast.success("Добавени са продукти към продажбата");
+      setAppendOpen(false);
+      setAppendItems([]);
+      setAppendBarcode("");
       await fetchRevisionData();
-    } catch (e) { toast.error(e.message); }
-    finally { setAppendBusy(false); }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setAppendBusy(false);
+    }
   };
 
   if (loading) return <LoadingScreen />;
@@ -472,7 +543,10 @@ export default function RevisionDetailPage() {
     isSold: false, // Not sold
   }));
 
-  const dataForMobile = [...soldProductsForMobile, ...unscannedProductsDataForMobile];
+  const dataForMobile = [
+    ...soldProductsForMobile,
+    ...unscannedProductsDataForMobile,
+  ];
   const filteredProductsForMobile = dataForMobile.filter(
     (mp) =>
       !searchTerm ||
@@ -513,11 +587,15 @@ export default function RevisionDetailPage() {
       id: "pcode",
       accessorKey: "pcode",
       header: "",
-      cell: ({ row }) => <span className="text-[0px]"> {row.original.product?.pcode || "-"}</span>
-
+      cell: ({ row }) => (
+        <span className="text-[0px]">
+          {" "}
+          {row.original.product?.pcode || "-"}
+        </span>
+      ),
     },
     {
-      id:"barcode",
+      id: "barcode",
       accessorKey: "barcode",
       header: "Баркод",
       cell: ({ row }) => row.original.product?.barcode || "-",
@@ -527,15 +605,22 @@ export default function RevisionDetailPage() {
       header: "Брой",
       cell: ({ row }) => {
         const mp = row.original;
-        const hasDiscrepancy = mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity;
+        const hasDiscrepancy =
+          mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity;
         const isUnscanned = !mp.isSold;
 
         return (
-          <div className={`${hasDiscrepancy || isUnscanned ? "text-red-600 font-semibold" : ""} ${isUnscanned ? "bg-red-50 p-1 rounded" : ""}`}>
+          <div
+            className={`${
+              hasDiscrepancy || isUnscanned ? "text-red-600 font-semibold" : ""
+            } ${isUnscanned ? "bg-red-50 p-1 rounded" : ""}`}
+          >
             {hasDiscrepancy ? (
               <div>
                 <div>{mp.givenQuantity}</div>
-                <div className="text-xs text-red-500">(искано: {mp.missingQuantity})</div>
+                <div className="text-xs text-red-500">
+                  (искано: {mp.missingQuantity})
+                </div>
               </div>
             ) : isUnscanned ? (
               <div>
@@ -585,14 +670,14 @@ export default function RevisionDetailPage() {
   const data = [...soldProducts, ...unscannedProductsData];
 
   // Debug logging
-  console.log('Revision data:', {
+  console.log("Revision data:", {
     revisionId: revision?.id,
     checkId: revision?.checkId,
     soldProductsCount: soldProducts.length,
     unscannedProductsCount: unscannedProductsData.length,
     totalDataCount: data.length,
     soldProducts: soldProducts,
-    unscannedProducts: unscannedProductsData
+    unscannedProducts: unscannedProductsData,
   });
 
   // Filter products for mobile search (include both sold and unscanned products)
@@ -608,22 +693,18 @@ export default function RevisionDetailPage() {
   const hasUnscannedProducts = unscannedProducts.length > 0;
 
   // Calculate totals for print table (only sold products)
-  const totalQuantity = revision.missingProducts.reduce(
-    (sum, mp) => {
-      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
-      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
-      return sum + quantity;
-    },
-    0
-  );
-  const totalValue = revision.missingProducts.reduce(
-    (sum, mp) => {
-      // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
-      const quantity = mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
-      return sum + quantity * (mp.product?.clientPrice || 0);
-    },
-    0
-  );
+  const totalQuantity = revision.missingProducts.reduce((sum, mp) => {
+    // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+    const quantity =
+      mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+    return sum + quantity;
+  }, 0);
+  const totalValue = revision.missingProducts.reduce((sum, mp) => {
+    // Use givenQuantity if available (for sale mode), otherwise use missingQuantity
+    const quantity =
+      mp.givenQuantity !== null ? mp.givenQuantity : mp.missingQuantity;
+    return sum + quantity * (mp.product?.clientPrice || 0);
+  }, 0);
   const adminName = revision.user?.name || revision.user?.email || "";
 
   async function handlePayment(e) {
@@ -663,11 +744,10 @@ export default function RevisionDetailPage() {
         title={`Продажба #${revision.number}`}
         subtitle="Всички данни за твоята продажба"
       >
-
-        <Button onClick={handleSendToClient} variant="outline">
+        {/* <Button onClick={handleSendToClient} variant="outline">
           {" "}
           <Send /> Изпрати
-        </Button>
+        </Button> */}
         <Button
           variant="outline"
           onClick={() => setIsPaymentModalOpen(true)}
@@ -682,10 +762,14 @@ export default function RevisionDetailPage() {
         >
           <EditIcon /> Редактирай
         </Button>
-        <Button variant="outline" onClick={() => setAppendOpen(true)}><IconBox /> Добави</Button>
+        <Button variant="outline" onClick={() => setAppendOpen(true)}>
+          <IconBox /> Добави
+        </Button>
         <Button
           variant="outline"
-          onClick={() => router.push(`/dashboard/revisions/${revisionId}/refund`)}
+          onClick={() =>
+            router.push(`/dashboard/revisions/${revisionId}/refund`)
+          }
         >
           <AlertTriangle /> Рекламация
         </Button>
@@ -698,16 +782,35 @@ export default function RevisionDetailPage() {
           <Truck /> Зареди от склад
         </Button> */}
 
-{/* <Button variant={""} onClick={handlePrintStock}>
+        {/* <Button variant={""} onClick={handlePrintStock}>
           <Printer /> Принтирай
         </Button>*/}
 
+        <Button onClick={() => downloadSalePdf(revision, adminName, "a4")}>
+          <Printer /> Принтирай
+        </Button>
+
         <Button
-          onClick={() => downloadSalePdf(revision, "Test", "a4")}
+          variant={saleEmailSent ? "secondary" : "default"}
+          disabled={sendingSaleEmail || !(revision?.partner?.email || revision?.stand?.email)}
+          onClick={handleSendSalePdfEmail}
         >
-        <Printer />  Принтирай
+          {sendingSaleEmail ? (
+            <>
+              <Loader2 className="animate-spin" /> Изпращане...
+            </>
+          ) : saleEmailSent ? (
+            <>
+              <Check /> Изпратено
+            </>
+          ) : (
+            <>
+              <Send /> Изпрати по имейл
+            </>
+          )}
         </Button>
       </BasicHeader>
+      {/* {revision.partner?.email ?? "-"} */}
 
       <div className="">
         <div className="mt-4">
@@ -827,7 +930,7 @@ export default function RevisionDetailPage() {
                       Продукти от продажбата
                     </CardTitle>
                     <div className="flex items-center gap-2">
-                      {(hasMissingProducts && hasUnscannedProducts) && (
+                      {hasMissingProducts && hasUnscannedProducts && (
                         <Badge variant="destructive" className="text-xs">
                           <AlertTriangle className="w-3 h-3 mr-1" />
                           Несканирани
@@ -846,7 +949,9 @@ export default function RevisionDetailPage() {
                           <div className="flex items-center gap-2 text-red-700">
                             <AlertTriangle className="w-4 h-4" />
                             <span className="text-sm font-medium">
-                              Някои продукти от проверката не са били налични за продажба. Те са показани в червено и не са включени в продажбата.
+                              Някои продукти от проверката не са били налични за
+                              продажба. Те са показани в червено и не са
+                              включени в продажбата.
                             </span>
                           </div>
                         </div>
@@ -861,9 +966,13 @@ export default function RevisionDetailPage() {
                         ]}
                         rowClassName={(row) => {
                           const mp = row.original;
-                          const hasDiscrepancy = mp.givenQuantity !== null && mp.givenQuantity !== mp.missingQuantity;
+                          const hasDiscrepancy =
+                            mp.givenQuantity !== null &&
+                            mp.givenQuantity !== mp.missingQuantity;
                           const isUnscanned = !mp.isSold;
-                          return hasDiscrepancy || isUnscanned ? "bg-red-50 border-l-4 border-l-red-500" : "";
+                          return hasDiscrepancy || isUnscanned
+                            ? "bg-red-50 border-l-4 border-l-red-500"
+                            : "";
                         }}
                       />
                       {/* Payment form under DataTable */}
@@ -1141,108 +1250,44 @@ export default function RevisionDetailPage() {
 
       {/* Append-after-sale dialog (desktop) */}
       {!isMobile && (
-      <Dialog open={appendOpen} onOpenChange={setAppendOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Добави продукти към продажбата</DialogTitle>
-            <DialogDescription>
-              Сканирай баркодове и задай количества. Задължително избери източник (склад).
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm text-gray-600">Източник (склад)</label>
-              <Select value={appendSourceId} onValueChange={setAppendSourceId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Избери склад" />
-                </SelectTrigger>
-                <SelectContent>
-                  {storages.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm text-gray-600">Баркод</label>
-              <Input value={appendBarcode} onChange={e => setAppendBarcode(e.target.value)} onKeyDown={handleAppendScan} placeholder="Сканирай и натисни Enter" />
-            </div>
-            <div className="max-h-64 overflow-auto border rounded">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase text-gray-500">
-                    <th className="px-2 py-1">Име</th>
-                    <th className="px-2 py-1">Баркод</th>
-                    <th className="px-2 py-1">Количество</th>
-                    <th className="px-2 py-1">Налично</th>
-                    <th className="px-2 py-1"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {appendItems.map((it, i) => (
-                    <tr key={i}>
-                      <td className="px-2 py-1">{it.name || '-'}</td>
-                      <td className="px-2 py-1">{it.barcode || '-'}</td>
-                      <td className="px-2 py-1 w-24">
-                        <Input value={String(it.quantity ?? '')} onChange={e => {
-                          const v = e.target.value;
-                          const want = v === '' ? '' : Number(v);
-                          if (want === '') { setAppendItems(prev => prev.map((row, idx) => idx === i ? { ...row, quantity: '' } : row)); return; }
-                          const pid = String(it.productId || '');
-                          const available = appendSourceStock[pid] ?? 0;
-                          const capped = Math.max(0, Math.min(available, Number.isFinite(want) ? want : 0));
-                          if (Number(want) > available) { toast.error(`Наличност ${available}. Не може ${want}.`); }
-                          setAppendItems(prev => prev.map((row, idx) => idx === i ? { ...row, quantity: capped } : row));
-                        }} inputMode="numeric" />
-                      </td>
-                      <td className="px-2 py-1">{(() => { const pid = String(it.productId || ''); return appendSourceStock[pid] ?? 0; })()}</td>
-                      <td className="px-2 py-1 text-right">
-                        <button className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50" onClick={() => setAppendItems(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
-                      </td>
-                    </tr>
-                  ))}
-                  {appendItems.length === 0 && (
-                    <tr><td className="px-2 py-2 text-gray-500" colSpan={4}>Няма добавени продукти</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAppendOpen(false)} disabled={appendBusy}>Отказ</Button>
-            <Button onClick={submitAppend} disabled={appendBusy || appendItems.length === 0}>{appendBusy ? 'Добавяне...' : 'Добави'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      )}
-
-      {/* Append-after-sale drawer (mobile) */}
-      {isMobile && (
-        <Drawer open={appendOpen} onOpenChange={setAppendOpen}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Добави продукти към продажбата</DrawerTitle>
-              <DrawerDescription>
-                Сканирай баркодове и задай количества. Задължително избери източник (склад).
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="px-4 pb-3 space-y-3">
+        <Dialog open={appendOpen} onOpenChange={setAppendOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Добави продукти към продажбата</DialogTitle>
+              <DialogDescription>
+                Сканирай баркодове и задай количества. Задължително избери
+                източник (склад).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
               <div>
-                <label className="text-sm text-gray-600">Източник (склад)</label>
-                <Select value={appendSourceId} onValueChange={setAppendSourceId}>
+                <label className="text-sm text-gray-600">
+                  Източник (склад)
+                </label>
+                <Select
+                  value={appendSourceId}
+                  onValueChange={setAppendSourceId}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Избери склад" />
                   </SelectTrigger>
                   <SelectContent>
-                    {storages.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    {storages.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <label className="text-sm text-gray-600">Баркод</label>
-                <Input value={appendBarcode} onChange={e => setAppendBarcode(e.target.value)} onKeyDown={handleAppendScan} placeholder="Сканирай и натисни Enter" />
+                <Input
+                  value={appendBarcode}
+                  onChange={(e) => setAppendBarcode(e.target.value)}
+                  onKeyDown={handleAppendScan}
+                  placeholder="Сканирай и натисни Enter"
+                />
               </div>
               <div className="max-h-64 overflow-auto border rounded">
                 <table className="w-full text-sm">
@@ -1258,36 +1303,234 @@ export default function RevisionDetailPage() {
                   <tbody>
                     {appendItems.map((it, i) => (
                       <tr key={i}>
-                        <td className="px-2 py-1">{it.name || '-'}</td>
-                        <td className="px-2 py-1">{it.barcode || '-'}</td>
+                        <td className="px-2 py-1">{it.name || "-"}</td>
+                        <td className="px-2 py-1">{it.barcode || "-"}</td>
                         <td className="px-2 py-1 w-24">
-                          <Input value={String(it.quantity ?? '')} onChange={e => {
-                            const v = e.target.value;
-                            const want = v === '' ? '' : Number(v);
-                            if (want === '') { setAppendItems(prev => prev.map((row, idx) => idx === i ? { ...row, quantity: '' } : row)); return; }
-                            const pid = String(it.productId || '');
-                            const available = appendSourceStock[pid] ?? 0;
-                            const capped = Math.max(0, Math.min(available, Number.isFinite(want) ? want : 0));
-                            if (Number(want) > available) { toast.error(`Наличност ${available}. Не може ${want}.`); }
-                            setAppendItems(prev => prev.map((row, idx) => idx === i ? { ...row, quantity: capped } : row));
-                          }} inputMode="numeric" />
+                          <Input
+                            value={String(it.quantity ?? "")}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              const want = v === "" ? "" : Number(v);
+                              if (want === "") {
+                                setAppendItems((prev) =>
+                                  prev.map((row, idx) =>
+                                    idx === i ? { ...row, quantity: "" } : row
+                                  )
+                                );
+                                return;
+                              }
+                              const pid = String(it.productId || "");
+                              const available = appendSourceStock[pid] ?? 0;
+                              const capped = Math.max(
+                                0,
+                                Math.min(
+                                  available,
+                                  Number.isFinite(want) ? want : 0
+                                )
+                              );
+                              if (Number(want) > available) {
+                                toast.error(
+                                  `Наличност ${available}. Не може ${want}.`
+                                );
+                              }
+                              setAppendItems((prev) =>
+                                prev.map((row, idx) =>
+                                  idx === i ? { ...row, quantity: capped } : row
+                                )
+                              );
+                            }}
+                            inputMode="numeric"
+                          />
                         </td>
-                        <td className="px-2 py-1">{(() => { const pid = String(it.productId || ''); return appendSourceStock[pid] ?? 0; })()}</td>
+                        <td className="px-2 py-1">
+                          {(() => {
+                            const pid = String(it.productId || "");
+                            return appendSourceStock[pid] ?? 0;
+                          })()}
+                        </td>
                         <td className="px-2 py-1 text-right">
-                          <button className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50" onClick={() => setAppendItems(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
+                          <button
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                            onClick={() =>
+                              setAppendItems((prev) =>
+                                prev.filter((_, idx) => idx !== i)
+                              )
+                            }
+                          >
+                            ✕
+                          </button>
                         </td>
                       </tr>
                     ))}
                     {appendItems.length === 0 && (
-                      <tr><td className="px-2 py-2 text-gray-500" colSpan={5}>Няма добавени продукти</td></tr>
+                      <tr>
+                        <td className="px-2 py-2 text-gray-500" colSpan={4}>
+                          Няма добавени продукти
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setAppendOpen(false)}
+                disabled={appendBusy}
+              >
+                Отказ
+              </Button>
+              <Button
+                onClick={submitAppend}
+                disabled={appendBusy || appendItems.length === 0}
+              >
+                {appendBusy ? "Добавяне..." : "Добави"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Append-after-sale drawer (mobile) */}
+      {isMobile && (
+        <Drawer open={appendOpen} onOpenChange={setAppendOpen}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Добави продукти към продажбата</DrawerTitle>
+              <DrawerDescription>
+                Сканирай баркодове и задай количества. Задължително избери
+                източник (склад).
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-3 space-y-3">
+              <div>
+                <label className="text-sm text-gray-600">
+                  Източник (склад)
+                </label>
+                <Select
+                  value={appendSourceId}
+                  onValueChange={setAppendSourceId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Избери склад" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {storages.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Баркод</label>
+                <Input
+                  value={appendBarcode}
+                  onChange={(e) => setAppendBarcode(e.target.value)}
+                  onKeyDown={handleAppendScan}
+                  placeholder="Сканирай и натисни Enter"
+                />
+              </div>
+              <div className="max-h-64 overflow-auto border rounded">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase text-gray-500">
+                      <th className="px-2 py-1">Име</th>
+                      <th className="px-2 py-1">Баркод</th>
+                      <th className="px-2 py-1">Количество</th>
+                      <th className="px-2 py-1">Налично</th>
+                      <th className="px-2 py-1"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {appendItems.map((it, i) => (
+                      <tr key={i}>
+                        <td className="px-2 py-1">{it.name || "-"}</td>
+                        <td className="px-2 py-1">{it.barcode || "-"}</td>
+                        <td className="px-2 py-1 w-24">
+                          <Input
+                            value={String(it.quantity ?? "")}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              const want = v === "" ? "" : Number(v);
+                              if (want === "") {
+                                setAppendItems((prev) =>
+                                  prev.map((row, idx) =>
+                                    idx === i ? { ...row, quantity: "" } : row
+                                  )
+                                );
+                                return;
+                              }
+                              const pid = String(it.productId || "");
+                              const available = appendSourceStock[pid] ?? 0;
+                              const capped = Math.max(
+                                0,
+                                Math.min(
+                                  available,
+                                  Number.isFinite(want) ? want : 0
+                                )
+                              );
+                              if (Number(want) > available) {
+                                toast.error(
+                                  `Наличност ${available}. Не може ${want}.`
+                                );
+                              }
+                              setAppendItems((prev) =>
+                                prev.map((row, idx) =>
+                                  idx === i ? { ...row, quantity: capped } : row
+                                )
+                              );
+                            }}
+                            inputMode="numeric"
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          {(() => {
+                            const pid = String(it.productId || "");
+                            return appendSourceStock[pid] ?? 0;
+                          })()}
+                        </td>
+                        <td className="px-2 py-1 text-right">
+                          <button
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                            onClick={() =>
+                              setAppendItems((prev) =>
+                                prev.filter((_, idx) => idx !== i)
+                              )
+                            }
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {appendItems.length === 0 && (
+                      <tr>
+                        <td className="px-2 py-2 text-gray-500" colSpan={5}>
+                          Няма добавени продукти
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
               </div>
             </div>
             <DrawerFooter>
-              <Button variant="outline" onClick={() => setAppendOpen(false)} disabled={appendBusy}>Затвори</Button>
-              <Button onClick={submitAppend} disabled={appendBusy || appendItems.length === 0}>{appendBusy ? 'Добавяне...' : 'Добави'}</Button>
+              <Button
+                variant="outline"
+                onClick={() => setAppendOpen(false)}
+                disabled={appendBusy}
+              >
+                Затвори
+              </Button>
+              <Button
+                onClick={submitAppend}
+                disabled={appendBusy || appendItems.length === 0}
+              >
+                {appendBusy ? "Добавяне..." : "Добави"}
+              </Button>
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
@@ -1441,8 +1684,6 @@ export default function RevisionDetailPage() {
         <div className="mt-2 text-green-700">Payment successful!</div>
       )}
       {/* Below the payment form (desktop only): */}
-
-
     </div>
   );
 }

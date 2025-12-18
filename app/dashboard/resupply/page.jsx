@@ -4,13 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -459,44 +453,31 @@ export default function GeneralResupplyPage() {
                           : "Изходен склад"}
                       </label>
                       {mode === "stand-to-stand" || mode === "stand-to-storage" ? (
-                        <Select
+                        <Combobox
+                          placeholder="Търси изходен щанд..."
                           value={sourceId}
                           onValueChange={setSourceId}
-                          className="w-full"
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Изберете изходен щанд..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allStands.map((stand) => (
-                              <SelectItem key={stand.id} value={stand.id}>
-                                {stand.name}{" "}
-                                {stand.store?.name
-                                  ? `— ${stand.store.name}`
-                                  : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          options={allStands.map((stand) => ({
+                            key: stand.id,
+                            value: stand.id,
+                            label: stand.store?.name
+                              ? `${stand.name} — ${stand.store.name}`
+                              : stand.name,
+                          }))}
+                        />
                       ) : null}
                       {(mode === "storage-to-storage" ||
                         mode === "storage-to-stand") && (
-                        <Select
+                        <Combobox
+                          placeholder="Търси изходен склад..."
                           value={sourceId}
                           onValueChange={setSourceId}
-                          className="w-full"
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Изберете изходен склад..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allStorages.map((storage) => (
-                              <SelectItem key={storage.id} value={storage.id}>
-                                {storage.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          options={allStorages.map((storage) => ({
+                            key: storage.id,
+                            value: storage.id,
+                            label: storage.name,
+                          }))}
+                        />
                       )}
                     </div>
 
@@ -513,68 +494,48 @@ export default function GeneralResupplyPage() {
                           : "Дестинация щанд"}
                       </label>
                       {mode === "stand-to-stand" && (
-                        <Select
+                        <Combobox
+                          placeholder="Търси дестинация щанд..."
                           value={destinationId}
                           onValueChange={setDestinationId}
-                          className="w-full"
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Изберете дестинация щанд..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allStands
-                              .filter((s) => s.id !== sourceId)
-                              .map((stand) => (
-                                <SelectItem key={stand.id} value={stand.id}>
-                                  {stand.name}{" "}
-                                  {stand.store?.name
-                                    ? `— ${stand.store.name}`
-                                    : ""}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
+                          options={allStands
+                            .filter((s) => s.id !== sourceId)
+                            .map((stand) => ({
+                              key: stand.id,
+                              value: stand.id,
+                              label: stand.store?.name
+                                ? `${stand.name} — ${stand.store.name}`
+                                : stand.name,
+                            }))}
+                        />
                       )}
                       {mode === "storage-to-storage" || mode === "stand-to-storage" ? (
-                        <Select
+                        <Combobox
+                          placeholder="Търси дестинация склад..."
                           value={destinationId}
                           onValueChange={setDestinationId}
-                          className="w-full"
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Изберете дестинация склад..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allStorages
-                              .filter((s) => s.id !== sourceId)
-                              .map((storage) => (
-                                <SelectItem key={storage.id} value={storage.id}>
-                                  {storage.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
+                          options={allStorages
+                            .filter((s) => s.id !== sourceId)
+                            .map((storage) => ({
+                              key: storage.id,
+                              value: storage.id,
+                              label: storage.name,
+                            }))}
+                        />
                       ) : null}
                       {mode === "storage-to-stand" && (
-                        <Select
+                        <Combobox
+                          placeholder="Търси дестинация щанд..."
                           value={destinationId}
                           onValueChange={setDestinationId}
-                          className="w-full"
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Изберете дестинация щанд..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allStands.map((stand) => (
-                              <SelectItem key={stand.id} value={stand.id}>
-                                {stand.name}{" "}
-                                {stand.store?.name
-                                  ? `— ${stand.store.name}`
-                                  : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          options={allStands.map((stand) => ({
+                            key: stand.id,
+                            value: stand.id,
+                            label: stand.store?.name
+                              ? `${stand.name} — ${stand.store.name}`
+                              : stand.name,
+                          }))}
+                        />
                       )}
                     </div>
                   </div>

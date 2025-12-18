@@ -165,17 +165,23 @@ export async function GET(req) {
         storage: true,
         partner: true,
         user: true,
-        missingProducts: true,
+        missingProducts: {
+          include: {
+            product: true,
+          },
+        },
         invoice: true,
       },
     });
 
     // Sum price of missingProducts for each revision
     revisions.forEach(rev => {
-      rev.missingProductsTotalPrice = rev.missingProducts?.reduce(
-        (sum, mp) => sum + (mp.priceAtSale ?? 0),
-        0
-      ) ?? 0;
+      rev.missingProductsTotalPrice =
+        rev.missingProducts?.reduce((sum, mp) => {
+          const unit = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+          const qty = mp.givenQuantity ?? mp.missingQuantity ?? 0;
+          return sum + unit * qty;
+        }, 0) ?? 0;
     });
 
     return NextResponse.json(revisions);

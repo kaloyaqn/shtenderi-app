@@ -178,7 +178,8 @@ export default function EditPartnerPage({ params }) {
                   id="email"
                   name="email"
                   type="email"
-                  defaultValue={partner.email || ""}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="example@domain.com"
                 />
               </div>
