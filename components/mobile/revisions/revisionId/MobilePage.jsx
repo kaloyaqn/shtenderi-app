@@ -12,6 +12,8 @@ import {
   Send,
   Warehouse,
   AlertTriangle,
+  Loader2,
+  Check,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -55,6 +57,8 @@ export default function MobilePageRevisionId({
   const [appendItems, setAppendItems] = useState([]); // {productId, name, barcode, quantity}
   const [appendBusy, setAppendBusy] = useState(false);
   const [appendSourceStock, setAppendSourceStock] = useState({});
+  const [sendingSaleEmail, setSendingSaleEmail] = useState(false);
+  const [saleEmailSent, setSaleEmailSent] = useState(false);
 
   const router = useRouter();
 
@@ -90,6 +94,28 @@ export default function MobilePageRevisionId({
       setAppendItems(prev => [{ productId: prod.id, name: prod.name || '', barcode: prod.barcode || code, quantity: 1 }, ...prev]);
       setAppendBarcode("");
     } catch { toast.error('Грешка при търсене на продукт'); }
+  };
+
+
+  const handleSendSalePdfEmail = async () => {
+    const email = revision?.partner?.email || revision?.stand?.email;
+    if (!email) {
+      toast.error("Партньорът няма имейл.");
+      return;
+    }
+
+    setSendingSaleEmail(true);
+    setSaleEmailSent(false);
+    try {
+      await sendPdfEmail(revision, adminName, "a4", email);
+      setSaleEmailSent(true);
+      toast.success("Стоковата разписка е изпратена!");
+      setTimeout(() => setSaleEmailSent(false), 2500);
+    } catch (e) {
+      toast.error(e?.message || "Грешка при изпращане на имейл");
+    } finally {
+      setSendingSaleEmail(false);
+    }
   };
 
   const submitAppend = async () => {
@@ -209,6 +235,7 @@ export default function MobilePageRevisionId({
                   <Printer />  Принтирай
                   </Button>
                 )}
+                
 
                 {/* PRINT STOCK BUTTON */}
                 <Button
@@ -289,6 +316,27 @@ export default function MobilePageRevisionId({
                   >
                   <Printer />  Принтирай
                   </Button>
+                  <Button
+          variant={saleEmailSent ? "secondary" : "outline"}
+          size={'sm'}
+          className={'w-full mt-2'}
+          disabled={sendingSaleEmail || !(revision?.partner?.email || revision?.stand?.email)}
+          onClick={handleSendSalePdfEmail}
+        >
+          {sendingSaleEmail ? (
+            <>
+              <Loader2 className="animate-spin" /> Изпращане...
+            </>
+          ) : saleEmailSent ? (
+            <>
+              <Check /> Изпратено
+            </>
+          ) : (
+            <>
+              <Send /> Изпрати стокова по имейл
+            </>
+          )}
+        </Button>
                 {/* <Button
                   size="sm"
                   className="w-full text-xs mt-2"

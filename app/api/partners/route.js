@@ -44,6 +44,9 @@ export async function POST(req) {
     if (normalizedBody.hasOwnProperty('email') && normalizedBody.email === '') {
       normalizedBody.email = null;
     }
+    if (normalizedBody.hasOwnProperty('preferredPayment') && normalizedBody.preferredPayment === '') {
+      normalizedBody.preferredPayment = null;
+    }
 
     const partner = await partnerService.createPartner(normalizedBody);
     return Response.json(partner, { status: 201 });

@@ -5,193 +5,72 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import TableLink from "@/components/ui/table-link";
-import ReportFilters from "@/components/filters/ReportFilters";
-import useReportFilters from "@/hooks/useReportFilters";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Combobox } from "@/components/ui/combobox";
+import { Filter, X } from "lucide-react";
+import { useQueryState } from "nuqs";
+import useSWR from "swr";
+import { multiFetcher } from "@/lib/utils";
+import { useProductFilter } from "@/hooks/use-product-filter";
 
-export default function ReportsSale() {
-  const {
-    // Data
-    stands, users, partners, products,
+export default function SalesReport() {
+  const [dateFrom, setDateFrom] = useQueryState("dateFrom");
+  const [dateTo, setDateTo] = useQueryState("dateTo");
+  const [partnerId, setPartnerId] = useQueryState("partnerId");
+  const [barcode, setBarcode] = useQueryState("barcode");
+  const [productName, setProductName] = useQueryState("productName");
+  const [productPcode, setProductPcode] = useQueryState("pcode");
+  const [isFilterOpen, setIsFilterOpen] = useQueryState("filters", {
+    defaultValue: false,
+    parse: (v) => v === "1",
+    serialize: (v) => (v ? "1" : null),
+  });
 
-    // Filter states
-    selectedStand, setSelectedStand,
-    selectedUser, setSelectedUser,
-    selectedPartner, setSelectedPartner,
-    selectedProducts, setSelectedProducts,
-    dateFrom, setDateFrom,
-    dateTo, setDateTo,
-    productType, setProductType,
-    productName, setProductName,
-    barcode, setBarcode,
-    revisionType, setRevisionType,
+  const { productInputRef, openProductPicker } = useProductFilter({
+    onProductSelect: (product) => {
+      setProductName(product?.name || null);
+      setProductPcode(product?.pcode || null);
+      setIsFilterOpen(false);
+    },
+    onShortcut: () => setIsFilterOpen(true),
+  });
 
-    // Actions
-    handleClear,
-  } = useReportFilters();
+  const query = new URLSearchParams();
+  if (dateFrom) query.set("dateFrom", dateFrom);
+  if (dateTo) query.set("dateTo", dateTo);
+  if (partnerId) query.set("partnerId", partnerId);
+  if (barcode) query.set("barcode", barcode);
+  if (productName) query.set("productName", productName);
+  if (productPcode) query.set("pcode", productPcode);
 
-  // Sales data
-  const [sales, setSales] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { data, isLoading } = useSWR(
+    [
+      `/api/reports/sales${query.toString() ? `?${query.toString()}` : ""}`,
+      "/api/partners",
+    ],
+    multiFetcher
+  );
 
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const salesData = data?.[0] || {};
+  const partners = data?.[1] || [];
 
-  // Memoize the fetchSales function
-  const fetchSales = useCallback(async () => {
-    if (!searchParams) return;
-
-    const stand = searchParams.get("stand");
-    const user = searchParams.get("user");
-    const dateFrom = searchParams.get("dateFrom");
-    const dateTo = searchParams.get("dateTo");
-    const partner = searchParams.get("partnerId")
-    const type = searchParams.get("type");
-    const status = searchParams.get("status");
-    const barcode = searchParams.get("barcode");
-    const revisionType = searchParams.get("revisionType");
-    const productBarcodes = searchParams.get("productBarcodes");
-    const productName = searchParams.get("productName");
-
-    setLoading(true);
-
-    try {
-      const params = new URLSearchParams();
-      if (stand) params.set("stand", stand);
-      if (user) params.set("userId", user);
-      if (dateFrom) params.set("dateFrom", dateFrom);
-      if (dateTo) params.set("dateTo", dateTo);
-      if (partner) params.set("partnerId", partner);
-      if (type) params.set("type", type);
-      if (status) params.set("status", status);
-      if (barcode) params.set("barcode", barcode);
-      if (revisionType) params.set("revisionType", revisionType);
-      // Prioritize product barcodes over manual barcode input
-      if (productBarcodes) {
-        params.set("barcode", productBarcodes);
-      } else if (barcode) {
-        params.set("barcode", barcode);
-      }
-      if (productName) params.set("productName", productName);
-
-      const res = await fetch(`/api/reports/sales?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch Sales");
-
-      const data = await res.json();
-
-      // The API now returns data with type already added, so we can combine directly
-      const combinedData = [
-        ...data.missingProducts,
-        ...data.refundProducts,
-      ];
-      setSales(combinedData);
-    } catch (err) {
-      console.error("error fetching sales", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    fetchSales();
-  }, [fetchSales]);
-
-  function handleFormSubmit(e) {
-    e.preventDefault();
-    const filters = {
-      stand: selectedStand,
-      user: selectedUser,
-      dateFrom: dateFrom,
-      dateTo: dateTo,
-      partner: selectedPartner,
-      type: productType,
-      barcode: barcode,
-      revisionType: revisionType,
-      productBarcodes: selectedProducts,
-      productName: productName,
-    };
-    handleSearch(filters);
-  }
-
-  function handleSearch(filters) {
-    const params = new URLSearchParams(searchParams);
-
-    if (filters.stand && filters.stand.length > 0) {
-      params.set("stand", filters.stand.join(','));
-    } else {
-      params.delete("stand");
-    }
-
-    if (filters.user && filters.user.length > 0) {
-      params.set("user", filters.user.join(','));
-    } else {
-      params.delete("user");
-    }
-
-    if (filters.dateFrom && filters.dateFrom !== null) {
-      const year = filters.dateFrom.getFullYear();
-      const month = String(filters.dateFrom.getMonth() + 1).padStart(2, "0");
-      const day = String(filters.dateFrom.getDate()).padStart(2, "0");
-      params.set("dateFrom", `${year}-${month}-${day}`);
-    } else {
-      params.delete("dateFrom");
-    }
-
-    if (filters.dateTo && filters.dateTo !== null) {
-      const year = filters.dateTo.getFullYear();
-      const month = String(filters.dateTo.getMonth() + 1).padStart(2, "0");
-      const day = String(filters.dateTo.getDate()).padStart(2, "0");
-      params.set("dateTo", `${year}-${month}-${day}`);
-    } else {
-      params.delete("dateTo");
-    }
-
-    if (filters.partner && filters.partner.length > 0) {
-        params.set("partnerId", filters.partner.join(','));
-    } else {
-        params.delete("partnerId")
-    }
-
-    if (filters.type && filters.type !== "") {
-        params.set("type", filters.type)
-    } else {
-        params.delete("type")
-    }
-
-    if (filters.barcode && filters.barcode !== "") {
-        params.set("barcode", filters.barcode)
-    } else {
-        params.delete("barcode")
-    }
-
-    if (filters.revisionType && filters.revisionType !== "") {
-        params.set("revisionType", filters.revisionType)
-    } else {
-        params.delete("revisionType")
-    }
-
-    if (filters.productBarcodes && filters.productBarcodes.length > 0) {
-        params.set("productBarcodes", filters.productBarcodes.join(','));
-    } else {
-        params.delete("productBarcodes")
-    }
-
-    if (filters.productName && filters.productName !== "") {
-        params.set("productName", filters.productName)
-    } else {
-        params.delete("productName")
-    }
-
-    router.push(`/dashboard/reports/sale?${params.toString()}`);
-  }
+  const sales = [
+    ...(salesData.missingProducts || []),
+    ...(salesData.refundProducts || []),
+  ];
 
   const columns = [
     {
       id: "typeAndSource",
       header: "Тип",
       cell: ({ row }) => {
-        if (!row.original) return "-";
         const type = row.original.type;
         const revisionType = row.original.revision?.type;
         return (
@@ -218,7 +97,6 @@ export default function ReportsSale() {
       accessorKey: "revision.createdAt",
       header: "Дата",
       cell: ({ row }) => {
-        if (!row.original) return "-";
         const date =
           row.original.type === "missing"
             ? row.original.revision?.createdAt
@@ -227,68 +105,21 @@ export default function ReportsSale() {
       },
     },
     {
-      accessorKey: "partnerAndSource",
-      header: "Партньор / Източник",
+      accessorKey: "partner",
+      header: "Партньор",
       cell: ({ row }) => {
-        if (!row.original) return "-";
-
-        // Get partner
         let partner = null;
         if (row.original.type === "missing") {
           partner = row.original.revision?.partner;
         } else if (row.original.type === "refund") {
           partner = row.original.partner;
         }
-
-        // Get source
-        let sourceNode = "-";
-        if (row.original.type === "missing") {
-          const stand = row.original.revision?.stand;
-          const storage = row.original.revision?.storage;
-          if (storage) {
-            sourceNode = (
-              <TableLink href={`/dashboard/storages/${storage.id}`}>
-                {storage.name}
-              </TableLink>
-            );
-          } else if (stand) {
-            sourceNode = (
-              <TableLink className={'text-xs'} href={`/dashboard/stands/${stand.id}`}>
-                {stand.name}
-              </TableLink>
-            );
-          }
-        } else {
-          const sourceInfo = row.original.sourceInfo;
-          if (sourceInfo) {
-            const isStand = row.original.refund?.sourceType === "STAND";
-            const href = isStand
-              ? `/dashboard/stands/${sourceInfo.id}`
-              : `/dashboard/storages/${sourceInfo.id}`;
-            sourceNode = (
-              <TableLink className='text-xs' href={href}>{sourceInfo.name}</TableLink>
-            );
-          }
-        }
-
-        // Render both partner and source, stacked
-        return (
-          <div className="flex flex-col gap-1">
-            <div>
-              <span className="text-xs text-muted-foreground">Партньор: </span>
-              {partner && partner.id && partner.name ? (
-                <TableLink className={'text-xs'} href={`/dashboard/partners/${partner.id}`}>
-                  {partner.name}
-                </TableLink>
-              ) : (
-                "-"
-              )}
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground">Източник: </span>
-              {sourceNode}
-            </div>
-          </div>
+        return partner?.id ? (
+          <TableLink href={`/dashboard/partners/${partner.id}`}>
+            {partner.name}
+          </TableLink>
+        ) : (
+          "-"
         );
       },
     },
@@ -296,21 +127,20 @@ export default function ReportsSale() {
       accessorKey: "product.name",
       header: "Продукт",
       cell: ({ row }) => {
-        if (!row.original) return "-";
-        return row.original.product?.name || "-";
-      },
-    },
-    {
-      accessorKey: "product.barcode",
-      header: "Баркод",
-      cell: ({ row }) => {
-        if (!row.original) return "-";
-        return row.original.product?.barcode || "-";
+        const p = row.original.product;
+        return (
+          <div className="flex flex-col max-w-[220px]">
+            <span className="truncate font-medium text-sm">{p?.name || "-"}</span>
+            <span className="text-[11px] text-muted-foreground truncate">
+              {p?.barcode || "-"}
+            </span>
+          </div>
+        );
       },
     },
     {
       accessorKey: "missingQuantity",
-      header: "Кол.",
+      header: "Бр.",
       cell: ({ row }) => {
         if (!row.original) return "-";
         if (row.original.type === "missing") {
@@ -319,243 +149,212 @@ export default function ReportsSale() {
           return row.original.quantity || 0;
         }
       },
-      footer: ({ table }) => {
-        const rows = table.getRowModel().rows;
-        const totalQty = rows.reduce((sum, row) => {
-          const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
-          return sum + (isNaN(qty) ? 0 : qty);
-        }, 0);
-        return (
-          <>
-            <p>Koл. общо:</p>
-            <strong>{totalQty}</strong>
-          </>
-        );
-      },
     },
     {
       accessorKey: "deliveryPrice",
-      header: "Доставна",
-      cell: ({row}) => {
+      header: "Дост. (ср. лв.)",
+      cell: ({ row }) => {
         const unitDelivery = row.original.product?.deliveryPrice || 0;
-        const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+        const qty =
+          row.original.type === "missing"
+            ? row.original.missingQuantity || 0
+            : row.original.quantity || 0;
         const totalDelivery = unitDelivery * qty;
-        return `${totalDelivery.toFixed(2)} лв.`
+        return `${totalDelivery.toFixed(2)} лв.`;
       },
-      footer: ({ table }) => {
-        const rows = table.getRowModel().rows;
-        const total = rows.reduce((sum, row) => {
-          const unitDelivery = row.original.product?.deliveryPrice || 0;
-          const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
-          return sum + unitDelivery * qty;
-        }, 0);
-        return (
-          <>
-            <p>Доставна общо:</p>
-            <strong>{total.toFixed(2)} лв.</strong>
-          </>
-        );
-      }
     },
     {
       accessorKey: "revision.priceAtSale",
       header: "Продажна",
       cell: ({ row }) => {
-        if (!row.original) return "-";
         let price;
         if (row.original.type === "missing") {
           price = row.original.priceAtSale;
         } else {
           price = row.original.priceAtRefund;
         }
-        // If price is not found, try product.clientPrice
         if (!price && row.original.product && row.original.product.clientPrice) {
           price = row.original.product.clientPrice;
         }
-        const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
+        const qty =
+          row.original.type === "missing"
+            ? row.original.missingQuantity || 0
+            : row.original.quantity || 0;
         const totalClient = (price || 0) * qty;
         return price !== undefined ? `${totalClient.toFixed(2)} лв.` : "-";
       },
-      footer: ({ table }) => {
-        const rows = table.getRowModel().rows;
-        const total = rows.reduce((sum, row) => {
-          let price;
-          if (row.original.type === "missing") {
-            price = row.original.priceAtSale;
-          } else {
-            price = row.original.priceAtRefund;
-          }
-          if (!price && row.original.product && row.original.product.clientPrice) {
-            price = row.original.product.clientPrice;
-          }
-          const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
-          return sum + (price || 0) * qty;
-        }, 0);
-        return (
-          <>
-            <p>Продажна общо:</p>
-            <strong>{total.toFixed(2)} лв.</strong>
-          </>
+    },
+    {
+      accessorKey: "revision.number",
+      header: "№ прод.",
+      cell: ({ row }) => {
+        return row.original.revision ? (
+          <TableLink href={`/dashboard/revisions/${row.original.revision.id}`}>
+            {row.original.revision.number}
+          </TableLink>
+        ) : (
+          "-"
         );
       },
+    },
+    {
+      accessorKey: "invoice",
+      header: "Фактура",
+      cell: ({ row }) => {
+        return row.original.invoice ? (
+          <TableLink href={`/dashboard/revisions/${row.original?.invoice?.id}`}>
+            {row.original?.invoice?.invoiceNumber}
+          </TableLink>
+        ) : (
+          "-"
+        );
       },
-      {
-        accessorKey: "diff",
-        header: "Разлика",
-        cell: ({row}) => {
-          let price;
-          if (row.original.type === "missing") {
-            price = row.original.priceAtSale;
-          } else {
-            price = row.original.priceAtRefund;
-          }
-          // If price is not found, try product.clientPrice
-          if (!price && row.original.product && row.original.product.clientPrice) {
-            price = row.original.product.clientPrice;
-          }
-
-          const unitDelivery = row.original.product?.deliveryPrice || 0;
-          const unitDiff = (price || 0) - unitDelivery;
-          const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
-          const totalDiff = unitDiff * qty;
-
-          return totalDiff.toFixed(2) + "лв."
-        },
-        footer: ({ table }) => {
-          // Get all visible rows
-          const rows = table.getRowModel().rows;
-
-          const total = rows.reduce((sum, row) => {
-            let price;
-            if (row.original.type === "missing") {
-              price = row.original.priceAtSale;
-            } else {
-              price = row.original.priceAtRefund;
-            }
-            if (!price && row.original.product && row.original.product.clientPrice) {
-              price = row.original.product.clientPrice;
-            }
-            const unitDelivery = row.original.product?.deliveryPrice || 0;
-            const unitDiff = (price || 0) - unitDelivery;
-            const qty = row.original.type === "missing" ? (row.original.missingQuantity || 0) : (row.original.quantity || 0);
-            const totalDiff = unitDiff * qty;
-
-            return sum + (isNaN(totalDiff) ? 0 : totalDiff);
-          }, 0);
-
-
-          return (
-            <>
-              <p>Разлика общо:</p>
-              <strong>{total.toFixed(2)} лв.</strong>
-            </>
-          )
-        },
-      },
-      {
-        accessorKey: "revision.number",
-        header: "№",
-        cell: ({ row }) => {
-
-          return (
-            <>
-              {row.original.revision && (
-                <TableLink href={`/dashboard/revisions/${row.original.revision.id}`}>
-                {row.original.revision.number}
-                </TableLink>
-              )}
-            </>
-          )
-        },
-      },
-      {
-        accessorKey: "invoice",
-        header: "Фактура",
-        cell: ({ row }) => {
-
-          return (
-            <>
-              {row.original.invoice && (
-                <TableLink href={`/dashboard/revisions/${row.original?.invoice?.id}`}>
-                {row.original?.invoice?.invoiceNumber}
-                </TableLink>
-              )}
-            </>
-          )
-        },
-      },
-    // {
-    //   accessorKey: "user",
-    //   header: "Потребител",
-    //   cell: ({ row }) => {
-    //     if (!row.original) return "-";
-    //     const user =
-    //       row.original.type === "missing"
-    //         ? row.original.revision?.user
-    //         : row.original.refund?.user;
-    //     return user?.name || "-";
-    //   },
-    // },
-
+    },
   ];
 
   return (
     <>
-      <BasicHeader
-        title={"Справка продажба"}
-        subtitle={"Направи лесно справка за твоите продажби"}
-      />
+      <BasicHeader title="Справка продажба" subtitle="Закупено - върнато">
+        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline">
+              <Filter /> Филтри
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent padding={0} sideOffset={0} className="w-sm">
+            <div className="">
+              <div className="w-full p-4 bg-gray-50 border-b border-b-gray-300 rounded-t-md">
+                <h4 className="leading-none font-medium">Филтри</h4>
+                <p className="text-muted-foreground text-sm ">
+                  Избери филтрите
+                </p>
+              </div>
+              <div className="p-4 flex flex-col gap-4">
+                <div className="w-full grid gap-2">
+                  <Label>Партньор</Label>
+                  <Combobox
+                    placeholder="Избери партньор"
+                    onValueChange={(value) => setPartnerId(value)}
+                    value={partnerId}
+                    options={partners.map((partner) => ({
+                      key: partner.id,
+                      value: partner.id,
+                      label: partner.name,
+                    }))}
+                  />
+                </div>
 
-      {loading ? (
-        <>
-          <LoadingScreen />
-        </>
+                <div className="grid gap-2">
+                  <Label htmlFor="productQuery">Продукт</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="productQuery"
+                      ref={productInputRef}
+                      type="text"
+                      placeholder="Филтър по продукт (Ctrl+K)"
+                      value={productName || ""}
+                      onChange={(e) => setProductName(e.target.value || null)}
+                      className="min-w-[220px]"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        openProductPicker(productName ? String(productName) : "")
+                      }
+                    >
+                      Търси
+                    </Button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Ctrl/Cmd + K за избор от номенклатура
+                  </span>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="productPcode">Продуктов код</Label>
+                  <Input
+                    id="productPcode"
+                    type="text"
+                    placeholder="Филтър по продуктов код"
+                    value={productPcode || ""}
+                    onChange={(e) => setProductPcode(e.target.value || null)}
+                    className="min-w-[220px]"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="barcode">Баркод</Label>
+                  <Input
+                    id="barcode"
+                    type="text"
+                    placeholder="Баркод"
+                    value={barcode || ""}
+                    onChange={(e) => setBarcode(e.target.value || null)}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="grid gap-2 w-full">
+                    <Label htmlFor="dateFrom">Дата от</Label>
+                    <Input
+                      id="dateFrom"
+                      type="date"
+                      value={dateFrom || ""}
+                      onChange={(e) => setDateFrom(e.target.value || null)}
+                    />
+                  </div>
+                  <div className="grid gap-2 w-full">
+                    <Label htmlFor="dateTo">Дата до</Label>
+                    <Input
+                      id="dateTo"
+                      type="date"
+                      value={dateTo || ""}
+                      onChange={(e) => setDateTo(e.target.value || null)}
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  className="mt-2 w-full"
+                  variant="outline"
+                  onClick={() => setIsFilterOpen(false)}
+                >
+                  <Filter /> Филтрирай
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    className="w-full"
+                    variant="secondary"
+                    onClick={() => {
+                      setDateFrom(null);
+                      setDateTo(null);
+                      setPartnerId(null);
+                      setProductName(null);
+                      setProductPcode(null);
+                      setBarcode(null);
+                    }}
+                  >
+                    <X /> Изчисти
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </BasicHeader>
+
+      {isLoading ? (
+        <LoadingScreen />
       ) : (
-        <>
-            {!searchParams ? <>yokmu</> : <>
-          <DataTable
-            extraFilters={
-              <ReportFilters
-                // Date filters
-                dateFrom={dateFrom}
-                setDateFrom={setDateFrom}
-                dateTo={dateTo}
-                setDateTo={setDateTo}
-
-                // Product filters
-                products={products}
-                selectedProducts={selectedProducts}
-                setSelectedProducts={setSelectedProducts}
-                productName={productName}
-                setProductName={setProductName}
-
-                // Type filters
-                productType={productType}
-                setProductType={setProductType}
-                revisionType={revisionType}
-                setRevisionType={setRevisionType}
-
-                // Entity filters
-                stands={stands}
-                selectedStand={selectedStand}
-                setSelectedStand={setSelectedStand}
-                users={users}
-                selectedUser={selectedUser}
-                setSelectedUser={setSelectedUser}
-                partners={partners}
-                selectedPartner={selectedPartner}
-                setSelectedPartner={setSelectedPartner}
-
-                // Actions
-                onSubmit={handleFormSubmit}
-                onClear={handleClear}
-              />
-            }
-            data={sales}
-            columns={columns}
-          />
-            </>}
-        </>
+        <DataTable
+          data={sales}
+          columns={columns}
+          initialSorting={[{ id: "revision.createdAt", desc: true }]}
+          rowClassName={() =>
+            "text-sm [&>td]:py-2 [&>td]:px-3 [&>td]:align-top"
+          }
+        />
       )}
     </>
   );

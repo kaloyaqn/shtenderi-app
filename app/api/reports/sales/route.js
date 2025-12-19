@@ -28,6 +28,7 @@ export async function GET(req) {
         const revisionType = searchParams.get("revisionType"); // import, manual
         const productId = searchParams.get("productId")?.split(','); // product filter
         const productName = searchParams.get("productName"); // product name filter
+        const productPcode = searchParams.get("pcode"); // product pcode filter
 
         console.log('API Debug - Received params:', { stand, userId, dateFrom, dateTo, status, type, partnerId, barcode, revisionType, productId, productName });
 
@@ -55,11 +56,14 @@ export async function GET(req) {
                     createdAt: {lte: new Date(dateTo + 'T23:59:59.999Z')}
                 })
             },
-            ...(productName && {
+            ...(productName || barcode || productPcode || productId?.length) && {
                 product: {
-                    name: {contains: productName, mode: 'insensitive'}
+                    ...(productName ? { name: { contains: productName, mode: 'insensitive' } } : {}),
+                    ...(barcode ? { barcode: { contains: barcode, mode: 'insensitive' } } : {}),
+                    ...(productPcode ? { pcode: { contains: productPcode, mode: 'insensitive' } } : {}),
+                    ...(productId?.length ? { id: { in: productId } } : {}),
                 }
-            })
+            }
         }
 
         // Fix: If we have both dateFrom and dateTo, we need to merge the createdAt conditions
@@ -157,11 +161,14 @@ export async function GET(req) {
                     createdAt: {lte: new Date(dateTo + 'T23:59:59.999Z')}
                 })
             },
-            ...(productName && {
+            ...(productName || barcode || productPcode || productId?.length) && {
                 product: {
-                    name: {contains: productName, mode: 'insensitive'}
+                    ...(productName ? { name: { contains: productName, mode: 'insensitive' } } : {}),
+                    ...(barcode ? { barcode: { contains: barcode, mode: 'insensitive' } } : {}),
+                    ...(productPcode ? { pcode: { contains: productPcode, mode: 'insensitive' } } : {}),
+                    ...(productId?.length ? { id: { in: productId } } : {}),
                 }
-            })
+            }
         };
 
         // Fix: If we have both dateFrom and dateTo, we need to merge the createdAt conditions

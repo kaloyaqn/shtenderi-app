@@ -20,6 +20,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 export default function EditPartnerPage({ params }) {
@@ -34,6 +35,7 @@ export default function EditPartnerPage({ params }) {
   const [city, setCity] = useState("");
   const [priceGroupId, setPriceGroupId] = useState(null);
   const [percentageDiscount, setPercentageDiscount] = useState(0);
+  const [preferredPayment, setPreferredPayment] = useState("CASH");
   const partnerId = use(params).partnerId;
 
   const {
@@ -56,6 +58,7 @@ export default function EditPartnerPage({ params }) {
         setEmail(data.email || "");
         setPriceGroupId(data.priceGroupId || null);
         setPercentageDiscount(data.percentageDiscount || 0);
+        setPreferredPayment(data.preferredPayment || "CASH");
       } catch (error) {
         console.error("Error fetching partner:", error);
         setError("Грешка при зареждане на партньор");
@@ -83,6 +86,7 @@ export default function EditPartnerPage({ params }) {
       city: city.trim(),
       mol: mol.trim(),
       email: email.trim(),
+      preferredPayment,
       percentageDiscount: percentageDiscountValue,
       priceGroupId:
         percentageDiscountValue !== 0
@@ -207,6 +211,24 @@ export default function EditPartnerPage({ params }) {
                     onChange={(e) => setPercentageDiscount(parseFloat(e.target.value) || 0)}
                     placeholder="0"
                   />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="preferredPayment">Предпочитан начин на плащане</Label>
+                  <Select
+                    onValueChange={setPreferredPayment}
+                    value={preferredPayment ?? "CASH"}
+                    name="preferredPayment"
+                    id="preferredPayment"
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Изберете начин на плащане" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CASH">В брой</SelectItem>
+                      <SelectItem value="BANK">Банка</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {priceGroups &&

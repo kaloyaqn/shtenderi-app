@@ -24,6 +24,15 @@ export default function CreatePartnerPage({ fetchPartners }) {
     { name: "mol", label: "МОЛ", placeholder: "Въведете МОЛ", type: "text" },
     { name: "email", label: "Имейл", placeholder: "example@domain.com", type: "email" },
     {
+      name: "preferredPayment",
+      label: "Предпочитан начин на плащане",
+      type: "select",
+      options: [
+        { value: "CASH", label: "В брой" },
+        { value: "BANK", label: "Банка" },
+      ],
+    },
+    {
       name: "percentageDiscount",
       label: "Процентна отстъпка",
       type: "number",
@@ -49,6 +58,7 @@ export default function CreatePartnerPage({ fetchPartners }) {
         onSuccess={fetchPartners}
         defaultValues={{
           percentageDiscount: 0,
+          preferredPayment: "CASH",
         }}
       />
     </>

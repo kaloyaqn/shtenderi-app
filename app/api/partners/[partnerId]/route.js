@@ -54,6 +54,9 @@ export async function PUT(req, { params }) {
     if (body.hasOwnProperty('email') && body.email === '') {
       body.email = null;
     }
+    if (body.hasOwnProperty('preferredPayment') && body.preferredPayment === '') {
+      body.preferredPayment = null;
+    }
 
     const partner = await updatePartner(partnerId, body)
     return Response.json(partner)

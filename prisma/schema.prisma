@@ -145,18 +145,19 @@
     deactivatedAt      DateTime?
     bulstat            String? // Булстат
     contactPerson      String? // Лице за контакт
-    email              String? // Имейл
-    phone              String? // Телефон
-    address            String? // Седалище на фирмата
-    country            String? // Държава
-    city               String? // Град
-    mol                String? // МОЛ - Материално отговорно лице
-    percentageDiscount Float? // Процентна отстъпка за партньора
-    bankAccountBG      String? // Банкова сметка BG
-    bankAccountEUR     String? // Банкова сметка EUR
-    // Price group linkage (snake_case column mapping)
-    priceGroupId       String?     @map("price_group_id")
-    priceGroup         PriceGroup? @relation(fields: [priceGroupId], references: [id])
+  email              String? // Имейл
+  phone              String? // Телефон
+  address            String? // Седалище на фирмата
+  country            String? // Държава
+  city               String? // Град
+  mol                String? // МОЛ - Материално отговорно лице
+  percentageDiscount Float? // Процентна отстъпка за партньора
+  preferredPayment   PaymentMethod? @default(CASH)
+  bankAccountBG      String? // Банкова сметка BG
+  bankAccountEUR     String? // Банкова сметка EUR
+  // Price group linkage (snake_case column mapping)
+  priceGroupId       String?     @map("price_group_id")
+  priceGroup         PriceGroup? @relation(fields: [priceGroupId], references: [id])
 
     stores    Store[] // Връзка към магазини
     revisions Revision[]
