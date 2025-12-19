@@ -184,6 +184,12 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const invoiceId = searchParams.get("id");
+    const productId = searchParams.get("productId");
+    const barcode = searchParams.get("barcode");
+    const pcode = searchParams.get("pcode");
+    const partnerName = searchParams.get("partnerName");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
 
     if (invoiceId) {
       const invoice = await prisma.invoice.findUnique({
@@ -198,10 +204,37 @@ export async function GET(req) {
       return NextResponse.json(invoice);
     }
 
-    // Fetch all invoices (admin only)
-    const invoices = await prisma.invoice.findMany({
+    const where = {};
+    if (partnerName) {
+      where.partnerName = { contains: partnerName, mode: "insensitive" };
+    }
+    if (dateFrom || dateTo) {
+      where.issuedAt = {};
+      if (dateFrom) where.issuedAt.gte = new Date(`${dateFrom}T00:00:00.000Z`);
+      if (dateTo) where.issuedAt.lte = new Date(`${dateTo}T23:59:59.999Z`);
+    }
+
+    // Fetch invoices, optionally filter by product after fetch (products is JSON)
+    const invoicesRaw = await prisma.invoice.findMany({
+      where,
       orderBy: { invoiceNumber: "desc" },
     });
+
+    const invoices = productId || barcode || pcode
+      ? invoicesRaw.filter((inv) => {
+          const products = Array.isArray(inv.products) ? inv.products : [];
+          return products.some((p) => {
+            const pid = p.productId || p.id || p.product?.id;
+            const pb = p.barcode || p.product?.barcode;
+            const pp = p.pcode || p.product?.pcode;
+            return (
+              (productId && pid === productId) ||
+              (barcode && pb === barcode) ||
+              (pcode && pp === pcode)
+            );
+          });
+        })
+      : invoicesRaw;
 
     return NextResponse.json(invoices);
   } catch (e) {

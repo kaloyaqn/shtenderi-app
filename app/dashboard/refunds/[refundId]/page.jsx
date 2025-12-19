@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { DataTable } from "@/components/ui/data-table";
 import { useReactToPrint } from "react-to-print";
@@ -26,7 +26,7 @@ import {
   FileText,
   Loader2,
   Printer,
-  Send,
+  X,
   User,
   Warehouse,
 } from "lucide-react";
@@ -34,13 +34,11 @@ import { IconInvoice } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import TableLink from "@/components/ui/table-link";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import BasicHeader from "@/components/BasicHeader";
 
 export default function RefundDetailPage() {
   const { refundId } = useParams();
-  const router = useRouter();
   const [refund, setRefund] = useState(null);
   const [loading, setLoading] = useState(true);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
@@ -62,9 +60,127 @@ export default function RefundDetailPage() {
   const [creditProducts, setCreditProducts] = useState([]);
   const [creditNoteError, setCreditNoteError] = useState("");
   const [savingCreditNote, setSavingCreditNote] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [invoiceLookup, setInvoiceLookup] = useState({});
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [invoicesShown, setInvoicesShown] = useState(false);
 
   const contentRef = useRef(null);
   const reactToPrintFn = useReactToPrint({ contentRef });
+
+  const displayRefundNumber =
+    refund?.refundNumber || refund?.invoiceNumber || refund?.id?.slice(-8);
+
+  const creditedByProductId = useMemo(() => {
+    const map = {};
+    (creditNotesSummary || []).forEach((cn) => {
+      const products = Array.isArray(cn.products) ? cn.products : [];
+      products.forEach((p) => {
+        const pid = p.productId || p.id || p.product?.id;
+        if (!pid) return;
+        const qty = Number(p.quantity) || 0;
+        if (!map[pid]) map[pid] = { total: 0, notes: [] };
+        map[pid].total += qty;
+        map[pid].notes.push({
+          creditNoteId: cn.id,
+          creditNoteNumber: cn.creditNoteNumber,
+          quantity: qty,
+        });
+      });
+    });
+    return map;
+  }, [creditNotesSummary]);
+
+  const pendingCreditByProductId = useMemo(() => {
+    const map = {};
+    creditProducts.forEach((p) => {
+      const pid = p.productId || p.id;
+      if (!pid) return;
+      map[pid] = (map[pid] || 0) + (Number(p.quantity) || 0);
+    });
+    return map;
+  }, [creditProducts]);
+
+  const getRemainingForProduct = (productId, refundQty) => {
+    const credited = creditedByProductId[productId]?.total || 0;
+    const pending = pendingCreditByProductId[productId] || 0;
+    return Math.max((refundQty || 0) - credited - pending, 0);
+  };
+
+  const findInvoiceProduct = (invoice, product) => {
+    if (!invoice || !product) return null;
+    const list = Array.isArray(invoice.products) ? invoice.products : [];
+    const productId = product.productId || product.id || product.product?.id;
+    const barcode = product.barcode || product.product?.barcode;
+    const pcode = product.pcode || product.product?.pcode;
+    return list.find(
+      (p) =>
+        p.productId === productId ||
+        p.id === productId ||
+        p.product?.id === productId ||
+        (barcode && (p.barcode === barcode || p.product?.barcode === barcode)) ||
+        (pcode && (p.pcode === pcode || p.product?.pcode === pcode))
+    );
+  };
+
+  const getMaxForSelection = (invoice, product) => {
+    const remainingQty = getRemainingForProduct(
+      product.productId,
+      product.refundQuantity
+    );
+    const invProduct = findInvoiceProduct(invoice, product);
+    const invoiceQty = invProduct?.quantity || remainingQty || 1;
+    return Math.max(1, Math.min(invoiceQty, remainingQty || invoiceQty));
+  };
+
+  const loadInvoicesForProducts = async () => {
+    setLoadingInvoices(true);
+    setCreditNoteError("");
+    try {
+      const results = await Promise.all(
+        (refund?.refundProducts || []).map(async (rp) => {
+          const pid = rp.product?.id || rp.productId;
+          if (!pid) return null;
+          const params = new URLSearchParams();
+          params.set("productId", pid);
+          if (refund.partnerName) params.set("partnerName", refund.partnerName);
+          if (dateFrom) params.set("dateFrom", dateFrom);
+          if (dateTo) params.set("dateTo", dateTo);
+          const res = await fetch(`/api/invoices?${params.toString()}`);
+          if (!res.ok) return { pid, invoices: [] };
+          const data = await res.json();
+          return { pid, invoices: data };
+        })
+      );
+      const map = {};
+      results.forEach((entry) => {
+        if (entry?.pid) {
+          map[entry.pid] = entry.invoices || [];
+        }
+      });
+      setInvoiceLookup(map);
+      setInvoicesShown(true);
+    } catch (err) {
+      setCreditNoteError("Грешка при зареждане на фактурите");
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
+
+  const removeCreditProduct = (index) => {
+    setCreditProducts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const resetCreditNoteFlow = () => {
+    setCreditNoteStep(1);
+    setSelectedProduct(null);
+    setSelectedInvoice(null);
+    setCreditQuantity(1);
+    setProductSearch("");
+    setInvoiceSearchResults([]);
+    setCreditNoteError("");
+  };
 
   useEffect(() => {
     if (!refundId) return;
@@ -176,39 +292,59 @@ export default function RefundDetailPage() {
     if (!productSearch) return true;
     const name = rp.product?.name?.toLowerCase() || "";
     const barcode = rp.product?.barcode?.toLowerCase() || "";
+    const pcode = rp.product?.pcode?.toLowerCase() || "";
     return (
       name.includes(productSearch.toLowerCase()) ||
-      barcode.includes(productSearch.toLowerCase())
+      barcode.includes(productSearch.toLowerCase()) ||
+      pcode.includes(productSearch.toLowerCase())
     );
   }) || [];
 
   // Step 2: Search invoices for selected product
-  async function handleSearchInvoices() {
+  function handleSearchInvoices() {
     setCreditNoteError("");
+    if (!invoicesShown) {
+      setCreditNoteError("Първо изберете период и натиснете „Покажи“.");
+      return;
+    }
     if (!selectedProduct) {
       setCreditNoteError("Моля, изберете продукт от връщането.");
       return;
     }
-    // Fetch last 5 invoices for this partner and product
-    try {
-      const res = await fetch(`/api/invoices?productId=${selectedProduct.productId}&partnerName=${encodeURIComponent(refund.partnerName || "")}`);
-      if (!res.ok) throw new Error("Грешка при търсене на фактури");
-      const data = await res.json();
-      setInvoiceSearchResults(data.slice(0, 5));
-      setCreditNoteStep(2);
-    } catch (err) {
-      setCreditNoteError("Грешка при търсене на фактури");
+    const productId = selectedProduct.productId || selectedProduct.id;
+    if (!productId) {
+      setCreditNoteError("Липсва идентификатор за продукта.");
+      return;
     }
+    const remainingQty = getRemainingForProduct(
+      productId,
+      selectedProduct.refundQuantity
+    );
+    if (remainingQty <= 0) {
+      setCreditNoteError("Този продукт вече е кредитиран изцяло.");
+      return;
+    }
+
+    const invoices = invoiceLookup[productId] || [];
+    if (invoices.length === 0) {
+      setCreditNoteError("Този продукт не фигурира във фактури за избрания период.");
+      return;
+    }
+    setInvoiceSearchResults(invoices);
+    setCreditNoteStep(2);
   }
 
   // Step 3: Select invoice and enter quantity
   function handleSelectInvoice(inv) {
     setSelectedInvoice(inv);
-    // Find product in invoice by barcode
-    const invProduct = (Array.isArray(inv.products) ? inv.products : []).find(
-      p => p.barcode === selectedProduct.barcode
+    if (!selectedProduct) return;
+    const remainingQty = getRemainingForProduct(
+      selectedProduct.productId,
+      selectedProduct.refundQuantity
     );
-    setCreditQuantity(1);
+    const invProduct = findInvoiceProduct(inv, selectedProduct);
+    const invQty = invProduct?.quantity || remainingQty || 1;
+    setCreditQuantity(Math.max(1, Math.min(remainingQty || 1, invQty)));
     setCreditNoteStep(3);
   }
 
@@ -218,31 +354,34 @@ export default function RefundDetailPage() {
       setCreditNoteError("Моля, изберете фактура и продукт.");
       return;
     }
-    // Debug info
-    console.log('DEBUG selectedProduct:', selectedProduct);
-    console.log('DEBUG selectedInvoice.products:', selectedInvoice.products);
-    // Find product in invoice by barcode
-    const invProduct = (Array.isArray(selectedInvoice.products) ? selectedInvoice.products : []).find(
-      p => p.barcode === selectedProduct.barcode
+    const remainingQty = getRemainingForProduct(
+      selectedProduct.productId,
+      selectedProduct.refundQuantity
     );
-    console.log('DEBUG invProduct found:', invProduct);
+    if (remainingQty <= 0) {
+      setCreditNoteError("Този продукт вече е кредитиран изцяло.");
+      return;
+    }
+    // Find product in invoice by barcode or productId
+    const invProduct = findInvoiceProduct(selectedInvoice, selectedProduct);
     if (!invProduct) {
       setCreditNoteError("Този продукт не фигурира в избраната фактура или е бил вече кредитиран");
       return;
     }
-    // Check max quantity (simulate: invoice quantity - already credited)
-    const maxQty = invProduct.quantity;
-    if (creditQuantity < 1 || creditQuantity > maxQty) {
-      setCreditNoteError(`Бройката не може да бъде повече от наличните във фактурата (${maxQty})`);
+    const maxQty = getMaxForSelection(selectedInvoice, selectedProduct);
+    const qty = Math.max(1, Math.min(creditQuantity, maxQty));
+    if (qty < 1 || qty > maxQty) {
+      setCreditNoteError(`Бройката не може да бъде повече от наличните (${maxQty})`);
       return;
     }
     setCreditProducts([
       ...creditProducts,
       {
         ...invProduct,
-        quantity: creditQuantity,
+        quantity: qty,
         invoiceId: selectedInvoice.id,
-        productId: selectedProduct.id,
+        productId: selectedProduct.productId,
+        invoiceNumber: selectedInvoice.invoiceNumber,
       },
     ]);
     // Reset for next product
@@ -269,12 +408,7 @@ export default function RefundDetailPage() {
       }
       setCreditNoteDialogOpen(false);
       setCreditProducts([]);
-      setCreditNoteStep(1);
-      setSelectedProduct(null);
-      setSelectedInvoice(null);
-      setCreditQuantity(1);
-      setProductSearch("");
-      setInvoiceSearchResults([]);
+      resetCreditNoteFlow();
       // Refresh summary
       fetch(`/api/credit-notes?refundId=${refund.id}`)
         .then((res) => res.json())
@@ -338,8 +472,9 @@ export default function RefundDetailPage() {
       </div> */}
 
       <BasicHeader
-      hasBackButton
-      title={'Детайли за връщане'}
+        hasBackButton
+        title={`Връщане № ${displayRefundNumber || "-"}`}
+        subtitle="Детайли за връщане и кредитни известия"
       >
           <Button onClick={reactToPrintFn} variant="outline">
             {" "}
@@ -371,6 +506,16 @@ export default function RefundDetailPage() {
               <CardTitle>Информация за връщането</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500 flex items-center">
+                  <FileText className="h-4 w-4 mr-1" />
+                  Номер на връщане
+                </label>
+                <p className="text-base font-medium">
+                  № {displayRefundNumber || refund.id?.slice(-8)}
+                </p>
+              </div>
+
               <div>
                 <label className="text-sm font-medium text-gray-500 flex items-center">
                   <Calendar className="h-4 w-4 mr-1" />
@@ -496,7 +641,7 @@ export default function RefundDetailPage() {
         className="hidden print:block bg-white p-8 text-black"
       >
         <div className="flex justify-between items-center mb-4">
-          <div className="text-xl font-bold">Връщане № {refund.id.slice(-8)}</div>
+          <div className="text-xl font-bold">Връщане № {displayRefundNumber || refund.id.slice(-8)}</div>
           <div className="text-md">
             Дата: {new Date(refund.createdAt).toLocaleDateString("bg-BG")}
           </div>
@@ -589,7 +734,7 @@ export default function RefundDetailPage() {
                     </div>
                     <div>
                       <TableLink href={`/dashboard/credit-notes/${cn.id}`}>
-                        Кредитно известие №{cn.creditNoteNumber}
+                        Кредитно известие №{cn.creditNoteNumber || cn.id?.slice(-6) || "—"}
                       </TableLink>
                       <div className="text-xs text-gray-500">
                         Дата: {new Date(cn.issuedAt).toLocaleDateString("bg-BG")}
@@ -606,7 +751,13 @@ export default function RefundDetailPage() {
         </div>
       )}
 
-      <Dialog open={creditNoteDialogOpen} onOpenChange={setCreditNoteDialogOpen}>
+      <Dialog
+        open={creditNoteDialogOpen}
+        onOpenChange={(open) => {
+          setCreditNoteDialogOpen(open);
+          if (!open) resetCreditNoteFlow();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Създай кредитно известие</DialogTitle>
@@ -614,42 +765,111 @@ export default function RefundDetailPage() {
           {creditNoteStep === 1 && (
             <div>
               <div className="mb-2">Изберете продукт от връщането:</div>
-              <Input
-                placeholder="Търси по име или баркод..."
-                value={productSearch}
-                onChange={e => setProductSearch(e.target.value)}
-              />
+              <div className="flex flex-col gap-2 mb-3">
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    placeholder="От дата"
+                  />
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    placeholder="До дата"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={loadInvoicesForProducts}
+                    disabled={loadingInvoices}
+                  >
+                    {loadingInvoices ? "Зарежда..." : "Покажи"}
+                  </Button>
+                </div>
+                <Input
+                  placeholder="Търси по име, баркод или pcode..."
+                  value={productSearch}
+                  onChange={e => setProductSearch(e.target.value)}
+                />
+              </div>
               <div className="max-h-40 overflow-y-auto mt-2">
                 {filteredRefundProducts.map(rp => {
+                  const productId = rp.product?.id || rp.productId;
                   const refundQty = rp.quantity;
-                  const creditedQty = creditProducts
-                    .filter(p => p.productId === rp.product?.id)
-                    .reduce((sum, p) => sum + (p.quantity || 0), 0);
-                  const fullyCredited = creditedQty >= refundQty;
-                  const partiallyCredited = creditedQty > 0 && creditedQty < refundQty;
-                  const isSelected = selectedProduct?.id === rp.product?.id;
+                  const creditedQtyFromNotes = creditedByProductId[productId]?.total || 0;
+                  const pendingQty = pendingCreditByProductId[productId] || 0;
+                  const remainingQty = getRemainingForProduct(productId, refundQty);
+                  const invoicesForProduct = invoiceLookup[productId] || [];
+                  const hasInvoice = invoicesForProduct.length > 0;
+                  const fullyCredited = remainingQty <= 0;
+                  const partiallyCredited = !fullyCredited && (creditedQtyFromNotes > 0 || pendingQty > 0);
+                  const isSelected = selectedProduct?.productId === productId;
+                  const notesForProduct = creditedByProductId[productId]?.notes || [];
                   return (
                     <div
                       key={rp.id}
-                      className={`p-2 border-b cursor-pointer flex items-center gap-2
+                      className={`p-2 border-b cursor-pointer flex items-start gap-2
                         ${isSelected ? 'bg-blue-100 border border-blue-500 rounded-sm' : ''}
                         ${fullyCredited ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}
+                        ${invoicesShown && !hasInvoice ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}
                         ${partiallyCredited && !isSelected ? 'bg-yellow-50 border border-yellow-400 rounded-sm' : ''}
                         ${partiallyCredited && isSelected ? 'bg-yellow-100 border-2 border-yellow-500 rounded-sm' : ''}
                       `}
                       onClick={() => {
-                        if (!fullyCredited) setSelectedProduct(rp.product);
+                        if (remainingQty <= 0) return;
+                        if (invoicesShown && !hasInvoice) return;
+                        setCreditNoteError("");
+                        setSelectedProduct({
+                          ...rp.product,
+                          productId,
+                          barcode: rp.product?.barcode,
+                          refundQuantity: rp.quantity,
+                        });
+                        setCreditNoteStep(1);
+                        setCreditQuantity(Math.max(1, Math.min(remainingQty, creditQuantity || 1)));
+                        setSelectedInvoice(null);
+                        setInvoiceSearchResults([]);
                       }}
                       style={fullyCredited ? { pointerEvents: 'none', opacity: 0.6 } : {}}
                     >
-                      <div className="font-medium">{rp.product?.name}</div>
-                      <div className="text-xs text-gray-500">{rp.product?.barcode}</div>
-                      <div className="ml-2 text-xs text-gray-500">{creditedQty} / {refundQty}</div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <div className="font-medium truncate">{rp.product?.name}</div>
+                        <div className="text-xs text-gray-500 flex gap-2">
+                          <span>{rp.product?.barcode}</span>
+                          {rp.product?.pcode && <span>• {rp.product.pcode}</span>}
+                        </div>
+                        <div className="text-xs text-gray-500">Върнато: {refundQty} бр.</div>
+                        <div className="text-xs text-gray-600">
+                          Кредитирани: {creditedQtyFromNotes} бр.
+                          {notesForProduct.length > 0 && (
+                            <span className="ml-2 text-[11px] text-gray-500">
+                              {notesForProduct.map((n, idx) => (
+                                <span key={n.creditNoteId}>
+                                  КИ №{n.creditNoteNumber || "—"} ({n.quantity} бр.){idx < notesForProduct.length - 1 ? ", " : ""}
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                        {pendingQty > 0 && (
+                          <div className="text-xs text-blue-700">Предстои в текущото известие: {pendingQty} бр.</div>
+                        )}
+                        <div className="text-xs font-semibold text-gray-800">
+                          Остава: {remainingQty} бр.
+                        </div>
+                        {invoicesShown && !hasInvoice && (
+                          <div className="text-xs text-red-600 font-semibold">Не е във фактура</div>
+                        )}
+                      </div>
                       {fullyCredited && (
-                        <span className="ml-auto text-green-600 text-xs font-semibold">Добавен</span>
+                        <span className="ml-auto text-green-600 text-xs font-semibold">Кредитирано</span>
                       )}
-                      {partiallyCredited && !fullyCredited && (
-                        <span className="ml-auto text-yellow-700 text-xs font-semibold">Остава {refundQty - creditedQty}</span>
+                      {!fullyCredited && (!invoicesShown || hasInvoice) && (
+                        <span className="ml-auto text-xs font-semibold text-blue-700">Избери</span>
+                      )}
+                      {invoicesShown && !hasInvoice && (
+                        <span className="ml-auto text-xs font-semibold text-gray-500">Не е във фактура</span>
                       )}
                     </div>
                   );
@@ -675,22 +895,81 @@ export default function RefundDetailPage() {
           {creditNoteStep === 3 && (
             <div>
               <div className="mb-2">Въведете бройка за кредитиране:</div>
-              <Input
-                type="number"
-                min={1}
-                max={selectedInvoice ? (Array.isArray(selectedInvoice.products) ? (selectedInvoice.products.find(p => p.productId === selectedProduct.productId)?.quantity || 1) : 1) : 1}
-                value={creditQuantity}
-                onChange={e => setCreditQuantity(Number(e.target.value))}
-              />
+              {selectedProduct && (
+                <div className="text-xs text-gray-600 mb-1">
+                  Оставащи за кредитиране:{" "}
+                  {getRemainingForProduct(
+                    selectedProduct.productId,
+                    selectedProduct.refundQuantity
+                  )}{" "}
+                  бр.
+                </div>
+              )}
+              {selectedInvoice && (
+                <div className="text-xs text-gray-500 mb-1">
+                  Фактура № {selectedInvoice.invoiceNumber || "—"}
+                </div>
+              )}
+              {selectedProduct && (
+                <div className="text-xs text-gray-500 mb-2">
+                  {selectedProduct.barcode} {selectedProduct.name && `• ${selectedProduct.name}`}
+                </div>
+              )}
+              {(() => {
+                const maxQty =
+                  selectedInvoice && selectedProduct
+                    ? getMaxForSelection(selectedInvoice, selectedProduct)
+                    : 1;
+                return (
+                  <Input
+                    type="number"
+                    min={1}
+                    max={maxQty}
+                    step={1}
+                    value={creditQuantity}
+                    onChange={(e) =>
+                      setCreditQuantity(
+                        Math.min(
+                          Math.max(1, Number(e.target.value)),
+                          maxQty
+                        )
+                      )
+                    }
+                  />
+                );
+              })()}
               <Button className="mt-2" onClick={handleAddProductToCredit}>Добави</Button>
             </div>
           )}
           {creditProducts.length > 0 && (
             <div className="mt-4">
               <div className="font-medium mb-2">Добавени продукти:</div>
-              <ul>
+              <ul className="space-y-2">
                 {creditProducts.map((p, idx) => (
-                  <li key={idx}>{p.name} - {p.quantity} бр.</li>
+                  <li
+                    key={`${p.productId}-${idx}`}
+                    className="flex items-center justify-between rounded border px-3 py-2 text-sm"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-semibold">{p.name || p.productName || "Продукт"}</span>
+                      <span className="text-xs text-gray-500">{p.barcode}</span>
+                      {p.invoiceId && (
+                        <span className="text-xs text-gray-600">
+                          Фактура № {p.invoiceNumber || p.invoiceId}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{p.quantity} бр.</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeCreditProduct(idx)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
                 ))}
               </ul>
             </div>

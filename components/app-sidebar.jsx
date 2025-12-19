@@ -75,7 +75,7 @@ const groupedDocuments = {
     { name: "Проверки", url: "/dashboard/checks", icon: CheckCheckIcon, adminOnly: false },
     { name: "Продажби", url: "/dashboard/revisions", icon: CircleDollarSignIcon },
     { name: "Връщания и рекламации", url: "/dashboard/refunds", icon: Undo2Icon },
-    { name: "Трансфер на стока", url: "/dashboard/transfers", icon: IconTransfer },
+    { name: "Изтегляне / Трансферx", url: "/dashboard/transfers", icon: IconTransfer },
     { name: "Ревизии склад", url: "/dashboard/storage-revisions", icon: SearchCheckIcon, adminOnly: true },
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },

@@ -490,7 +490,7 @@ export default function StandDetailPage({ params }) {
                 }
               >
                 <AlertTriangle className="h-4 w-4 mr-2" />
-                Върни към склад
+                Изтегли стока
               </Button>
               <Button
                 variant="outline"
@@ -693,7 +693,7 @@ export default function StandDetailPage({ params }) {
           <Link className="w-full" href={`/dashboard/resupply?mode=stand-to-storage&standid=${standId}`}>
             <Button variant="outline">
               <IconTruckReturn />
-              Върни към склад
+              Изтегли стока
             </Button>
           </Link>
 

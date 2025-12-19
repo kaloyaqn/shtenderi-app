@@ -16,6 +16,9 @@ export default function RefundsPage() {
   const [loading, setLoading] = useState(true);
   const { data: session } = useSession();
 
+  const formatRefundNumber = (refund) =>
+    refund.refundNumber || refund.invoiceNumber || refund.id?.slice(-8);
+
   useEffect(() => {
     if (session) {
       fetch("/api/refunds")
@@ -35,8 +38,9 @@ export default function RefundsPage() {
 
   const columns = [
     {
-      accessorKey: "id",
-      header: "id",
+      id: "number",
+      header: "№",
+      cell: ({ row }) => `№ ${formatRefundNumber(row.original)}`,
     },
     {
       accessorKey: "createdAt",
