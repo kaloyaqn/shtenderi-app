@@ -168,6 +168,15 @@ export default function RevisionDetailPage() {
   }, [revisionId]);
 
   useEffect(() => {
+    const preferred = revision?.partner?.preferredPayment;
+    if (preferred === "CASH" || preferred === "BANK") {
+      setPaymentMethod(preferred);
+    } else {
+      setPaymentMethod("CASH");
+    }
+  }, [revision?.partner?.preferredPayment]);
+
+  useEffect(() => {
     // Fetch storages when the resupply dialog is considered
     if (resupplyDialogOpen) {
       fetch("/api/storages")
@@ -1219,15 +1228,15 @@ export default function RevisionDetailPage() {
           </DialogHeader>
           <div className="py-4">
             <Select
+              value={paymentMethod}
               onValueChange={setPaymentMethod}
-              defaultValue={paymentMethod}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Избери начин на плащане..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="CASH">В брой</SelectItem>
-                <SelectItem value="CARD">Банка</SelectItem>
+                <SelectItem value="BANK">Банка</SelectItem>
               </SelectContent>
             </Select>
           </div>

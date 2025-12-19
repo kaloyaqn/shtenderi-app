@@ -15,6 +15,10 @@ export async function GET(req) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const storageId = searchParams.get("storageId");
     const userId = searchParams.get("userId");
+    const productId = searchParams.get("productId");
+    const productPcode = searchParams.get("pcode");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
     
     const skip = (page - 1) * limit;
 
@@ -25,6 +29,21 @@ export async function GET(req) {
     }
     if (userId) {
       where.userId = userId;
+    }
+    if (productId || productPcode) {
+      where.products = {
+        some: {
+          ...(productId ? { productId } : {}),
+          ...(productPcode
+            ? { product: { pcode: { contains: productPcode, mode: "insensitive" } } }
+            : {}),
+        },
+      };
+    }
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(`${dateFrom}T00:00:00.000Z`);
+      if (dateTo) where.createdAt.lte = new Date(`${dateTo}T23:59:59.999Z`);
     }
 
     // Fetch storage revisions with related data
@@ -52,6 +71,7 @@ export async function GET(req) {
                   id: true,
                   name: true,
                   barcode: true,
+                  pcode: true,
                 },
               },
             },
