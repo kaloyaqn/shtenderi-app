@@ -65,6 +65,7 @@ export default function RefundDetailPage() {
   const [invoiceLookup, setInvoiceLookup] = useState({});
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [invoicesShown, setInvoicesShown] = useState(false);
+  const [returnSelection, setReturnSelection] = useState({});
 
   const contentRef = useRef(null);
   const reactToPrintFn = useReactToPrint({ contentRef });
@@ -265,20 +266,43 @@ export default function RefundDetailPage() {
         .then((res) => res.json())
         .then(setStorages);
     }
+    // prefill return selection with all products/qty
+    const prefill = {};
+    (refund?.refundProducts || []).forEach((rp) => {
+      prefill[rp.productId] = rp.quantity;
+    });
+    setReturnSelection(prefill);
   };
 
   const handleReturnToStorage = async () => {
     if (!selectedStorage) return;
+    const productsToReturn = Object.entries(returnSelection)
+      .map(([productId, qty]) => ({
+        productId,
+        quantity: Number(qty) || 0,
+      }))
+      .filter((p) => p.quantity > 0);
+    if (productsToReturn.length === 0) {
+      toast.error("Изберете продукт(и) за връщане.");
+      return;
+    }
     setReturning(true);
     try {
       const res = await fetch(`/api/refunds/${refund.id}/return-to-storage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storageId: selectedStorage }),
+        body: JSON.stringify({
+          storageId: selectedStorage,
+          products: productsToReturn,
+        }),
       });
       if (!res.ok) throw new Error("Грешка при връщане в склад");
       setReturned(true);
       setReturnDialogOpen(false);
+      setReturnedStorage(
+        storages.find((s) => s.id === selectedStorage) || returnedStorage
+      );
+      setReturnedAt(new Date().toISOString());
       toast.success("Продуктите са върнати в склада!");
     } catch (err) {
       toast.error(err.message);
@@ -619,6 +643,44 @@ export default function RefundDetailPage() {
               ))}
             </SelectContent>
           </Select>
+          <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
+            {(refund?.refundProducts || []).map((rp) => {
+              const maxQty = rp.quantity;
+              const current = returnSelection[rp.productId] ?? maxQty;
+              return (
+                <div
+                  key={rp.id}
+                  className="border rounded p-2 flex items-center justify-between gap-2"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium text-sm">
+                      {rp.product?.name || "-"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {rp.product?.barcode} {rp.product?.pcode && `• ${rp.product.pcode}`}
+                    </span>
+                  </div>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={maxQty}
+                    value={current}
+                    onChange={(e) => {
+                      const val = Math.min(
+                        maxQty,
+                        Math.max(0, Number(e.target.value))
+                      );
+                      setReturnSelection((prev) => ({
+                        ...prev,
+                        [rp.productId]: val,
+                      }));
+                    }}
+                    className="w-24"
+                  />
+                </div>
+              );
+            })}
+          </div>
           <DialogFooter>
             <Button
               variant="outline"

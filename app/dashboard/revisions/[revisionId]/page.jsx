@@ -71,9 +71,9 @@ export default function RevisionDetailPage() {
   const [addProductLoading, setAddProductLoading] = useState(false);
   const [resupplyErrors, setResupplyErrors] = useState([]);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoice, setInvoice] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [invoice, setInvoice] = useState(null);
   const router = useRouter();
   const { data: session } = useSession();
   const [repeatDialogOpen, setRepeatDialogOpen] = useState(false);
@@ -760,10 +760,11 @@ export default function RevisionDetailPage() {
         <Button
           variant="outline"
           onClick={() => setIsPaymentModalOpen(true)}
-          disabled={invoiceLoading}
+          disabled={invoiceLoading || !!invoice}
+          title={invoice ? "Фактура вече е издадена" : undefined}
         >
           <IconInvoice />
-          {invoiceLoading ? "Обработка..." : "Фактура"}
+          {invoice ? "Фактура издадена" : invoiceLoading ? "Обработка..." : "Фактура"}
         </Button>
         <Button
           variant="outline"
