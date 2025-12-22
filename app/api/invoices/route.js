@@ -87,6 +87,8 @@ export async function POST(req) {
           partnerAddress: revision.partner.address,
           partnerCountry: revision.partner.country,
           partnerCity: revision.partner.city,
+          partnerEmail: revision.partner.email || null,
+          partnerId: revision.partner.id || null,
 
           revisionId,
           revisionNumber: revision.number,
@@ -201,7 +203,16 @@ export async function GET(req) {
     if (invoiceId) {
       const invoice = await prisma.invoice.findUnique({
         where: { id: invoiceId },
-        include: { creditNotes: true },
+        include: {
+          creditNotes: true,
+          payments: {
+            include: {
+              user: { select: { id: true, name: true, email: true } },
+              cashRegister: { include: { storage: true } },
+            },
+            orderBy: { createdAt: "desc" },
+          },
+        },
       });
 
       if (!invoice) {

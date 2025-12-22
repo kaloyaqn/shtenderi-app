@@ -7,6 +7,7 @@ export async function GET(req) {
   const dateParam = url.searchParams.get('date');
   const fromParam = url.searchParams.get('from');
   const toParam = url.searchParams.get('to');
+  const partnerId = url.searchParams.get('partnerId');
 
   let from, to;
   if (dateParam) {
@@ -34,6 +35,7 @@ export async function GET(req) {
   const payments = await prisma.payment.findMany({
     where: {
       createdAt: { gte: from, lte: to },
+      ...(partnerId ? { revision: { partnerId } } : {}),
     },
     include: {
       user: { select: { id: true, name: true, email: true } },

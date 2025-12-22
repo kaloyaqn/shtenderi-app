@@ -209,6 +209,8 @@ export default function RefundDetailPage() {
   if (loading) return <div>Зареждане...</div>;
   if (!refund) return <div>Връщането не е намерено.</div>;
 
+  const partner = refund.partner || null;
+
   const columns = [
     {
       id: "name",
@@ -522,6 +524,33 @@ export default function RefundDetailPage() {
             {returned ? "Върнато в склад" : "Върни продуктите в склад"}
           </Button>
       </BasicHeader>
+
+      {/* Partner & source */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="border rounded-lg p-4 bg-white shadow-sm">
+          <div className="text-sm text-gray-500 mb-2">Партньор</div>
+          {partner ? (
+            <div className="text-sm leading-6">
+              <div className="font-semibold text-base">{partner.name || "-"}</div>
+              <div>Булстат: {partner.bulstat || "-"}</div>
+              <div>МОЛ: {partner.mol || "-"}</div>
+              <div>Град: {partner.city || "-"}</div>
+              <div>Адрес: {partner.address || "-"}</div>
+              <div>Email: {partner.email || "-"}</div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">Няма свързан партньор</div>
+          )}
+        </div>
+
+        <div className="border rounded-lg p-4 bg-white shadow-sm">
+          <div className="text-sm text-gray-500 mb-2">Източник</div>
+          <div className="text-sm leading-6">
+            <div className="font-semibold">{refund.sourceType}</div>
+            <div>{refund.sourceName || refund.sourceId}</div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">

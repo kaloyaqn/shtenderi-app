@@ -53,6 +53,11 @@ export default function RefundsPage() {
       cell: ({ row }) => row.original.user?.name || row.original.user?.email || "-",
     },
     {
+      accessorKey: "partnerName",
+      header: "Партньор",
+      cell: ({ row }) => row.original.partnerName || row.original.partner?.name || "-",
+    },
+    {
       accessorKey: "sourceType",
       header: "Източник",
       cell: ({ row }) => {

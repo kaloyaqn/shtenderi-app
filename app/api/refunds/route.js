@@ -148,14 +148,16 @@ export async function GET() {
     const withNames = await Promise.all(refunds.map(async (refund) => {
       let sourceName = '';
       let partnerId = null;
+      let partnerInfo = null;
 
       if (refund.sourceType === 'STAND') {
         const stand = await prisma.stand.findUnique({
           where: { id: refund.sourceId },
-          select: { name: true, store: { select: { partnerId: true } } },
+          select: { name: true, store: { select: { partnerId: true, partner: true } } },
         });
         sourceName = stand?.name || refund.sourceId;
         partnerId = stand?.store?.partnerId || null;
+        partnerInfo = stand?.store?.partner || null;
       } else if (refund.sourceType === 'STORAGE') {
         const storage = await prisma.storage.findUnique({ where: { id: refund.sourceId } });
         sourceName = storage?.name || refund.sourceId;
@@ -175,7 +177,20 @@ export async function GET() {
         );
       }
 
-      return { ...refund, sourceName, partnerId, refundProducts };
+      return {
+        ...refund,
+        sourceName,
+        partnerId,
+        partner: partnerInfo,
+        partnerName: partnerInfo?.name || null,
+        partnerBulstat: partnerInfo?.bulstat || null,
+        partnerMol: partnerInfo?.mol || null,
+        partnerAddress: partnerInfo?.address || null,
+        partnerCountry: partnerInfo?.country || null,
+        partnerCity: partnerInfo?.city || null,
+        partnerEmail: partnerInfo?.email || null,
+        refundProducts,
+      };
     }));
     return NextResponse.json(withNames);
   } catch (error) {

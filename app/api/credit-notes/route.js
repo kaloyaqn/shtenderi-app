@@ -68,7 +68,10 @@ export async function POST(req) {
       // 7. Fetch invoices referenced by the selected products to lock prices to the invoice values
       const invoiceIds = Array.from(new Set((products || []).map(p => p.invoiceId).filter(Boolean)));
       const invoices = invoiceIds.length
-        ? await prisma.invoice.findMany({ where: { id: { in: invoiceIds } } })
+        ? await prisma.invoice.findMany({
+            where: { id: { in: invoiceIds } },
+            include: { partner: { select: { id: true, email: true } } },
+          })
         : [];
       const invoiceById = Object.fromEntries(invoices.map(i => [i.id, i]));
 
@@ -100,8 +103,20 @@ export async function POST(req) {
         };
       });
 
-      // 9. Select partner info from the first matched invoice if present
-      const partnerInvoice = invoices[0];
+      // 9. Resolve partner from the refund source (stand->store->partner) or matched invoice
+      let partnerFromSource = null;
+      if (refund.sourceType === 'STAND' && refund.sourceId) {
+        const stand = await prisma.stand.findUnique({
+          where: { id: refund.sourceId },
+          include: { store: { include: { partner: true } } },
+        });
+        partnerFromSource = stand?.store?.partner || null;
+      }
+      // Prefer the invoice referenced by the first product, otherwise fallback to the first fetched invoice
+      const preferredInvoiceId = products[0]?.invoiceId;
+      const partnerInvoice = preferredInvoiceId
+        ? invoices.find((inv) => inv.id === preferredInvoiceId) || invoices[0]
+        : invoices[0];
 
       // 10. Get the next credit note number
       const lastCreditNote = await prisma.creditNote.findFirst({ orderBy: { creditNoteNumber: 'desc' } });
@@ -116,12 +131,47 @@ export async function POST(req) {
         data: {
           creditNoteNumber: nextNumber,
           issuedAt: new Date(),
-          partnerName: partnerInvoice?.partnerName || refund.user?.name || '',
-          partnerBulstat: partnerInvoice?.partnerBulstat || '',
-          partnerMol: partnerInvoice?.partnerMol || '',
-          partnerAddress: partnerInvoice?.partnerAddress || '',
-          partnerCountry: partnerInvoice?.partnerCountry || '',
-          partnerCity: partnerInvoice?.partnerCity || '',
+          partnerName:
+            partnerFromSource?.name ||
+            partnerInvoice?.partnerName ||
+            partnerInvoice?.partner?.name ||
+            refund.user?.name ||
+            '',
+          partnerBulstat:
+            partnerFromSource?.bulstat ||
+            partnerInvoice?.partnerBulstat ||
+            partnerInvoice?.partner?.bulstat ||
+            '',
+          partnerMol:
+            partnerFromSource?.mol ||
+            partnerInvoice?.partnerMol ||
+            partnerInvoice?.partner?.mol ||
+            '',
+          partnerAddress:
+            partnerFromSource?.address ||
+            partnerInvoice?.partnerAddress ||
+            partnerInvoice?.partner?.address ||
+            '',
+          partnerCountry:
+            partnerFromSource?.country ||
+            partnerInvoice?.partnerCountry ||
+            partnerInvoice?.partner?.country ||
+            '',
+          partnerCity:
+            partnerFromSource?.city ||
+            partnerInvoice?.partnerCity ||
+            partnerInvoice?.partner?.city ||
+            '',
+          partnerEmail:
+            partnerFromSource?.email ||
+            partnerInvoice?.partnerEmail ||
+            partnerInvoice?.partner?.email ||
+            null,
+          partnerId:
+            partnerFromSource?.id ||
+            partnerInvoice?.partnerId ||
+            partnerInvoice?.partner?.id ||
+            null,
           preparedBy,
           products: creditNoteProducts,
           totalValue,
@@ -142,6 +192,7 @@ export async function POST(req) {
     // 1. Fetch the original invoice
     const originalInvoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
+      include: { partner: { select: { id: true, email: true } } },
     });
     if (!originalInvoice) {
       return NextResponse.json({ error: 'Original invoice not found' }, { status: 404 });
@@ -165,12 +216,14 @@ export async function POST(req) {
       data: {
         creditNoteNumber: nextNumber,
         issuedAt: new Date(),
-        partnerName: originalInvoice.partnerName,
-        partnerBulstat: originalInvoice.partnerBulstat,
-        partnerMol: originalInvoice.partnerMol,
-        partnerAddress: originalInvoice.partnerAddress,
-        partnerCountry: originalInvoice.partnerCountry,
-        partnerCity: originalInvoice.partnerCity,
+        partnerName: originalInvoice.partnerName || originalInvoice.partner?.name || '',
+        partnerBulstat: originalInvoice.partnerBulstat || originalInvoice.partner?.bulstat || '',
+        partnerMol: originalInvoice.partnerMol || originalInvoice.partner?.mol || '',
+        partnerAddress: originalInvoice.partnerAddress || originalInvoice.partner?.address || '',
+        partnerCountry: originalInvoice.partnerCountry || originalInvoice.partner?.country || '',
+        partnerCity: originalInvoice.partnerCity || originalInvoice.partner?.city || '',
+        partnerEmail: originalInvoice.partnerEmail || originalInvoice.partner?.email || null,
+        partnerId: originalInvoice.partnerId || originalInvoice.partner?.id || null,
         preparedBy: preparedBy,
         products: originalInvoice.products, // Direct copy
         totalValue: originalInvoice.totalValue,
@@ -200,7 +253,10 @@ export async function GET(req) {
     if (creditNoteId) {
     const creditNote = await prisma.creditNote.findUnique({
       where: { id: creditNoteId },
-      include: { invoice: true } // Include the linked invoice
+      include: {
+        invoice: { include: { partner: true } },
+        partner: true,
+      }, // Include the linked invoice & partner
     });
 
     if (!creditNote) {
@@ -221,6 +277,10 @@ export async function GET(req) {
     // If no ID and no refundId, get all credit notes for the list view
     const creditNotes = await prisma.creditNote.findMany({
       orderBy: { creditNoteNumber: 'desc' },
+      include: {
+        invoice: { include: { partner: true } },
+        partner: true,
+      },
     });
     return NextResponse.json(creditNotes);
   } catch (error) {

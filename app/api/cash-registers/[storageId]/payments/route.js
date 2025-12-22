@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { RevisionStatus } from '@prisma/client';
+import { updateInvoicePaymentStatus } from '@/lib/invoice/update-invoice-payment-status';
 
 export async function POST(req, { params }) {
   const { storageId } = params;
@@ -96,6 +97,15 @@ export async function POST(req, { params }) {
       data: { cashBalance: { increment: amount } },
     });
   }
+
+  if (invoiceId) {
+    try {
+      await updateInvoicePaymentStatus(invoiceId);
+    } catch (err) {
+      console.error('Failed to update invoice payment status', err);
+    }
+  }
+
   const updatedRegister = await prisma.cashRegister.findUnique({
     where: { id: cashRegister.id },
     include: { payments: true, cashMovements: true },

@@ -161,6 +161,8 @@
 
     stores    Store[] // Връзка към магазини
     revisions Revision[]
+    invoices  Invoice[] @relation("PartnerInvoices")
+    creditNotes CreditNote[] @relation("PartnerCreditNotes")
 
     userPartners UserPartner[]
 
@@ -331,36 +333,45 @@
     invoiceNumber  Int           @unique
     issuedAt       DateTime      @default(now())
     // Partner info
-    partnerName    String
-    partnerBulstat String?
-    partnerMol     String?
-    partnerAddress String?
-    partnerCountry String?
-    partnerCity    String?
-    // User info
-    preparedBy     String
-    // Products as JSON
-    products       Json
-    // Totals
-    totalValue     Float
-    vatBase        Float
-    vatAmount      Float
-    paymentMethod  PaymentMethod @default(CASH)
-    // Reference to revision number
-    revisionNumber Int?
+  partnerName    String
+  partnerBulstat String?
+  partnerMol     String?
+  partnerAddress String?
+  partnerCountry String?
+  partnerCity    String?
+  partnerEmail   String?
+  partner        Partner? @relation("PartnerInvoices", fields: [partnerId], references: [id])
+  partnerId      String?
+  // User info
+  preparedBy     String
+  // Products as JSON
+  products       Json
+  // Totals
+  totalValue     Float
+  vatBase        Float
+  vatAmount      Float
+  paymentMethod  PaymentMethod @default(CASH)
+  // Reference to revision number
+  revisionNumber Int?
 
-    revisionId  String?    @unique
-    revision    Revision?  @relation("RevisionInvoice", fields: [revisionId], references: [id])
+  revisionId  String?    @unique
+  revision    Revision?  @relation("RevisionInvoice", fields: [revisionId], references: [id])
+
+  deliveryId String? @unique
+  delivery   Delivery? @relation("DeliveryInvoice", fields: [deliveryId], references: [id])
+
+  creditNotes CreditNote[] // An invoice can have many credit notes
+  payments    Payment[]
+  paymentStatus InvoicePaymentStatus @default(UNPAID)
+  paidAmount     Decimal            @default(0) @db.Decimal(10, 2)
 
 
-    deliveryId String? @unique
-    delivery   Delivery? @relation("DeliveryInvoice", fields: [deliveryId], references: [id])
+  }
 
-
-    creditNotes CreditNote[] // An invoice can have many credit notes
-    payments    Payment[]
-
-
+  enum InvoicePaymentStatus {
+    UNPAID
+    PARTIALLY_PAID
+    PAID
   }
 
   model CreditNote {
@@ -374,6 +385,9 @@
     partnerAddress   String?
     partnerCountry   String?
     partnerCity      String?
+    partnerEmail     String?
+    partner          Partner?      @relation("PartnerCreditNotes", fields: [partnerId], references: [id])
+    partnerId        String?
     // User info
     preparedBy       String
     // Products as JSON

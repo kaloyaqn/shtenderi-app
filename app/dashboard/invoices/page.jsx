@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import LoadingScreen from '@/components/LoadingScreen';
 import BasicHeader from '@/components/BasicHeader';
 import { Eye } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -55,6 +56,20 @@ export default function InvoicesPage() {
       accessorKey: 'partnerName',
       header: 'Партньор',
       cell: ({ row }) => row.original.partnerName || '-',
+    },
+    {
+      accessorKey: 'paymentStatus',
+      header: 'Статус',
+      cell: ({ row }) => {
+        const status = row.original.paymentStatus || 'UNPAID';
+        const map = {
+          PAID: { label: 'Платена', variant: 'success' },
+          PARTIALLY_PAID: { label: 'Частично', variant: 'outline' },
+          UNPAID: { label: 'Неплатена', variant: 'destructive' },
+        };
+        const info = map[status] || map.UNPAID;
+        return <Badge variant={info.variant}>{info.label}</Badge>;
+      }
     },
     {
         accessorKey: 'issuedAt',
