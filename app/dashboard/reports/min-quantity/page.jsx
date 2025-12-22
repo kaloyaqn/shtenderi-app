@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import useSWR from "swr";
 import BasicHeader from "@/components/BasicHeader";
 import { DataTable } from "@/components/ui/data-table";
@@ -9,9 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Combobox } from "@/components/ui/combobox";
 import LoadingScreen from "@/components/LoadingScreen";
 import { fetcher } from "@/lib/utils";
+import { useQueryState } from "nuqs";
 
 export default function MinQuantityReport() {
-  const [storageId, setStorageId] = useState("");
+  const [storageId, setStorageId] = useQueryState("storageId", {
+    defaultValue: "",
+    parse: (v) => v,
+    serialize: (v) => v || null,
+  });
   const { data: storages = [] } = useSWR("/api/storages", fetcher);
 
   const { data, isLoading } = useSWR(
