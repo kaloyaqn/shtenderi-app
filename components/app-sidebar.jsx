@@ -80,20 +80,21 @@ const groupedDocuments = {
     { name: "Фактури", url: "/dashboard/invoices", icon: IconInvoice },
     { name: "Кредитни известия", url: "/dashboard/credit-notes", icon: FileMinus, adminOnly: true },
     { name: "Доставки", url: "/dashboard/deliveries", icon: PackageOpenIcon, adminOnly: true },
-    {
-      name: "Справки",
-      icon: IconReport,
-      hasSubmenus: [
-        { title: "Продажби", link: "/dashboard/reports/sale" },
-        { title: "Липси", link: "/dashboard/reports/revisions" },
-        { title: "Справка на успеха", link: "/dashboard/reports/channel" },
-        { title: "Неплатени фактури", link: "/dashboard/reports/unpaid-invoices" },
-        { title: "Оборот по клиенти", link: "/dashboard/reports/clients" },
-        { title: "Партньор", icon: IconSearch, link: "/dashboard/reports/partner" },
-        { title: "Доставка", icon: Truck, link: "/dashboard/reports/delivery" }
-      ]
-    },
-  ],
+        {
+          name: "Справки",
+          icon: IconReport,
+          hasSubmenus: [
+            { title: "Продажби", link: "/dashboard/reports/sale" },
+            { title: "Липси", link: "/dashboard/reports/revisions" },
+            { title: "Справка на успеха", link: "/dashboard/reports/channel" },
+            { title: "Неплатени фактури", link: "/dashboard/reports/unpaid-invoices" },
+            { title: "Оборот по клиенти", link: "/dashboard/reports/clients" },
+            { title: "Партньор", icon: IconSearch, link: "/dashboard/reports/partner" },
+            { title: "Доставка", icon: Truck, link: "/dashboard/reports/delivery" },
+            { title: "Мин. количества", link: "/dashboard/reports/min-quantity" },
+          ]
+        },
+      ],
   "Основни": [
     { name: "Номенклатура", url: "/dashboard/products", icon: BoxIcon, adminOnly: true },
     { name: "Ценови групи", url: "/dashboard/price-groups", icon: GroupIcon, adminOnly: true },

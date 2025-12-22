@@ -35,6 +35,7 @@ export default function CreateProductPage({ onProductCreated = () => {}, onClose
       pcd: formData.get("pcd")?.trim() || null,
       image: formData.get("image")?.trim() || null,
       quantity: parseInt(formData.get("quantity"), 10) || 0,
+      minQty: parseInt(formData.get("minQty"), 10) || 0,
     };
 
     try {
@@ -142,6 +143,17 @@ export default function CreateProductPage({ onProductCreated = () => {}, onClose
           <Input
             id="quantity"
             name="quantity"
+            type="number"
+            defaultValue={0}
+            placeholder="0"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="minQty">Мин. количество</Label>
+          <Input
+            id="minQty"
+            name="minQty"
             type="number"
             defaultValue={0}
             placeholder="0"
