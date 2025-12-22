@@ -15,7 +15,7 @@ export async function POST(req) {
 
 
     if (type === "revision") {
-      const { revisionId } = await req.json();
+      const { revisionId, paymentMethod } = await req.json();
       if (!revisionId) {
         return NextResponse.json({ error: "revisionId is required" }, { status: 400 });
       }
@@ -44,7 +44,11 @@ export async function POST(req) {
       const discount = revision.partner?.percentageDiscount || 0;
 
       const products = revision.missingProducts.map((mp) => {
-        const price = (mp.product?.clientPrice || 0) * (1 - discount / 100);
+        const basePrice = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
+        const price =
+          mp.priceAtSale != null
+            ? Number(basePrice)
+            : (mp.product?.clientPrice || 0) * (1 - discount / 100);
         const qty = mp.givenQuantity ?? mp.missingQuantity;
 
         return {
@@ -57,10 +61,11 @@ export async function POST(req) {
         };
       });
 
-      const totalValue = products.reduce(
-        (sum, p) => sum + p.quantity * p.clientPrice,
-        0
-      );
+      // Prefer the recorded sale amount (special pricing) over recalculating from products
+      const totalValue =
+        revision.saleAmount !== null && revision.saleAmount !== undefined
+          ? Number(revision.saleAmount)
+          : products.reduce((sum, p) => sum + p.quantity * p.clientPrice, 0);
 
       const vatBase = totalValue / 1.2;
       const vatAmount = totalValue - vatBase;
@@ -90,7 +95,7 @@ export async function POST(req) {
           totalValue,
           vatBase,
           vatAmount,
-          paymentMethod: "CASH",
+          paymentMethod: paymentMethod || "CASH",
         },
       });
 
@@ -184,6 +189,8 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const invoiceId = searchParams.get("id");
+    const revisionId = searchParams.get("revisionId");
+    const revisionNumbersRaw = searchParams.getAll("revisionNumber");
     const productId = searchParams.get("productId");
     const barcode = searchParams.get("barcode");
     const pcode = searchParams.get("pcode");
@@ -204,7 +211,30 @@ export async function GET(req) {
       return NextResponse.json(invoice);
     }
 
+    if (revisionId) {
+      const invoice = await prisma.invoice.findFirst({
+        where: { revisionId },
+      });
+
+      if (!invoice) {
+        return NextResponse.json(null);
+      }
+
+      return NextResponse.json(invoice);
+    }
+
     const where = {};
+
+    // Filter by revisionNumber when provided (supports multiple values)
+    const revisionNumbers = revisionNumbersRaw
+      .map((n) => parseInt(n, 10))
+      .filter((n) => !isNaN(n));
+
+    if (revisionNumbers.length === 1) {
+      where.revisionNumber = revisionNumbers[0];
+    } else if (revisionNumbers.length > 1) {
+      where.revisionNumber = { in: revisionNumbers };
+    }
     if (partnerName) {
       where.partnerName = { contains: partnerName, mode: "insensitive" };
     }

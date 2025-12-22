@@ -199,16 +199,19 @@ export default function RevisionDetailPage() {
 
   // Fetch invoice for this revision
   useEffect(() => {
-    if (revision && revision.number) {
-      fetch(`/api/invoices?revisionNumber=${revision.number}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data) && data.length > 0) setInvoice(data[0]);
-          else setInvoice(null);
-        })
-        .catch(() => setInvoice(null));
-    }
-  }, [revision?.number]);
+    if (!revisionId) return;
+
+    setInvoice(null);
+    fetch(`/api/invoices?revisionId=${revisionId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch invoice");
+        return res.json();
+      })
+      .then((data) => {
+        setInvoice(data || null);
+      })
+      .catch(() => setInvoice(null));
+  }, [revisionId]);
 
   // Fetch stands for repeat dialog
   useEffect(() => {

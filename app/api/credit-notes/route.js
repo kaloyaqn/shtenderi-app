@@ -65,34 +65,68 @@ export async function POST(req) {
       // 6. For each product, find invoices for the partner where the product is present and not fully credited
       // (Assume partner info is available, or extend Refund to include partnerId)
       // For now, skip invoice linkage and just create the credit note with the products and refund info
-      // 7. Get the next credit note number
-      const lastCreditNote = await prisma.creditNote.findFirst({ orderBy: { creditNoteNumber: 'desc' } });
-      const nextNumber = (lastCreditNote?.creditNoteNumber || 0) + 1;
-      // 8. Create the credit note
-      // Use the price from the refund's products if available, otherwise calculate
-      const partnerDiscount = refund.user?.percentageDiscount || 0;
+      // 7. Fetch invoices referenced by the selected products to lock prices to the invoice values
+      const invoiceIds = Array.from(new Set((products || []).map(p => p.invoiceId).filter(Boolean)));
+      const invoices = invoiceIds.length
+        ? await prisma.invoice.findMany({ where: { id: { in: invoiceIds } } })
+        : [];
+      const invoiceById = Object.fromEntries(invoices.map(i => [i.id, i]));
+
+      const findProductInInvoice = (invoice, product) => {
+        if (!invoice) return null;
+        const list = Array.isArray(invoice.products) ? invoice.products : [];
+        const productId = product.productId || product.id || product.product?.id;
+        const barcode = product.barcode || product.product?.barcode;
+        const pcode = product.pcode || product.product?.pcode;
+        return list.find(
+          (p) =>
+            p.productId === productId ||
+            p.id === productId ||
+            p.product?.id === productId ||
+            (barcode && (p.barcode === barcode || p.product?.barcode === barcode)) ||
+            (pcode && (p.pcode === pcode || p.product?.pcode === pcode))
+        );
+      };
+
+      // 8. Build credit note products using the price from the chosen invoice line when available
       const creditNoteProducts = products.map(p => {
-        const basePrice = p.clientPrice !== undefined ? p.clientPrice : 0;
+        const invoice = p.invoiceId ? invoiceById[p.invoiceId] : null;
+        const invProduct = invoice ? findProductInInvoice(invoice, p) : null;
+        const clientPrice = invProduct?.clientPrice ?? p.clientPrice ?? 0;
+
         return {
           ...p,
-          clientPrice: basePrice,
+          clientPrice: Number(clientPrice),
         };
       });
+
+      // 9. Select partner info from the first matched invoice if present
+      const partnerInvoice = invoices[0];
+
+      // 10. Get the next credit note number
+      const lastCreditNote = await prisma.creditNote.findFirst({ orderBy: { creditNoteNumber: 'desc' } });
+      const nextNumber = (lastCreditNote?.creditNoteNumber || 0) + 1;
+
+      // 11. Create the credit note
+      const totalValue = creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)), 0);
+      const vatBase = totalValue / 1.2;
+      const vatAmount = totalValue - vatBase;
+
       const newCreditNote = await prisma.creditNote.create({
         data: {
           creditNoteNumber: nextNumber,
           issuedAt: new Date(),
-          partnerName: refund.user?.name || '', // Adjust as needed
-          partnerBulstat: '',
-          partnerMol: '',
-          partnerAddress: '',
-          partnerCountry: '',
-          partnerCity: '',
+          partnerName: partnerInvoice?.partnerName || refund.user?.name || '',
+          partnerBulstat: partnerInvoice?.partnerBulstat || '',
+          partnerMol: partnerInvoice?.partnerMol || '',
+          partnerAddress: partnerInvoice?.partnerAddress || '',
+          partnerCountry: partnerInvoice?.partnerCountry || '',
+          partnerCity: partnerInvoice?.partnerCity || '',
           preparedBy,
           products: creditNoteProducts,
-          totalValue: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)), 0),
-          vatBase: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) / 1.2, 0),
-          vatAmount: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) * 0.2 / 1.2, 0),
+          totalValue,
+          vatBase,
+          vatAmount,
           paymentMethod: 'CASH',
           invoiceId: products[0]?.invoiceId || null, // Link to the first invoice if available
           refundId: refundId, // <-- set refundId if present

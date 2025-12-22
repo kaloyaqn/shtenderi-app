@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/get-session-better-auth';
+import { getEffectivePrice } from '@/lib/pricing/get-effective-price';
 
 import { NextResponse } from 'next/server';
 
@@ -18,6 +19,8 @@ export async function POST(req) {
     // Determine pricing path
     let partnerDiscount = 0;
     let priceAtSaleByProductId = {};
+    let partnerIdForEffectivePrice = null;
+
     if (usePriceAtSale && revisionId) {
       const revision = await prisma.revision.findUnique({
         where: { id: revisionId },
@@ -29,13 +32,13 @@ export async function POST(req) {
         }
       }
     } else {
-      // Fetch partner's percentageDiscount if needed (if refund is for a stand, get the stand's partner)
       if (sourceType === 'STAND') {
         const stand = await prisma.stand.findUnique({
           where: { id: sourceId },
-          select: { store: { select: { partner: { select: { percentageDiscount: true } } } } }
+          select: { store: { select: { partnerId: true, partner: { select: { percentageDiscount: true } } } } }
         });
         partnerDiscount = stand?.store?.partner?.percentageDiscount || 0;
+        partnerIdForEffectivePrice = stand?.store?.partnerId || null;
       }
     }
     // For storage refunds, you may want to fetch the partner if needed
@@ -46,12 +49,33 @@ export async function POST(req) {
         sourceId,
         note,
         refundProducts: {
-          create: products.map(p => ({
-            productId: p.productId,
-            quantity: p.quantity,
-            priceAtRefund: usePriceAtSale
+          create: await Promise.all(products.map(async (p) => {
+            const priceAtSale = usePriceAtSale
               ? (typeof p.priceAtSale === 'number' ? p.priceAtSale : (priceAtSaleByProductId[p.productId] ?? 0))
-              : p.clientPrice * (1 - partnerDiscount / 100),
+              : null;
+
+            let priceFromEffective = null;
+            if (!usePriceAtSale && partnerIdForEffectivePrice) {
+              priceFromEffective = await getEffectivePrice({
+                productId: p.productId,
+                partnerId: partnerIdForEffectivePrice,
+              });
+            }
+
+            const baseClientPrice = typeof p.clientPrice === 'number' ? p.clientPrice : 0;
+
+            const computedPrice =
+              priceAtSale != null
+                ? priceAtSale
+                : priceFromEffective != null
+                  ? priceFromEffective
+                  : baseClientPrice * (1 - partnerDiscount / 100);
+
+            return {
+              productId: p.productId,
+              quantity: p.quantity,
+              priceAtRefund: computedPrice,
+            };
           }))
         }
       },
@@ -120,21 +144,42 @@ export async function GET() {
         refundProducts: { include: { product: true } }
       }
     });
-    // Fetch stand/storage names for each refund
+    // Fetch stand/storage names and enrich prices with effective price when missing
     const withNames = await Promise.all(refunds.map(async (refund) => {
       let sourceName = '';
+      let partnerId = null;
+
       if (refund.sourceType === 'STAND') {
-        const stand = await prisma.stand.findUnique({ where: { id: refund.sourceId } });
+        const stand = await prisma.stand.findUnique({
+          where: { id: refund.sourceId },
+          select: { name: true, store: { select: { partnerId: true } } },
+        });
         sourceName = stand?.name || refund.sourceId;
+        partnerId = stand?.store?.partnerId || null;
       } else if (refund.sourceType === 'STORAGE') {
         const storage = await prisma.storage.findUnique({ where: { id: refund.sourceId } });
         sourceName = storage?.name || refund.sourceId;
       }
-      return { ...refund, sourceName };
+
+      let refundProducts = refund.refundProducts;
+      if (partnerId) {
+        refundProducts = await Promise.all(
+          refund.refundProducts.map(async (rp) => {
+            if (rp.priceAtRefund != null) return rp;
+            const effectivePrice = await getEffectivePrice({
+              productId: rp.productId,
+              partnerId,
+            });
+            return { ...rp, priceAtRefund: effectivePrice };
+          })
+        );
+      }
+
+      return { ...refund, sourceName, partnerId, refundProducts };
     }));
     return NextResponse.json(withNames);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}
