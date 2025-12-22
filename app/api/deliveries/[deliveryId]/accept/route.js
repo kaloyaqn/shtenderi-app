@@ -101,7 +101,7 @@ export async function POST(req, { params }) {
         data: { status: 'ACCEPTED', acceptedAt: new Date(), acceptedById: session.user.id },
       });
 
-      // If standId provided, auto transfer to stand and create revision
+      // If standId provided, auto transfer to stand and create revision (leave NOT_PAID until payments are recorded)
       if (standId) {
         // decrement from storage and increment stand
         for (const item of items) {

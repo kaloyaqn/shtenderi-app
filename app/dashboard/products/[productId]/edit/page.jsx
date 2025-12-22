@@ -67,6 +67,7 @@ export default function EditProductPage({
       clientPrice: Number(formData.get("clientPrice")),
       deliveryPrice: Number(formData.get("deliveryPrice")),
       image: formData.get("image"),
+      minQty: Number(formData.get("minQty")),
     };
 
     // Close dialog immediately for optimistic UX
@@ -180,6 +181,17 @@ export default function EditProductPage({
             required
             defaultValue={product.deliveryPrice || ""}
             placeholder="0.00"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="minQty">Мин. количество</Label>
+          <Input
+            id="minQty"
+            name="minQty"
+            type="number"
+            defaultValue={product.minQty ?? 0}
+            placeholder="0"
           />
         </div>
 

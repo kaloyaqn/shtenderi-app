@@ -41,6 +41,7 @@
     barcode       String   @unique
     pcode         String?  @unique
     clientPrice   Float // цена на продажба (за магазини)
+    minQty        Int?    @default(0)
     deliveryPrice Float    @default(0) // цена на доставка (от XML)
     pcd           String? // препоръчкителна цена доставчик
     quantity      Int      @default(0)
