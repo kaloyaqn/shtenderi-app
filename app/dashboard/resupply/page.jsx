@@ -329,10 +329,15 @@ export default function GeneralResupplyPage() {
         url = "/api/storages/transfer";
       } else if (mode === "stand-to-storage") {
         payload = {
-          destinationStorageId: destinationId,
-          products: selectedProducts.map(({ productId, quantity }) => ({ productId, quantity })),
+          sourceType: "STAND",
+          sourceId,
+          products: selectedProducts.map(({ productId, quantity }) => ({
+            productId,
+            quantity,
+          })),
+          note: `Връщане към склад: ${getDestinationName() || destinationId}`,
         };
-        url = `/api/stands/${sourceId}/transfer-to-storage`;
+        url = `/api/refunds`;
       } else {
         toast.error("Невалиден тип трансфер.");
         setLoading(false);
@@ -354,6 +359,10 @@ export default function GeneralResupplyPage() {
         // For stand transfers, redirect to transfers page for confirmation
         toast.success("Трансферът е създаден и очаква потвърждение!");
         router.push("/dashboard/transfers");
+        return;
+      } else if (mode === "stand-to-storage") {
+        toast.success("Рекламацията е записана!");
+        router.push("/dashboard/refunds");
         return;
       } else {
         toast.success("Трансферът е успешен!");

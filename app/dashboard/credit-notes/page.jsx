@@ -38,7 +38,7 @@ export default function CreditNotesPage() {
     {
       accessorKey: 'invoiceNumber',
       header: '№ на фактура',
-      cell: ({ row }) => row.original.invoiceNumber || '-',
+      cell: ({ row }) => row.original.invoice?.invoiceNumber || '-',
     },
     {
       accessorKey: 'partnerName',

@@ -30,54 +30,153 @@ export async function POST(req) {
       if (!Array.isArray(products) || products.length === 0) {
         return NextResponse.json({ error: 'No products provided' }, { status: 400 });
       }
-      // 4. For each product, check if it is in the refund and not already credited
+      // 4. Calculate already credited quantities for this refund
+      const existingCreditNotes = await prisma.creditNote.findMany({
+        where: { refundId },
+        select: { products: true },
+      });
+      const creditedByProductId = {};
+      existingCreditNotes.forEach((cn) => {
+        const prods = Array.isArray(cn.products) ? cn.products : [];
+        prods.forEach((p) => {
+          const pid = p.productId;
+          if (!pid) return;
+          creditedByProductId[pid] = (creditedByProductId[pid] || 0) + Number(p.quantity || 0);
+        });
+      });
+      // 5. For each product, check if it is in the refund and not already over-credited
       for (const p of products) {
         const refundProduct = refund.refundProducts.find(rp => rp.productId === p.productId);
         if (!refundProduct) {
           return NextResponse.json({ error: `Този продукт не фигурира в избраното връщане` }, { status: 400 });
         }
-        // Check if already credited for this refund (one credit per product per refund)
-        const alreadyCredited = await prisma.creditNote.findFirst({
-          where: {
-            products: { path: ["productId"], equals: p.productId },
-            // Optionally, store refundId in credit note for easier lookup
-          },
-        });
-        if (alreadyCredited) {
-          return NextResponse.json({ error: `Продуктът вече е кредитиран по това връщане` }, { status: 400 });
+        const alreadyCreditedQty = creditedByProductId[p.productId] || 0;
+        const requestedQty = Number(p.quantity || 0);
+        if (alreadyCreditedQty + requestedQty > refundProduct.quantity) {
+          const remaining = Math.max(refundProduct.quantity - alreadyCreditedQty, 0);
+          return NextResponse.json(
+            { error: `Можете да кредитирате още ${remaining} бр. за ${refundProduct.product?.name || 'този продукт'}` },
+            { status: 400 }
+          );
         }
+        // reserve in map to also account for multiple entries of same product in current request
+        creditedByProductId[p.productId] = alreadyCreditedQty + requestedQty;
       }
-      // 5. For each product, find invoices for the partner where the product is present and not fully credited
+      // 6. For each product, find invoices for the partner where the product is present and not fully credited
       // (Assume partner info is available, or extend Refund to include partnerId)
       // For now, skip invoice linkage and just create the credit note with the products and refund info
-      // 6. Get the next credit note number
-      const lastCreditNote = await prisma.creditNote.findFirst({ orderBy: { creditNoteNumber: 'desc' } });
-      const nextNumber = (lastCreditNote?.creditNoteNumber || 0) + 1;
-      // 7. Create the credit note
-      // Use the price from the refund's products if available, otherwise calculate
-      const partnerDiscount = refund.user?.percentageDiscount || 0;
+      // 7. Fetch invoices referenced by the selected products to lock prices to the invoice values
+      const invoiceIds = Array.from(new Set((products || []).map(p => p.invoiceId).filter(Boolean)));
+      const invoices = invoiceIds.length
+        ? await prisma.invoice.findMany({
+            where: { id: { in: invoiceIds } },
+            include: { partner: { select: { id: true, email: true } } },
+          })
+        : [];
+      const invoiceById = Object.fromEntries(invoices.map(i => [i.id, i]));
+
+      const findProductInInvoice = (invoice, product) => {
+        if (!invoice) return null;
+        const list = Array.isArray(invoice.products) ? invoice.products : [];
+        const productId = product.productId || product.id || product.product?.id;
+        const barcode = product.barcode || product.product?.barcode;
+        const pcode = product.pcode || product.product?.pcode;
+        return list.find(
+          (p) =>
+            p.productId === productId ||
+            p.id === productId ||
+            p.product?.id === productId ||
+            (barcode && (p.barcode === barcode || p.product?.barcode === barcode)) ||
+            (pcode && (p.pcode === pcode || p.product?.pcode === pcode))
+        );
+      };
+
+      // 8. Build credit note products using the price from the chosen invoice line when available
       const creditNoteProducts = products.map(p => {
-        const basePrice = p.clientPrice !== undefined ? p.clientPrice : 0;
+        const invoice = p.invoiceId ? invoiceById[p.invoiceId] : null;
+        const invProduct = invoice ? findProductInInvoice(invoice, p) : null;
+        const clientPrice = invProduct?.clientPrice ?? p.clientPrice ?? 0;
+
         return {
           ...p,
-          clientPrice: basePrice,
+          clientPrice: Number(clientPrice),
         };
       });
+
+      // 9. Resolve partner from the refund source (stand->store->partner) or matched invoice
+      let partnerFromSource = null;
+      if (refund.sourceType === 'STAND' && refund.sourceId) {
+        const stand = await prisma.stand.findUnique({
+          where: { id: refund.sourceId },
+          include: { store: { include: { partner: true } } },
+        });
+        partnerFromSource = stand?.store?.partner || null;
+      }
+      // Prefer the invoice referenced by the first product, otherwise fallback to the first fetched invoice
+      const preferredInvoiceId = products[0]?.invoiceId;
+      const partnerInvoice = preferredInvoiceId
+        ? invoices.find((inv) => inv.id === preferredInvoiceId) || invoices[0]
+        : invoices[0];
+
+      // 10. Get the next credit note number
+      const lastCreditNote = await prisma.creditNote.findFirst({ orderBy: { creditNoteNumber: 'desc' } });
+      const nextNumber = (lastCreditNote?.creditNoteNumber || 0) + 1;
+
+      // 11. Create the credit note
+      const totalValue = creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)), 0);
+      const vatBase = totalValue / 1.2;
+      const vatAmount = totalValue - vatBase;
+
       const newCreditNote = await prisma.creditNote.create({
         data: {
           creditNoteNumber: nextNumber,
           issuedAt: new Date(),
-          partnerName: refund.user?.name || '', // Adjust as needed
-          partnerBulstat: '',
-          partnerMol: '',
-          partnerAddress: '',
-          partnerCountry: '',
-          partnerCity: '',
+          partnerName:
+            partnerFromSource?.name ||
+            partnerInvoice?.partnerName ||
+            partnerInvoice?.partner?.name ||
+            refund.user?.name ||
+            '',
+          partnerBulstat:
+            partnerFromSource?.bulstat ||
+            partnerInvoice?.partnerBulstat ||
+            partnerInvoice?.partner?.bulstat ||
+            '',
+          partnerMol:
+            partnerFromSource?.mol ||
+            partnerInvoice?.partnerMol ||
+            partnerInvoice?.partner?.mol ||
+            '',
+          partnerAddress:
+            partnerFromSource?.address ||
+            partnerInvoice?.partnerAddress ||
+            partnerInvoice?.partner?.address ||
+            '',
+          partnerCountry:
+            partnerFromSource?.country ||
+            partnerInvoice?.partnerCountry ||
+            partnerInvoice?.partner?.country ||
+            '',
+          partnerCity:
+            partnerFromSource?.city ||
+            partnerInvoice?.partnerCity ||
+            partnerInvoice?.partner?.city ||
+            '',
+          partnerEmail:
+            partnerFromSource?.email ||
+            partnerInvoice?.partnerEmail ||
+            partnerInvoice?.partner?.email ||
+            null,
+          partnerId:
+            partnerFromSource?.id ||
+            partnerInvoice?.partnerId ||
+            partnerInvoice?.partner?.id ||
+            null,
           preparedBy,
           products: creditNoteProducts,
-          totalValue: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)), 0),
-          vatBase: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) / 1.2, 0),
-          vatAmount: creditNoteProducts.reduce((sum, p) => sum + (p.quantity * (p.clientPrice || 0)) * 0.2 / 1.2, 0),
+          totalValue,
+          vatBase,
+          vatAmount,
           paymentMethod: 'CASH',
           invoiceId: products[0]?.invoiceId || null, // Link to the first invoice if available
           refundId: refundId, // <-- set refundId if present
@@ -93,6 +192,7 @@ export async function POST(req) {
     // 1. Fetch the original invoice
     const originalInvoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
+      include: { partner: { select: { id: true, email: true } } },
     });
     if (!originalInvoice) {
       return NextResponse.json({ error: 'Original invoice not found' }, { status: 404 });
@@ -116,12 +216,14 @@ export async function POST(req) {
       data: {
         creditNoteNumber: nextNumber,
         issuedAt: new Date(),
-        partnerName: originalInvoice.partnerName,
-        partnerBulstat: originalInvoice.partnerBulstat,
-        partnerMol: originalInvoice.partnerMol,
-        partnerAddress: originalInvoice.partnerAddress,
-        partnerCountry: originalInvoice.partnerCountry,
-        partnerCity: originalInvoice.partnerCity,
+        partnerName: originalInvoice.partnerName || originalInvoice.partner?.name || '',
+        partnerBulstat: originalInvoice.partnerBulstat || originalInvoice.partner?.bulstat || '',
+        partnerMol: originalInvoice.partnerMol || originalInvoice.partner?.mol || '',
+        partnerAddress: originalInvoice.partnerAddress || originalInvoice.partner?.address || '',
+        partnerCountry: originalInvoice.partnerCountry || originalInvoice.partner?.country || '',
+        partnerCity: originalInvoice.partnerCity || originalInvoice.partner?.city || '',
+        partnerEmail: originalInvoice.partnerEmail || originalInvoice.partner?.email || null,
+        partnerId: originalInvoice.partnerId || originalInvoice.partner?.id || null,
         preparedBy: preparedBy,
         products: originalInvoice.products, // Direct copy
         totalValue: originalInvoice.totalValue,
@@ -151,7 +253,10 @@ export async function GET(req) {
     if (creditNoteId) {
     const creditNote = await prisma.creditNote.findUnique({
       where: { id: creditNoteId },
-      include: { invoice: true } // Include the linked invoice
+      include: {
+        invoice: { include: { partner: true } },
+        partner: true,
+      }, // Include the linked invoice & partner
     });
 
     if (!creditNote) {
@@ -172,6 +277,10 @@ export async function GET(req) {
     // If no ID and no refundId, get all credit notes for the list view
     const creditNotes = await prisma.creditNote.findMany({
       orderBy: { creditNoteNumber: 'desc' },
+      include: {
+        invoice: { include: { partner: true } },
+        partner: true,
+      },
     });
     return NextResponse.json(creditNotes);
   } catch (error) {

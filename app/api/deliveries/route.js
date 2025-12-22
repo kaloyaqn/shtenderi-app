@@ -34,10 +34,6 @@ export async function POST(req) {
       }
     }
 
-    // Next delivery number
-    const last = await prisma.delivery.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
-    const nextNumber = (last?.number || 0) + 1;
-
     // Merge duplicate productId rows to satisfy unique (deliveryId, productId)
     const resolved = products.filter(p => !!p.productId);
     const unresolved = products.filter(p => !p.productId);
@@ -92,6 +88,10 @@ export async function POST(req) {
       })),
     ];
 
+    // Next delivery number
+    const last = await prisma.delivery.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
+    const nextNumber = (last?.number || 0) + 1;
+
     const delivery = await prisma.delivery.create({
       data: {
         number: nextNumber,
@@ -133,5 +133,3 @@ export async function GET(req) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-

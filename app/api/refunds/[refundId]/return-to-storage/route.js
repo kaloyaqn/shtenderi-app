@@ -1,45 +1,103 @@
-import { prisma } from '@/lib/prisma';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "@/lib/get-session-better-auth";
 
 export async function POST(req, { params }) {
   try {
-    const { refundId } = params;
-    const { storageId } = await req.json();
-    if (!storageId) {
-      return NextResponse.json({ error: 'storageId is required' }, { status: 400 });
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    // Fetch refund and products
+
+    const { refundId } = params;
+    const body = await req.json();
+    const { storageId, products } = body || {};
+
+    if (!refundId || !storageId) {
+      return NextResponse.json(
+        { error: "Missing refundId or storageId" },
+        { status: 400 }
+      );
+    }
+
     const refund = await prisma.refund.findUnique({
       where: { id: refundId },
-      include: { refundProducts: true }
+      include: {
+        refundProducts: true,
+      },
     });
+
     if (!refund) {
-      return NextResponse.json({ error: 'Refund not found' }, { status: 404 });
+      return NextResponse.json({ error: "Refund not found" }, { status: 404 });
     }
-    // For each product, increment or create StorageProduct
-    for (const rp of refund.refundProducts) {
-      const existing = await prisma.storageProduct.findFirst({
-        where: { storageId, productId: rp.productId }
-      });
-      if (existing) {
-        await prisma.storageProduct.update({
-          where: { id: existing.id },
-          data: { quantity: { increment: rp.quantity } }
-        });
-      } else {
-        await prisma.storageProduct.create({
-          data: { storageId, productId: rp.productId, quantity: rp.quantity }
+
+    const refundMap = new Map();
+    refund.refundProducts.forEach((rp) => {
+      refundMap.set(rp.productId, rp.quantity);
+    });
+
+    const selection =
+      Array.isArray(products) && products.length > 0
+        ? products
+        : refund.refundProducts.map((rp) => ({
+            productId: rp.productId,
+            quantity: rp.quantity,
+          }));
+
+    if (selection.length === 0) {
+      return NextResponse.json(
+        { error: "No products selected for return" },
+        { status: 400 }
+      );
+    }
+
+    // Validate quantities and aggregate duplicates
+    const aggregated = new Map();
+    for (const item of selection) {
+      const pid = item.productId;
+      const qty = Number(item.quantity);
+      if (!pid || !qty || qty <= 0) {
+        return NextResponse.json(
+          { error: "Invalid product selection" },
+          { status: 400 }
+        );
+      }
+      const allowed = refundMap.get(pid) || 0;
+      const current = aggregated.get(pid) || 0;
+      if (current + qty > allowed) {
+        return NextResponse.json(
+          { error: "Quantity exceeds refunded amount" },
+          { status: 400 }
+        );
+      }
+      aggregated.set(pid, current + qty);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Increment storage quantities
+      for (const [productId, quantity] of aggregated.entries()) {
+        await tx.storageProduct.upsert({
+          where: { storageId_productId: { storageId, productId } },
+          update: { quantity: { increment: quantity } },
+          create: { storageId, productId, quantity },
         });
       }
-    }
-    // Optionally, mark refund as returned
-    await prisma.refund.update({
-      where: { id: refundId },
-      data: { returnedToStorageId: storageId, returnedAt: new Date() }
+
+      await tx.refund.update({
+        where: { id: refundId },
+        data: {
+          returnedToStorageId: storageId,
+          returnedAt: new Date(),
+        },
+      });
     });
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("REFUND_RETURN_TO_STORAGE_ERROR", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-} 
+}
