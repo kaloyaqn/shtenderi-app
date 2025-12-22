@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/get-session-better-auth';
+import { RevisionStatus } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 
@@ -8,6 +9,9 @@ export async function POST(req, { params }) {
   try {
     const session = await getServerSession();
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    const standId = body?.standId || null;
 
     const { deliveryId } = params;
     const delivery = await prisma.delivery.findUnique({
@@ -96,6 +100,71 @@ export async function POST(req, { params }) {
         where: { id: deliveryId },
         data: { status: 'ACCEPTED', acceptedAt: new Date(), acceptedById: session.user.id },
       });
+
+      // If standId provided, auto transfer to stand and create revision
+      if (standId) {
+        // decrement from storage and increment stand
+        for (const item of items) {
+          const { productId, quantity } = item;
+          if (!productId) continue;
+          const sp = await tx.storageProduct.findUnique({
+            where: { storageId_productId: { storageId: delivery.storageId, productId } },
+          });
+          if (!sp || sp.quantity < quantity) {
+            throw new Error('Недостатъчна наличност в склада за автоматичния трансфер.');
+          }
+          await tx.storageProduct.update({
+            where: { id: sp.id },
+            data: { quantity: { decrement: quantity } },
+          });
+          await tx.standProduct.upsert({
+            where: { standId_productId: { standId, productId } },
+            update: { quantity: { increment: quantity } },
+            create: { standId, productId, quantity },
+          });
+        }
+
+        // Create transfer record as completed
+        await tx.transfer.create({
+          data: {
+            sourceStorageId: delivery.storageId,
+            destinationStorageId: standId,
+            userId: session.user.id,
+            status: 'COMPLETED',
+            products: {
+              create: items.map((p) => ({
+                productId: p.productId,
+                quantity: p.quantity,
+              })),
+            },
+          },
+        });
+
+        // Create a revision to log the load
+        const lastRevision = await tx.revision.findFirst({ orderBy: { number: 'desc' }, select: { number: true } });
+        const nextNumber = (lastRevision?.number || 0) + 1;
+        const stand = await tx.stand.findUnique({
+          where: { id: standId },
+          include: { store: { include: { partner: true } } },
+        });
+        await tx.revision.create({
+          data: {
+            number: nextNumber,
+            standId,
+            partnerId: stand?.store?.partnerId || null,
+            userId: session.user.id,
+            type: 'auto_load',
+            status: RevisionStatus.NOT_PAID,
+            missingProducts: {
+              create: items.map((p) => ({
+                productId: p.productId,
+                missingQuantity: 0,
+                givenQuantity: p.quantity,
+              })),
+            },
+          },
+        });
+      }
     });
 
     return NextResponse.json({ ok: true });
@@ -104,5 +173,3 @@ export async function POST(req, { params }) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-

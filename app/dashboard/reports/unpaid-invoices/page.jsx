@@ -133,12 +133,6 @@ export default function UnpaidInvoicesReport() {
                 placeholder="Избери партньор"
                 searchPlaceholder="Търси..."
               />
-              <Input
-                type="text"
-                value={partnerName}
-                onChange={(e) => setPartnerName(e.target.value)}
-                placeholder="Име на партньор"
-              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
