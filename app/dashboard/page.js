@@ -30,6 +30,8 @@ export default function DashboardHome() {
   const [adminStats, setAdminStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [overdueInvoices, setOverdueInvoices] = useState([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -47,6 +49,29 @@ export default function DashboardHome() {
         .then(data => setAdminStats(data))
         .catch(() => setError("Грешка при зареждане на статистиката"))
         .finally(() => setLoading(false));
+
+      // fetch unpaid/partial invoices to surface overdue ones
+      setLoadingAlerts(true);
+      fetch("/api/reports/unpaid-invoices")
+        .then((res) => res.ok ? res.json() : [])
+        .then((list = []) => {
+          const now = new Date();
+          const overdue = list.filter((inv) => {
+            const issued = new Date(inv.issuedAt);
+            const due = new Date(issued);
+            if (inv.paymentMethod === "CASH") {
+              // same day: end of day
+              due.setHours(23, 59, 59, 999);
+            } else {
+              due.setDate(due.getDate() + 30);
+              due.setHours(23, 59, 59, 999);
+            }
+            return now > due;
+          });
+          setOverdueInvoices(overdue);
+        })
+        .catch(() => setOverdueInvoices([]))
+        .finally(() => setLoadingAlerts(false));
     }
   }, [session?.user?.role]);
 
@@ -126,6 +151,46 @@ export default function DashboardHome() {
       <BasicHeader title={`Здравей, ${session?.user?.name || ''}`} 
       subtitle={`Всичко важно за теб - на едно място.`}
       />
+
+      {/* Overdue invoices alert */}
+      {overdueInvoices.length > 0 && (
+        <div className="mb-4 border border-red-200 bg-red-50 text-red-900 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="font-semibold">Просрочени неплатени фактури</p>
+              <p className="text-sm text-red-800">
+                {overdueInvoices.length} фактури са извън срока за плащане.
+              </p>
+            </div>
+            <Link href="/dashboard/reports/unpaid-invoices">
+              <Button variant="outline" className="border-red-300 text-red-900">
+                Виж всички
+              </Button>
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {overdueInvoices.slice(0, 3).map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between text-sm border border-red-100 rounded px-3 py-2">
+                <div className="flex flex-col">
+                  <span className="font-semibold">Фактура № {inv.invoiceNumber}</span>
+                  <span className="text-red-800">{inv.partnerName || "-"}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold">{Number(inv.totalValue || 0).toFixed(2)} лв.</span>
+                  <Link href={`/dashboard/invoices/${inv.id}`}>
+                    <Button size="sm" variant="ghost" className="border border-red-200 text-red-900">
+                      Отвори
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+            {overdueInvoices.length > 3 && (
+              <div className="text-xs text-red-800">+ още {overdueInvoices.length - 3} фактури</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="">

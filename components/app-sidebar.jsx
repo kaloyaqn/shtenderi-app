@@ -87,6 +87,7 @@ const groupedDocuments = {
         { title: "Продажби", link: "/dashboard/reports/sale" },
         { title: "Липси", link: "/dashboard/reports/revisions" },
         { title: "Справка на успеха", link: "/dashboard/reports/channel" },
+        { title: "Неплатени фактури", link: "/dashboard/reports/unpaid-invoices" },
         { title: "Оборот по клиенти", link: "/dashboard/reports/clients" },
         { title: "Партньор", icon: IconSearch, link: "/dashboard/reports/partner" },
         { title: "Доставка", icon: Truck, link: "/dashboard/reports/delivery" }
