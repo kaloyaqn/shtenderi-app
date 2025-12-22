@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/get-session-better-auth';
+import { RevisionStatus } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 
@@ -153,7 +154,7 @@ export async function POST(req, { params }) {
             partnerId: stand?.store?.partnerId || null,
             userId: session.user.id,
             type: 'auto_load',
-            status: 'PAID',
+            status: RevisionStatus.NOT_PAID,
             missingProducts: {
               create: items.map((p) => ({
                 productId: p.productId,
@@ -172,4 +173,3 @@ export async function POST(req, { params }) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
