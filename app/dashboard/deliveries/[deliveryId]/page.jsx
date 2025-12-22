@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/
 import CreateProductPage from "../../products/create/page";
 import { XMLParser } from "fast-xml-parser";
 import { useRef } from "react";
+import { Combobox } from "@/components/ui/combobox";
 
 export default function DeliveryDetailPage() {
   const { deliveryId } = useParams();
@@ -35,6 +36,9 @@ export default function DeliveryDetailPage() {
   const totalValue = (delivery?.products||[]).reduce((s,p)=> s + (Number(p.quantity||0)*Number(p.unitPrice||0)),0);
   const paidValue = (delivery?.payments||[]).reduce((s,p)=> s + Number(p.amount||0),0);
   const remainingValue = Math.max(0, totalValue - paidValue);
+  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
+  const [stands, setStands] = useState([]);
+  const [selectedStand, setSelectedStand] = useState("");
 
   const load = async () => {
     try {
@@ -102,6 +106,15 @@ export default function DeliveryDetailPage() {
   };
 
   useEffect(() => { if (deliveryId) load(); }, [deliveryId]);
+  useEffect(() => {
+    fetch("/api/stands")
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        const opts = Array.isArray(data) ? data.map((s) => ({ value: s.id, label: s.name || s.id })) : [];
+        setStands(opts);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -215,9 +228,20 @@ export default function DeliveryDetailPage() {
     }
   };
 
-  const accept = async () => {
-    const r = await fetch(`/api/deliveries/${deliveryId}/accept`, { method: 'POST' });
-    if (r.ok) { toast.success('Приета доставка'); load(); } else { toast.error('Грешка при приемане'); }
+  const accept = async (standId) => {
+    const r = await fetch(`/api/deliveries/${deliveryId}/accept`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ standId: standId || null }),
+    });
+    if (r.ok) {
+      toast.success('Приета доставка');
+      setAcceptDialogOpen(false);
+      load();
+    } else {
+      const data = await r.json().catch(() => ({}));
+      toast.error(data?.error || 'Грешка при приемане');
+    }
   };
 
   const pay = async () => {
@@ -268,7 +292,37 @@ export default function DeliveryDetailPage() {
             </>
           )}
          {isDraft && <Button onClick={save}>Запази чернова</Button>}
-         {isDraft && <Button onClick={accept}>Приеми</Button>}
+         {isDraft && (
+           <>
+             <Button onClick={() => setAcceptDialogOpen(true)}>Приеми</Button>
+             <Dialog open={acceptDialogOpen} onOpenChange={setAcceptDialogOpen}>
+               <DialogContent>
+                 <DialogTitle>Приеми доставка</DialogTitle>
+                 <div className="space-y-3 mt-2">
+                   <p className="text-sm text-gray-600">
+                     Желаете ли да заредите продуктите директно на щанд?
+                   </p>
+                   <Combobox
+                     options={stands}
+                     value={selectedStand}
+                     onValueChange={(val) => setSelectedStand(val)}
+                     placeholder="Избери щанд (по избор)"
+                     searchPlaceholder="Търси щанд..."
+                   />
+                   <div className="flex justify-end gap-2 pt-2">
+                     <Button variant="ghost" onClick={() => accept()}>Само приеми</Button>
+                     <Button
+                       onClick={() => accept(selectedStand)}
+                       disabled={!selectedStand}
+                     >
+                       Приеми и зареди
+                     </Button>
+                   </div>
+                 </div>
+               </DialogContent>
+             </Dialog>
+           </>
+         )}
          {delivery.status === 'ACCEPTED' && (
            <div className="flex items-center gap-3">
              <div className="text-sm text-gray-600">Остава: <span className="font-medium text-gray-900">{remainingValue.toFixed(2)} лв.</span></div>
@@ -330,5 +384,3 @@ export default function DeliveryDetailPage() {
     </div>
   );
 }
-
-
