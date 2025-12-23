@@ -35,8 +35,8 @@ export default function MinQuantityReport() {
   }, [rows]);
 
   const columns = [
-    { accessorKey: "pcode", header: "PCODE" },
-    { accessorKey: "barcode", header: "EAN" },
+    { accessorKey: "pcode", header: "Продуктов код" },
+    { accessorKey: "barcode", header: "Баркод" },
     { accessorKey: "name", header: "Продукт" },
     { accessorKey: "minQty", header: "Мин." },
     { accessorKey: "quantity", header: "Наличност" },

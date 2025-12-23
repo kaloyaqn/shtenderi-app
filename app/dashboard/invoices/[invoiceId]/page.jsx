@@ -43,11 +43,10 @@ export default function InvoicePage() {
       .then((res) => res.json())
       .then((data) => {
         setInvoice(data);
-        const remaining =
-          Math.max(
-            Number(data?.totalValue || 0) - Number(data?.paidAmount || 0),
-            0
-          ).toFixed(2);
+        const remaining = Math.max(
+          Number(data?.totalValue || 0) - Number(data?.paidAmount || 0),
+          0
+        ).toFixed(2);
         setPaymentAmount(remaining);
       })
       .catch(() => toast.error("Failed to load invoice data."))
@@ -85,30 +84,32 @@ export default function InvoicePage() {
 
   const handleCreateCreditNote = async () => {
     setIsCreatingCreditNote(true);
-    const promise = () => new Promise(async (resolve, reject) => {
-      try {
-        const response = await fetch('/api/credit-notes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoiceId }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Something went wrong");
+    const promise = () =>
+      new Promise(async (resolve, reject) => {
+        try {
+          const response = await fetch("/api/credit-notes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ invoiceId }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Something went wrong");
+          }
+          router.push(`/dashboard/credit-notes/${data.id}`);
+          resolve(data);
+        } catch (error) {
+          console.error("Credit note creation failed", error);
+          reject(error);
         }
-        router.push(`/dashboard/credit-notes/${data.id}`);
-        resolve(data);
-      } catch (error) {
-        console.error("Credit note creation failed", error);
-        reject(error);
-      }
-    });
+      });
 
     toast.promise(promise(), {
-        loading: 'Създаване на кредитно известие...',
-        success: (data) => `Кредитно известие ${data.creditNoteNumber} беше създадено успешно.`,
-        error: (err) => `Грешка: ${err.message}`,
-        finally: () => setIsCreatingCreditNote(false)
+      loading: "Създаване на кредитно известие...",
+      success: (data) =>
+        `Кредитно известие ${data.creditNoteNumber} беше създадено успешно.`,
+      error: (err) => `Грешка: ${err.message}`,
+      finally: () => setIsCreatingCreditNote(false),
     });
   };
 
@@ -116,11 +117,14 @@ export default function InvoicePage() {
     if (!invoiceId) return;
     setDownloadingPdf(true);
     try {
-      const res = await fetch(`/api/prints/invoice?variant=${variant || "original"}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId }),
-      });
+      const res = await fetch(
+        `/api/prints/invoice?variant=${variant || "original"}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoiceId }),
+        }
+      );
       if (!res.ok) {
         throw new Error("Неуспешно генериране на PDF");
       }
@@ -128,7 +132,9 @@ export default function InvoicePage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `invoice-${invoice?.invoiceNumber || invoiceId}-${variant || "original"}.pdf`;
+      a.download = `invoice-${invoice?.invoiceNumber || invoiceId}-${
+        variant || "original"
+      }.pdf`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (e) {
@@ -157,11 +163,11 @@ export default function InvoicePage() {
   const paymentBadge = (() => {
     switch (paymentStatus) {
       case "PAID":
-        return <Badge variant='success'>Платена</Badge>
+        return <Badge variant="success">Платена</Badge>;
       case "PARTIALLY_PAID":
-        return <Badge variant="outline">Частично платена</Badge>
+        return <Badge variant="outline">Частично платена</Badge>;
       default:
-        return <Badge variant="destructive">Неплатена</Badge>
+        return <Badge variant="destructive">Неплатена</Badge>;
     }
   })();
 
@@ -313,12 +319,16 @@ export default function InvoicePage() {
               Фактура {isOriginal ? "(Оригинал)" : "(Копие)"}
             </h2>
             <div style={{ color: "#6b7280", fontSize: 12, marginTop: 2 }}>
-              Издадена на {new Date(invoice.issuedAt).toLocaleDateString("bg-BG")}
+              Издадена на{" "}
+              {new Date(invoice.issuedAt).toLocaleDateString("bg-BG")}
             </div>
           </div>
           <div className="inv-meta">
             № {String(invoice.invoiceNumber).padStart(10, "0")}
-            <div>Данъчно събитие: {new Date(invoice.issuedAt).toLocaleDateString("bg-BG")}</div>
+            <div>
+              Данъчно събитие:{" "}
+              {new Date(invoice.issuedAt).toLocaleDateString("bg-BG")}
+            </div>
           </div>
         </div>
 
@@ -397,7 +407,9 @@ export default function InvoicePage() {
               <td></td>
               <td style={{ textAlign: "right" }}>{totalQuantity}</td>
               <td></td>
-              <td style={{ textAlign: "right" }}>{invoice.totalValue.toFixed(2)} лв.</td>
+              <td style={{ textAlign: "right" }}>
+                {invoice.totalValue.toFixed(2)} лв.
+              </td>
             </tr>
           </tbody>
         </table>
@@ -405,13 +417,18 @@ export default function InvoicePage() {
         <div className="inv-footer">
           <div>
             <div style={{ fontSize: 13, marginBottom: 6 }}>
-              Начин на плащане: <strong>{invoice.paymentMethod === "CASH" ? "В брой" : "Банка"}</strong>
+              Начин на плащане:{" "}
+              <strong>
+                {invoice.paymentMethod === "CASH" ? "В брой" : "Банка"}
+              </strong>
             </div>
             <div style={{ fontSize: 13, marginBottom: 12 }}>
               Падеж: <strong>{dueDate.toLocaleDateString("bg-BG")}</strong>
             </div>
             <div className="inv-small">
-              Съгласно чл.7, ал.1 от Закона за счетоводството, чл.114 от ЗДДС и чл.78 от ППЗДДС печатът и подписът не са задължителни реквизити на фактурата.
+              Съгласно чл.7, ал.1 от Закона за счетоводството, чл.114 от ЗДДС и
+              чл.78 от ППЗДДС печатът и подписът не са задължителни реквизити на
+              фактурата.
             </div>
           </div>
 
@@ -468,76 +485,97 @@ export default function InvoicePage() {
       </div> */}
 
       <BasicHeader
-      hasBackButton
-      title={`
+        hasBackButton
+        title={`
           Фактура № ${invoice.invoiceNumber}
         
         `}
       >
-          {paymentBadge}
+        {paymentBadge}
 
-          <Button 
-            onClick={handleCreateCreditNote} 
-            disabled={hasCreditNote || isCreatingCreditNote || !hasRefund}
-            variant="outline"
-            className="ml-2"
-            title={!hasRefund ? "Не може да се издаде кредитно известие без връщане по тази фактура." : undefined}
-         >
+        <Button
+          onClick={handleCreateCreditNote}
+          disabled={hasCreditNote || isCreatingCreditNote || !hasRefund}
+          variant="outline"
+          className="ml-2"
+          title={
+            !hasRefund
+              ? "Не може да се издаде кредитно известие без връщане по тази фактура."
+              : undefined
+          }
+        >
           <IconInvoice /> Кредитиране
-          </Button>
+        </Button>
 
+        <Button
+          variant={"outline"}
+          onClick={() => downloadPdf("original")}
+          disabled={downloadingPdf}
+        >
+          <PrinterIcon />{" "}
+          {downloadingPdf ? "Генериране..." : "Принтирай оригинал"}
+        </Button>
 
+        <Button
+          onClick={() => downloadPdf("copy")}
+          variant="outline"
+          disabled={downloadingPdf}
+        >
+          <CopyIcon /> {downloadingPdf ? "Генериране..." : "Принтирай копие"}
+        </Button>
 
-
-
-          <Button variant={'outline'} onClick={() => downloadPdf("original")} disabled={downloadingPdf}>
-           <PrinterIcon /> {downloadingPdf ? "Генериране..." : "Принтирай оригинал"}
-          </Button>
-
-          <Button onClick={() => downloadPdf("copy")} variant="outline" disabled={downloadingPdf}>
-           <CopyIcon /> {downloadingPdf ? "Генериране..." : "Принтирай копие"}
-          </Button>
-
-          <Button
-
-            onClick={async () => {
-              setSendingEmail(true);
-              setEmailSent(false);
-              try {
-                const res = await fetch(`/api/prints/invoice?variant=original&send_email=1`, {
+        <Button
+          onClick={async () => {
+            setSendingEmail(true);
+            setEmailSent(false);
+            try {
+              const res = await fetch(
+                `/api/prints/invoice?variant=original&send_email=1`,
+                {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ invoiceId }),
-                });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(data?.error || "Грешка при изпращане на имейл");
-                setEmailSent(true);
-                toast.success("Фактурата беше изпратена по имейл.");
-                setTimeout(() => setEmailSent(false), 2000);
-              } catch (err) {
-                toast.error(err?.message || "Грешка при изпращане на имейл");
-              } finally {
-                setSendingEmail(false);
-              }
-            }}
-            variant={emailSent ? "secondary" : "default"}
-            disabled={sendingEmail || downloadingPdf}
-          >
-          <Send />  {sendingEmail ? "Изпращане..." : emailSent ? "Изпратено" : "Изпрати по имейл"}
-          </Button>
+                }
+              );
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok)
+                throw new Error(data?.error || "Грешка при изпращане на имейл");
+              setEmailSent(true);
+              toast.success("Фактурата беше изпратена по имейл.");
+              setTimeout(() => setEmailSent(false), 2000);
+            } catch (err) {
+              toast.error(err?.message || "Грешка при изпращане на имейл");
+            } finally {
+              setSendingEmail(false);
+            }
+          }}
+          variant={emailSent ? "secondary" : "default"}
+          disabled={sendingEmail || downloadingPdf}
+        >
+          <Send />{" "}
+          {sendingEmail
+            ? "Изпращане..."
+            : emailSent
+            ? "Изпратено"
+            : "Изпрати по имейл"}
+        </Button>
       </BasicHeader>
 
       {/* Credit Notes Link */}
       {invoice.creditNotes && invoice.creditNotes.length > 0 && (
         <div className="my-8 p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
-          <h3 className="font-bold text-lg text-yellow-800 mb-2">Свързани кредитни известия</h3>
+          <h3 className="font-bold text-lg text-yellow-800 mb-2">
+            Свързани кредитни известия
+          </h3>
           <ul>
-            {invoice.creditNotes.map(cn => (
+            {invoice.creditNotes.map((cn) => (
               <li key={cn.id} className="list-disc list-inside">
-                <Button 
-                  variant="link" 
+                <Button
+                  variant="link"
                   className="p-0 h-auto"
-                  onClick={() => router.push(`/dashboard/credit-notes/${cn.id}`)}
+                  onClick={() =>
+                    router.push(`/dashboard/credit-notes/${cn.id}`)
+                  }
                 >
                   Кредитно известие № {cn.creditNoteNumber}
                 </Button>
@@ -547,7 +585,7 @@ export default function InvoicePage() {
         </div>
       )}
 
-<div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
         <div className="border rounded-lg p-4 bg-white ">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -561,14 +599,14 @@ export default function InvoicePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-            <Label htmlFor="paymentAmount">Сума</Label>
-            <Input
-              id="paymentAmount"
-              type="number"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-              placeholder={remainingAmount.toFixed(2)}
-            />
+              <Label htmlFor="paymentAmount">Сума</Label>
+              <Input
+                id="paymentAmount"
+                type="number"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                placeholder={remainingAmount.toFixed(2)}
+              />
             </div>
             <div className="space-y-1">
               <Label>Метод</Label>
@@ -591,36 +629,44 @@ export default function InvoicePage() {
             <div className="md:col-span-2 flex justify-end">
               <Button
                 onClick={async () => {
-                if (!paymentAmount || Number(paymentAmount) <= 0) {
-                  toast.error("Въведете сума.");
-                  return;
-                }
-                if (Number(paymentAmount) - remainingAmount > 0.01) {
-                  toast.error("Сумата надвишава оставащата по фактурата.");
-                  return;
-                }
-                if (!selectedStorage) {
-                  toast.error("Изберете каса/склад.");
-                  return;
-                }
+                  if (!paymentAmount || Number(paymentAmount) <= 0) {
+                    toast.error("Въведете сума.");
+                    return;
+                  }
+                  if (Number(paymentAmount) - remainingAmount > 0.01) {
+                    toast.error("Сумата надвишава оставащата по фактурата.");
+                    return;
+                  }
+                  if (!selectedStorage) {
+                    toast.error("Изберете каса/склад.");
+                    return;
+                  }
                   setCreatingPayment(true);
                   try {
-                    const res = await fetch(`/api/invoices/${invoiceId}/payments`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        amount: Number(paymentAmount),
-                        method: invoice.paymentMethod || "CASH",
-                        storageId: selectedStorage,
-                      }),
-                    });
+                    const res = await fetch(
+                      `/api/invoices/${invoiceId}/payments`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          amount: Number(paymentAmount),
+                          method: invoice.paymentMethod || "CASH",
+                          storageId: selectedStorage,
+                        }),
+                      }
+                    );
                     const data = await res.json().catch(() => ({}));
-                    if (!res.ok) throw new Error(data?.error || "Грешка при добавяне на плащане");
+                    if (!res.ok)
+                      throw new Error(
+                        data?.error || "Грешка при добавяне на плащане"
+                      );
                     setInvoice(data.invoice);
                     setPaymentAmount("");
                     toast.success("Плащането е добавено.");
                   } catch (err) {
-                    toast.error(err?.message || "Грешка при добавяне на плащане");
+                    toast.error(
+                      err?.message || "Грешка при добавяне на плащане"
+                    );
                   } finally {
                     setCreatingPayment(false);
                   }
@@ -637,12 +683,16 @@ export default function InvoicePage() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-lg font-semibold">Плащания</h3>
-              <p className="text-sm text-gray-500">Проследи всички плащания към тази фактура.</p>
+              <p className="text-sm text-gray-500">
+                Проследи всички плащания към тази фактура.
+              </p>
             </div>
             <div className="text-sm text-gray-700 text-right">
-              Получено: <strong>{Number(invoice.paidAmount || 0).toFixed(2)} лв.</strong>
+              Получено:{" "}
+              <strong>{Number(invoice.paidAmount || 0).toFixed(2)} лв.</strong>
               <br />
-              Общо: <strong>{Number(invoice.totalValue || 0).toFixed(2)} лв.</strong>
+              Общо:{" "}
+              <strong>{Number(invoice.totalValue || 0).toFixed(2)} лв.</strong>
             </div>
           </div>
           {payments.length === 0 ? (
@@ -662,11 +712,21 @@ export default function InvoicePage() {
                 <tbody>
                   {payments.map((p) => (
                     <tr key={p.id} className="border-t">
-                      <td className="px-3 py-2">{new Date(p.createdAt).toLocaleString("bg-BG")}</td>
-                      <td className="px-3 py-2">{p.method === "CASH" ? "В брой" : "Банка"}</td>
-                      <td className="px-3 py-2 text-right">{Number(p.amount || 0).toFixed(2)} лв.</td>
-                      <td className="px-3 py-2">{p.user?.name || p.user?.email || "-"}</td>
-                      <td className="px-3 py-2">{p.cashRegister?.storage?.name || "-"}</td>
+                      <td className="px-3 py-2">
+                        {new Date(p.createdAt).toLocaleString("bg-BG")}
+                      </td>
+                      <td className="px-3 py-2">
+                        {p.method === "CASH" ? "В брой" : "Банка"}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {Number(p.amount || 0).toFixed(2)} лв.
+                      </td>
+                      <td className="px-3 py-2">
+                        {p.user?.name || p.user?.email || "-"}
+                      </td>
+                      <td className="px-3 py-2">
+                        {p.cashRegister?.storage?.name || "-"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -685,8 +745,6 @@ export default function InvoicePage() {
       <InvoiceContent type="copy" />
 
       {/* Payments & Form */}
-
-
     </div>
   );
 }
