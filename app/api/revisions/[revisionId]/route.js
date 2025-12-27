@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getRevisionMissingProductsTotal } from '@/lib/revisions/revision-pricing';
 
 // Get a single revision with details
 export async function GET(req, { params }) {
@@ -18,7 +19,8 @@ export async function GET(req, { params }) {
       }
     });
     if (!revision) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    return NextResponse.json(revision);
+    const missingProductsTotalPrice = getRevisionMissingProductsTotal(revision.missingProducts);
+    return NextResponse.json({ ...revision, missingProductsTotalPrice });
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch revision' }, { status: 500 });
   }

@@ -205,9 +205,10 @@ export default function RevisionsListPage() {
       accessorKey: "missingProductsTotalPrice",
       header: "Цена",
       cell: ({ row }) => {
+        const total = row.original.missingProductsTotalPrice ?? 0;
         return (
           <>
-            {row.original.missingProductsTotalPrice.toFixed(2)} лв.
+            {total.toFixed(2)} лв.
           </>
         )
       }

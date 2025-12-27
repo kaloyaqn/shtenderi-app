@@ -1,11 +1,12 @@
 import { getProductsOnStand, addProductToStand } from '@/lib/standProducts/standProduct';
+import { NextResponse } from 'next/server';
 
 export async function GET(req, { params }) {
     try {
         const { standId } = params;
         const products = await getProductsOnStand(standId);
         console.log("PRODUCTS ON STAND:", products)
-        return new Response(JSON.stringify(products));
+        return NextResponse.json(products)
     } catch (error) {
         console.error('[STAND_PRODUCTS_GET_ERROR]', error);
         const status = error.status || 500;

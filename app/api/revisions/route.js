@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/get-session-better-auth';
+import { getRevisionMissingProductsTotal } from '@/lib/revisions/revision-pricing';
 
 
 export async function POST(req) {
@@ -174,17 +175,12 @@ export async function GET(req) {
       },
     });
 
-    // Sum price of missingProducts for each revision
-    revisions.forEach(rev => {
-      rev.missingProductsTotalPrice =
-        rev.missingProducts?.reduce((sum, mp) => {
-          const unit = mp.priceAtSale ?? mp.product?.clientPrice ?? 0;
-          const qty = mp.givenQuantity ?? mp.missingQuantity ?? 0;
-          return sum + unit * qty;
-        }, 0) ?? 0;
-    });
+    const withTotals = revisions.map((rev) => ({
+      ...rev,
+      missingProductsTotalPrice: getRevisionMissingProductsTotal(rev.missingProducts),
+    }));
 
-    return NextResponse.json(revisions);
+    return NextResponse.json(withTotals);
   } catch (err) {
     console.error(err);
     return NextResponse.json(
